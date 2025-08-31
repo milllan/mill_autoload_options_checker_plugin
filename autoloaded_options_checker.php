@@ -3,7 +3,7 @@
  * Plugin Name:       Autoloaded Options Optimizer
  * Plugin URI:        https://github.com/milllan/mill_autoload_options_checker_plugin
  * Description:       A tool to analyze, view, and manage autoloaded options in the wp_options table, with a remotely managed configuration.
- * Version:           3.3
+ * Version:           3.4
  * Author:            Milan
  * Author URI:        https://wpspeedopt.net/
  * License:           GPL v2 or later
@@ -42,7 +42,7 @@ final class AO_Remote_Config_Manager {
     private static $instance;
     private const DEFAULT_REMOTE_URL = 'https://raw.githubusercontent.com/milllan/mill_autoload_options_checker_plugin/main/config.json';
     private const CACHE_KEY = 'ao_remote_config_cache';
-    private const CACHE_DURATION = 12 * HOUR_IN_SECONDS;
+    private const CACHE_DURATION = 30 * DAY_IN_SECONDS;
     private $config_status = 'Not loaded yet.';
 
     private function __construct() {}
@@ -224,12 +224,12 @@ function ao_display_admin_page() {
                 <thead>
                     <tr>
                         <th id="cb" class="manage-column column-cb check-column"><input type="checkbox" /></th>
-                        <th class="column-primary"><?php _e('Option Name', 'autoload-optimizer'); ?></th>
-                        <th><?php _e('Size', 'autoload-optimizer'); ?></th>
-                        <th><?php _e('% of Total', 'autoload-optimizer'); ?></th>
-                        <th><?php _e('Plugin', 'autoload-optimizer'); ?></th>
-                        <th><?php _e('Status', 'autoload-optimizer'); ?></th>
-                        <th><?php _e('Action', 'autoload-optimizer'); ?></th>
+                        <th class="manage-column column-primary column-option-name"><?php _e('Option Name', 'autoload-optimizer'); ?></th>
+                        <th class="manage-column column-size"><?php _e('Size', 'autoload-optimizer'); ?></th>
+                        <th class="manage-column column-percentage"><?php _e('% of Total', 'autoload-optimizer'); ?></th>
+                        <th class="manage-column column-plugin"><?php _e('Plugin', 'autoload-optimizer'); ?></th>
+                        <th class="manage-column column-status"><?php _e('Status', 'autoload-optimizer'); ?></th>
+                        <th class="manage-column column-action"><?php _e('Action', 'autoload-optimizer'); ?></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -253,15 +253,15 @@ function ao_display_admin_page() {
                                         <input type="checkbox" class="ao-option-checkbox" value="<?php echo esc_attr($option['name']); ?>">
                                     <?php endif; ?>
                                 </th>
-                                <td class="column-primary">
+                                <td class="column-primary column-option-name">
                                     <strong><a href="#" class="view-option-content" data-option-name="<?php echo esc_attr($option['name']); ?>"><?php echo esc_html($option['name']); ?></a></strong>
                                     <?php if ($option['is_safe']) : ?><span class="dashicons dashicons-yes-alt" style="color:#46b450;" title="<?php _e('Safe to disable autoload', 'autoload-optimizer'); ?>"></span><?php endif; ?>
                                 </td>
-                                <td><?php echo size_format($option['length']); ?></td>
-                                <td><?php echo $total_size > 0 ? number_format(($option['length'] / $total_size) * 100, 2) . '%' : 'N/A'; ?></td>
-                                <td><?php echo esc_html($plugin_name); ?></td>
-                                <td><span class="notice <?php echo esc_attr($option['status']['class']); ?>" style="padding: 2px 8px; display: inline-block;"><?php echo esc_html($option['status']['text']); ?></span></td>
-                                <td>
+                                <td class="column-size"><?php echo size_format($option['length']); ?></td>
+                                <td class="column-percentage"><?php echo $total_size > 0 ? number_format(($option['length'] / $total_size) * 100, 2) . '%' : 'N/A'; ?></td>
+                                <td class="column-plugin"><?php echo esc_html($plugin_name); ?></td>
+                                <td class="column-status"><span class="notice <?php echo esc_attr($option['status']['class']); ?>" style="padding: 2px 8px; display: inline-block; margin: 0;"><?php echo esc_html($option['status']['text']); ?></span></td>
+                                <td class="column-action">
                                     <?php if ($option['status']['code'] === 'plugin_inactive' || $option['is_safe']) : ?>
                                         <button class="button disable-single" data-option="<?php echo esc_attr($option['name']); ?>"><?php _e('Disable', 'autoload-optimizer'); ?></button>
                                     <?php else : ?>
@@ -295,11 +295,11 @@ function ao_display_admin_page() {
         <div id="ao-option-modal-overlay"><div id="ao-option-modal-content"><span class="close-modal">&times;</span><h2 id="ao-option-modal-title"></h2><div id="ao-modal-body"></div></div></div>
     </div>
     <style>
-        /* Table layout adjustments */
-        .wp-list-table .column-primary { width: 40%; }
-        .wp-list-table th.check-column { padding: 11px 5px !important; }
-        .wp-list-table th#cb { padding-left: 8px !important; }
-        /* Other styles */
+        .wp-list-table .column-option-name { width: 35%; }
+        .wp-list-table .column-size, .wp-list-table .column-percentage { width: 8%; }
+        .wp-list-table .column-plugin { width: 15%; }
+        .wp-list-table .column-status { width: 12%; }
+        .wp-list-table .column-action { width: 10%; }
         .plugin-header th, .plugin-header td { font-weight: bold; background-color: #f6f6f6; } .view-option-content { cursor: pointer; } #ao-option-modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.7); z-index: 10001; justify-content: center; align-items: center; } #ao-option-modal-content { background: #fff; padding: 20px; border-radius: 4px; width: 80%; max-width: 900px; max-height: 80vh; overflow-y: auto; position: relative; } .close-modal { position: absolute; top: 5px; right: 15px; font-size: 28px; font-weight: bold; cursor: pointer; color: #555; } #ao-modal-body pre { background: #f1f1f1; padding: 15px; border: 1px solid #ddd; white-space: pre-wrap; word-wrap: break-word; }
     </style>
     <?php
@@ -426,7 +426,11 @@ function ao_admin_page_scripts() {
         
         if(mainCheckbox) {
             mainCheckbox.addEventListener('change', () => {
-                itemCheckboxes.forEach(cb => cb.checked = mainCheckbox.checked);
+                itemCheckboxes.forEach(cb => { 
+                    if(!cb.disabled) {
+                        cb.checked = mainCheckbox.checked;
+                    }
+                });
             });
         }
 
