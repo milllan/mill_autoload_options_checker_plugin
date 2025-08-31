@@ -1,0 +1,68 @@
+{
+    "version": "1.0.0",
+    "plugin_mappings": {
+        "elementskit_options": {
+            "name": "ElementsKit Lite",
+            "file": "elementskit-lite/elementskit-lite.php"
+        },
+        "elementskit-lite__banner_data": {
+            "name": "ElementsKit Lite",
+            "file": "elementskit-lite/elementskit-lite.php"
+        },
+        "elementskit-lite__stories_data": {
+            "name": "ElementsKit Lite",
+            "file": "elementskit-lite/elementskit-lite.php"
+        },
+        "addon_library_catalog": {
+            "name": "Unlimited Elements for Elementor",
+            "file": "unlimited-elements-for-elementor/unlimited-elements-for-elementor.php"
+        },
+        "ppc_feature_post_metaboxes_data": {
+            "name": "PublishPress Capabilities",
+            "file": "capability-manager-enhanced/capability-manager-enhanced.php"
+        },
+        "widget_mh_advertising": {
+            "name": "MH Magazine Theme Widgets",
+            "file": "theme"
+        },
+        "widget_mh_custom_posts": {
+            "name": "MH Magazine Theme Widgets",
+            "file": "theme"
+        },
+        "revisionary_sent_mail": {
+            "name": "PublishPress Revisions",
+            "file": "revisionary/revisionary.php"
+        },
+        "abh_options": {
+            "name": "Starbox - the Author Box for Humans",
+            "file": "starbox/starbox.php"
+        },
+        "wpcode_snippets": {
+            "name": "WPCode Lite",
+            "file": "insert-headers-and-footers/ihaf.php"
+        },
+        "rewrite_rules": { "name": "WordPress Core", "file": "core" },
+        "wp_user_roles": { "name": "WordPress Core", "file": "core" }
+    },
+    "safe_literals": [
+        "elementskit-lite__banner_data",
+        "elementskit-lite__stories_data",
+        "addon_library_catalog",
+        "revisionary_sent_mail",
+        "otgs-installer-log"
+    ],
+    "safe_patterns": [
+        "_transient_%",
+        "_site_transient_%",
+        "wf_known_file_list"
+    ],
+    "recommendations": {
+        "ElementsKit Lite": "<strong>ElementsKit Lite:</strong> Options like <code>elementskit-lite__banner_data</code> and <code>elementskit-lite__stories_data</code> contain data for the admin dashboard and are safe to disable autoload for. Review the main <code>elementskit_options</code> carefully before disabling it.",
+        "Unlimited Elements for Elementor": "<strong>Unlimited Elements for Elementor:</strong> The <code>addon_library_catalog</code> option is a very large cache of the plugin's widget library. It is only needed when browsing widgets in the Elementor editor and is very safe to disable autoload for."
+    },
+    "general_recommendations": [
+        "<strong>Safe Options:</strong> Options marked with a green checkmark are generally safe to disable. These are typically cache data, logs, or other non-critical data.",
+        "<strong>WordPress Core:</strong> Core options should not be disabled.",
+        "<strong>Always backup:</strong> Always backup your database before making changes."
+    ]
+}
