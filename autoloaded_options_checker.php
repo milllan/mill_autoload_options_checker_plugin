@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Autoloaded Options Checker
  * Description: Adds a tool to check, manage, and view autoloaded options in the wp_options table.
- * Version: 1.7
+ * Version: 1.8
  */
 
 /**
@@ -713,7 +713,12 @@ function display_autoloaded_options() {
             }
         } else {
             // Try to guess the plugin based on the option name
-            if (strpos($option->option_name, 'elementor') !== false) {
+            if (strpos($option->option_name, 'p3_') === 0) { // <<< ADDED THIS GUESSER BLOCK
+                $plugin_name = 'P3 (Plugin Performance Profiler)';
+                $plugin_file = 'p3-profiler/p3-profiler.php';
+                $status = in_array($plugin_file, $active_plugin_paths) ? 'Active Plugin' : 'Inactive Plugin';
+                $status_class = in_array($plugin_file, $active_plugin_paths) ? 'notice-success' : 'notice-error';
+            } elseif (strpos($option->option_name, 'elementor') !== false) {
                 $plugin_name = 'Elementor';
                 $plugin_file = 'elementor/elementor.php';
                 $status = in_array($plugin_file, $active_plugin_paths) ? 'Active Plugin' : 'Inactive Plugin';
