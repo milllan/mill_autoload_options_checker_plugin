@@ -227,7 +227,12 @@ function ao_display_admin_page() {
         }
 
         if (!isset($grouped_options[$plugin_name])) {
-            $grouped_options[$plugin_name] = ['total_size' => 0, 'count' => 0, 'options' => []];
+            $grouped_options[$plugin_name] = [
+                'total_size' => 0, 
+                'count' => 0, 
+                'options' => [],
+                'status' => $status_info
+            ];
         }
 
         $grouped_options[$plugin_name]['total_size'] += $option->option_length;
@@ -264,7 +269,6 @@ function ao_display_admin_page() {
         
         <div class="notice notice-success is-dismissible">
             <p><strong><?php _e('Safe to Disable:', 'autoload-optimizer'); ?></strong> <?php _e('Options marked with a green checkmark are generally safe to disable. These are typically cache data, logs, or other non-critical data.', 'autoload-optimizer'); ?></p>
-            <!-- // <-- NEW: The button for disabling all safe options -->
             <p><button id="ao-disable-safe-options" class="button"><?php _e('Disable Autoload for All Safe Options', 'autoload-optimizer'); ?></button>
             <span class="spinner" style="float: none; vertical-align: middle; margin-left: 5px;"></span></p>
         </div>
@@ -300,13 +304,29 @@ function ao_display_admin_page() {
                 <h2 class="title"><?php _e('Recommendations', 'autoload-optimizer'); ?></h2>
                 <p>
                     <?php
-                    $displayed_recs = [];
                     $recommendation_found = false;
                     foreach ($grouped_options as $plugin_name => $data) {
-                        if (isset($config['recommendations'][$plugin_name]) && !in_array($plugin_name, $displayed_recs)) {
-                            echo '<span>' . wp_kses_post($config['recommendations'][$plugin_name]) . '</span><br>';
-                            $displayed_recs[] = $plugin_name;
+                        if (isset($config['recommendations'][$plugin_name])) {
                             $recommendation_found = true;
+                            $rec_text = $config['recommendations'][$plugin_name];
+                            $status_class = $data['status']['class'] ?? 'notice-info';
+                            
+                            // *** THIS IS THE CORRECTED CODE BLOCK ***
+                            $styled_rec_text = preg_replace_callback(
+                                '/<strong>(.*?:)<\/strong>/', // PATTERN FIX: Match the colon inside the tag
+                                function($matches) use ($status_class) {
+                                    // $matches[1] now contains the text AND the colon (e.g., "ElementsKit Lite:")
+                                    return sprintf(
+                                        '<span class="notice %s" style="padding: 2px 8px; display: inline-block; margin: 0; font-weight: bold;">%s</span>', // REPLACEMENT FIX: Removed extra colon from the end
+                                        esc_attr($status_class),
+                                        esc_html($matches[1])
+                                    );
+                                },
+                                $rec_text,
+                                1
+                            );
+
+                            echo '<span>' . wp_kses_post($styled_rec_text) . '</span><br><br>';
                         }
                     }
                     if (!$recommendation_found) {
@@ -357,8 +377,8 @@ function ao_display_admin_page() {
                             </td>
                         </tr>
                         <?php foreach ($data['options'] as $option) : ?>
-                            <?php $row_attributes = $option['is_safe'] ? 'data-is-safe="true"' : ''; // <-- NEW: Prepare data attribute ?>
-                            <tr class="<?php echo $group_class; ?>" <?php echo $row_attributes; // <-- CHANGED: Add data attribute to the row ?>>
+                            <?php $row_attributes = $option['is_safe'] ? 'data-is-safe="true"' : ''; ?>
+                            <tr class="<?php echo $group_class; ?>" <?php echo $row_attributes; ?>>
                                 <th class="check-column">
                                     <?php if ($option['status']['code'] === 'plugin_inactive' || $option['is_safe']) : ?>
                                         <input type="checkbox" class="ao-option-checkbox" value="<?php echo esc_attr($option['name']); ?>">
