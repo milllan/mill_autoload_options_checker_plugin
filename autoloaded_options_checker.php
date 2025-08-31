@@ -395,7 +395,9 @@ function display_autoloaded_options() {
         'wpcf-custom-taxonomies' => array('name' => 'Toolset Types', 'file' => 'types/types.php'),
         'cpt_custom_post_types' => array('name' => 'Custom Post Types', 'file' => 'custom-post-types/custom-post-types.php'),
         'cptui_taxonomies' => array('name' => 'Custom Post Type UI', 'file' => 'custom-post-type-ui/custom-post-type-ui.php'),
-        'wpcode_snippets' => array('name' => 'Code Snippets', 'file' => 'code-snippets/code-snippets.php'),
+        'code_snippets_settings' => array('name' => 'Code Snippets', 'file' => 'code-snippets/code-snippets.php'),
+        'wpcode_snippets' => array('name' => 'WPCode - Insert Headers & Footers', 'file' => 'insert-headers-and-footers/wpcode.php'),
+        
         'rank_math_analytics_all_services' => array('name' => 'Rank Math', 'file' => 'seo-by-rank-math/rank-math.php'),
         'wpml_language_switcher' => array('name' => 'WPML', 'file' => 'sitepress-multilingual-cms/sitepress.php'),
         'tve_default_styles' => array('name' => 'Thrive Themes', 'file' => 'thrive-visual-editor/thrive-visual-editor.php'),
