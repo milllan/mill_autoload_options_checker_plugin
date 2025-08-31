@@ -329,7 +329,7 @@ function ao_ajax_disable_autoload_options() {
     $log_content .= "User: " . wp_get_current_user()->user_login . "\n";
     
     global $wpdb;
-    $success_count = 0; $failure_count = 0; $already_done = 0;
+    $success_count = $failure_count = $already_done = 0;
 
     foreach ($options_to_disable as $option_name) {
         $sane_option_name = sanitize_text_field($option_name);
@@ -416,6 +416,7 @@ function ao_admin_page_scripts() {
         });
         
         document.getElementById('ao-disable-selected').addEventListener('click', e => {
+            e.preventDefault();
             const selected = Array.from(document.querySelectorAll('.ao-option-checkbox:checked')).map(cb => cb.value);
             if (selected.length === 0) {
                 alert('<?php _e('Please select at least one option from the table.', 'autoload-optimizer'); ?>');
