@@ -1,3 +1,10 @@
+<?php
+/**
+ * Plugin Name: Autoloaded Options Checker
+ * Description: Adds a tool to check and manage autoloaded options in the wp_options table.
+ * Version: 1.2
+ */
+
 /**
  * Adds Autoloaded Options Checker under Tools menu
  */
@@ -369,6 +376,8 @@ function display_autoloaded_options() {
     
     // Create mapping of options to plugins with exact file paths
     $option_plugin_mapping = array(
+        // Mapping for Starbox
+        'abh_options' => array('name' => 'Starbox - the Author Box for Humans', 'file' => 'starbox/starbox.php'),
         // Original mappings
         'wp_installer_settings' => array('name' => 'WPML', 'file' => 'sitepress-multilingual-cms/sitepress.php'),
         'wpml_strings_need_links_fixed' => array('name' => 'WPML', 'file' => 'sitepress-multilingual-cms/sitepress.php'),
