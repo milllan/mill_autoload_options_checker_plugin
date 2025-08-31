@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Autoloaded Options Checker
  * Description: Adds a tool to check and manage autoloaded options in the wp_options table.
- * Version: 1.2
+ * Version: 1.4
  */
 
 /**
@@ -147,6 +147,7 @@ function disable_safe_autoload_options_ajax() {
     
     // Safe options to disable (literal matches)
     $safe_options_literal = array(
+        'yst_ga_top_pageviews',
         '_transient_wpassetcleanup_assets_info',
         '_transient_wc_attribute_taxonomies',
         '_transient_dirsize_cache',
@@ -378,6 +379,13 @@ function display_autoloaded_options() {
     $option_plugin_mapping = array(
         // Mapping for Starbox
         'abh_options' => array('name' => 'Starbox - the Author Box for Humans', 'file' => 'starbox/starbox.php'),
+        
+        'wpcode_snippets' => array('name' => 'WPCode Lite', 'file' => 'insert-headers-and-footers/ihaf.php'),
+
+        // NEW MAPPINGS
+        'ez_adtester_config' => array('name' => 'Ezoic Integration', 'file' => 'ezoic-integration/ezoic-integration.php'),
+        'yst_ga_top_pageviews' => array('name' => 'Yoast SEO', 'file' => 'wordpress-seo/wp-seo.php'),
+
         // Original mappings
         'wp_installer_settings' => array('name' => 'WPML', 'file' => 'sitepress-multilingual-cms/sitepress.php'),
         'wpml_strings_need_links_fixed' => array('name' => 'WPML', 'file' => 'sitepress-multilingual-cms/sitepress.php'),
@@ -395,8 +403,6 @@ function display_autoloaded_options() {
         'wpcf-custom-taxonomies' => array('name' => 'Toolset Types', 'file' => 'types/types.php'),
         'cpt_custom_post_types' => array('name' => 'Custom Post Types', 'file' => 'custom-post-types/custom-post-types.php'),
         'cptui_taxonomies' => array('name' => 'Custom Post Type UI', 'file' => 'custom-post-type-ui/custom-post-type-ui.php'),
-        'code_snippets_settings' => array('name' => 'Code Snippets', 'file' => 'code-snippets/code-snippets.php'),
-        'wpcode_snippets' => array('name' => 'WPCode Lite', 'file' => 'insert-headers-and-footers/ihaf.php'),        
         'rank_math_analytics_all_services' => array('name' => 'Rank Math', 'file' => 'seo-by-rank-math/rank-math.php'),
         'wpml_language_switcher' => array('name' => 'WPML', 'file' => 'sitepress-multilingual-cms/sitepress.php'),
         'tve_default_styles' => array('name' => 'Thrive Themes', 'file' => 'thrive-visual-editor/thrive-visual-editor.php'),
@@ -466,6 +472,7 @@ function display_autoloaded_options() {
     
     // Safe options to disable (literal matches)
     $safe_options_literal = array(
+        'yst_ga_top_pageviews',
         '_transient_wpassetcleanup_assets_info',
         '_transient_wc_attribute_taxonomies',
         '_transient_dirsize_cache',
