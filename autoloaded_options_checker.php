@@ -3,7 +3,7 @@
  * Plugin Name:       Autoloaded Options Optimizer
  * Plugin URI:        https://github.com/milllan/mill_autoload_options_checker_plugin
  * Description:       A tool to analyze, view, and manage autoloaded options in the wp_options table, with a remotely managed configuration.
- * Version:           3.1
+ * Version:           3.2
  * Author:            Milan
  * Author URI:        https://wpspeedopt.net/
  * License:           GPL v2 or later
@@ -41,7 +41,6 @@ function ao_register_ajax_handlers() {
 final class AO_Remote_Config_Manager {
     private static $instance;
     private const DEFAULT_REMOTE_URL = 'https://raw.githubusercontent.com/milllan/mill_autoload_options_checker_plugin/main/config.json';
-
     private const CACHE_KEY = 'ao_remote_config_cache';
     private const CACHE_DURATION = 30 * DAY_IN_SECONDS;
     private $config_status = 'Not loaded yet.';
@@ -59,7 +58,7 @@ final class AO_Remote_Config_Manager {
         $config = get_transient(self::CACHE_KEY);
 
         if (false === $config) {
-            $this->config_status = __('Fetching from GitHub...', 'autoload-optimizer');
+            $this->config_status = __('Fetching fresh config from GitHub...', 'autoload-optimizer');
             $remote_config = $this->fetch_remote_config();
             
             if (false !== $remote_config) {
@@ -70,13 +69,13 @@ final class AO_Remote_Config_Manager {
                 set_transient(self::CACHE_KEY, $remote_config, self::CACHE_DURATION);
                 return $remote_config;
             } else {
-                $this->config_status = __('Error: Could not fetch remote config and no fallback is available.', 'autoload-optimizer');
+                $this->config_status = __('Error: Could not fetch remote config. No fallback available.', 'autoload-optimizer');
                 return $this->get_empty_config_structure();
             }
         }
 
         $this->config_status = sprintf(
-            __('Cached (Version: %s)', 'autoload-optimizer'),
+            __('Using Cached Config (Version: %s)', 'autoload-optimizer'),
             esc_html($config['version'] ?? 'N/A')
         );
         return $config;
@@ -85,19 +84,19 @@ final class AO_Remote_Config_Manager {
     private function fetch_remote_config() {
         $remote_url = apply_filters('ao_remote_config_url', self::DEFAULT_REMOTE_URL);
         $response = wp_remote_get($remote_url, ['timeout' => 10, 'headers' => ['Accept' => 'application/json']]);
-        // Fallback to local bundled file if remote fails
+
         if (is_wp_error($response) || 200 !== wp_remote_retrieve_response_code($response)) {
-            $local = plugin_dir_path(__FILE__) . 'config.json';
-            if (file_exists($local)) {
-                $config = json_decode(file_get_contents($local), true);
+            // As a fallback, try to use a local bundled file if remote fails
+            $local_path = plugin_dir_path(__FILE__) . 'config.json';
+            if (file_exists($local_path)) {
+                $local_content = file_get_contents($local_path);
+                $config = json_decode($local_content, true);
                 if (json_last_error() === JSON_ERROR_NONE && $this->is_config_valid($config)) {
+                    $this->config_status = __('Using Local Fallback Config', 'autoload-optimizer');
                     return $config;
                 }
             }
-        }
-
-        if (is_wp_error($response) || 200 !== wp_remote_retrieve_response_code($response)) {
-            return false;
+            return false; // Total failure
         }
 
         $body = wp_remote_retrieve_body($response);
@@ -144,11 +143,13 @@ function ao_display_admin_page() {
     $config_manager = AO_Remote_Config_Manager::get_instance();
     if (isset($_GET['ao_refresh_config']) && check_admin_referer('ao_refresh_config')) {
         delete_transient('ao_remote_config_cache');
+        // Redirect to clean the URL
+        wp_safe_redirect(remove_query_arg(['ao_refresh_config', '_wpnonce']));
+        exit;
     }
-    $config = $config_manager->get_config();$config = $config_manager->get_config();
+    $config = $config_manager->get_config();
     $status_message = $config_manager->get_config_status();
 
-    //$options = $wpdb->get_results("SELECT option_name, LENGTH(option_value) AS option_length FROM {$wpdb->options} WHERE autoload = 'yes' ORDER BY option_length DESC");
     $options = $wpdb->get_results($wpdb->prepare(
         "SELECT option_name, LENGTH(option_value) AS option_length
          FROM {$wpdb->options}
@@ -156,28 +157,26 @@ function ao_display_admin_page() {
          ORDER BY option_length DESC",
          1024
     ));
+
     $active_plugin_paths = get_option('active_plugins', []);
     $grouped_options = [];
     $total_size = 0;
     
-    foreach ($options as $option) {
+    // Calculate total size first for percentages
+    foreach($options as $option) {
         $total_size += $option->option_length;
-        if ($option->option_length < 1024) continue;
+    }
 
+    foreach ($options as $option) {
         $is_safe = in_array($option->option_name, $config['safe_literals']);
         if (!$is_safe && !empty($config['safe_patterns'])) {
-            $glob_patterns = array_map(
-                static fn($p) => strtr($p, ['%' => '*', '_' => '?']),
-                $config['safe_patterns']
-            );
-            foreach ($glob_patterns as $pattern) {
+            foreach ($config['safe_patterns'] as $pattern) {
                 if (fnmatch($pattern, $option->option_name)) { $is_safe = true; break; }
             }
         }
-        }
         
         $plugin_name = __('Unknown', 'autoload-optimizer');
-        $status_info = ['text' => __('Unknown', 'autoload-optimizer'), 'class' => ''];
+        $status_info = ['code' => 'unknown', 'text' => __('Unknown', 'autoload-optimizer'), 'class' => ''];
 
         if (isset($config['plugin_mappings'][$option->option_name])) {
             $mapping = $config['plugin_mappings'][$option->option_name];
@@ -209,13 +208,13 @@ function ao_display_admin_page() {
         <h1><?php _e('Autoloaded Options Optimizer', 'autoload-optimizer'); ?></h1>
         <div class="notice notice-info notice-alt">
             <p><strong><?php _e('Configuration Status:', 'autoload-optimizer'); ?></strong> <?php echo esc_html($status_message); ?></p>
-            <p><a href="<?php echo esc_url( wp_nonce_url( add_query_arg('ao_refresh_config', '1'), 'ao_refresh_config') ); ?>" class="button"><?php _e('Refresh Configuration', 'autoload-optimizer'); ?></a></p>
+            <p><a href="<?php echo esc_url(wp_nonce_url(add_query_arg('ao_refresh_config', '1'), 'ao_refresh_config')); ?>" class="button"><?php _e('Force Refresh Configuration', 'autoload-optimizer'); ?></a></p>
         </div>
 
         <?php if (empty($options)) : ?>
-            <p><?php _e('No autoloaded options found.', 'autoload-optimizer'); ?></p>
+            <p><?php _e('No autoloaded options larger than 1KB found.', 'autoload-optimizer'); ?></p>
         <?php else : ?>
-            <div class="notice notice-warning notice-alt"><p><?php printf(__('<strong>Total Found:</strong> %d autoloaded options (%s).', 'autoload-optimizer'), count($options), size_format($total_size)); ?></p></div>
+            <div class="notice notice-warning notice-alt"><p><?php printf(__('<strong>Analysis:</strong> Found %d autoloaded options > 1KB with a combined size of %s.', 'autoload-optimizer'), count($options), size_format($total_size)); ?></p></div>
             
             <div id="ao-results-container" style="display:none; margin-top: 1rem;"></div>
 
@@ -223,7 +222,7 @@ function ao_display_admin_page() {
                 <h2 class="title"><?php _e('Bulk Actions', 'autoload-optimizer'); ?></h2>
                 <p><?php _e('Select multiple options from the table below and disable their autoload status in one go.', 'autoload-optimizer'); ?></p>
                 <button id="ao-disable-selected" class="button button-primary"><?php _e('Disable Autoload for Selected', 'autoload-optimizer'); ?></button>
-                <span class="spinner" style="float: none; margin-left: 5px;"></span>
+                <span class="spinner" style="float: none; vertical-align: middle; margin-left: 5px;"></span>
             </div>
 
             <h2><?php _e('Large Autoloaded Options (>1KB)', 'autoload-optimizer'); ?></h2>
@@ -231,8 +230,11 @@ function ao_display_admin_page() {
                 <thead>
                     <tr>
                         <th id="cb" class="manage-column column-cb check-column"><input type="checkbox" /></th>
-                        <th><?php _e('Option Name / Status', 'autoload-optimizer'); ?></th>
+                        <th><?php _e('Option Name', 'autoload-optimizer'); ?></th>
                         <th><?php _e('Size', 'autoload-optimizer'); ?></th>
+                        <th><?php _e('% of Total', 'autoload-optimizer'); ?></th>
+                        <th><?php _e('Plugin', 'autoload-optimizer'); ?></th>
+                        <th><?php _e('Status', 'autoload-optimizer'); ?></th>
                         <th><?php _e('Action', 'autoload-optimizer'); ?></th>
                     </tr>
                 </thead>
@@ -240,24 +242,26 @@ function ao_display_admin_page() {
                     <?php foreach ($grouped_options as $plugin_name => $data) : ?>
                         <tr class="plugin-header">
                             <th class="check-column"></th>
-                            <td colspan="3"><strong><?php echo esc_html($plugin_name); ?></strong> <small>(<?php printf('%d options, %s total', $data['count'], size_format($data['total_size'])); ?>)</small></td>
+                            <td colspan="6"><strong><?php echo esc_html($plugin_name); ?></strong> <small>(<?php printf('%d options, %s total', $data['count'], size_format($data['total_size'])); ?>)</small></td>
                         </tr>
                         <?php foreach ($data['options'] as $option) : ?>
                             <tr>
                                 <th class="check-column">
-                                    <?php if (($option['status']['code'] ?? '') === 'plugin_inactive' || $option['is_safe']) : ?>
+                                    <?php if ($option['status']['code'] === 'plugin_inactive' || $option['is_safe']) : ?>
                                         <input type="checkbox" class="ao-option-checkbox" value="<?php echo esc_attr($option['name']); ?>">
                                     <?php endif; ?>
                                 </th>
                                 <td>
                                     <strong><a href="#" class="view-option-content" data-option-name="<?php echo esc_attr($option['name']); ?>"><?php echo esc_html($option['name']); ?></a></strong>
                                     <?php if ($option['is_safe']) : ?><span class="dashicons dashicons-yes-alt" style="color:#46b450;" title="<?php _e('Safe to disable autoload', 'autoload-optimizer'); ?>"></span><?php endif; ?>
-                                    <br><small class="<?php echo esc_attr($option['status']['class']); ?>"><?php echo esc_html($option['status']['text']); ?></small>
                                 </td>
                                 <td><?php echo size_format($option['length']); ?></td>
+                                <td><?php echo $total_size > 0 ? number_format(($option['length'] / $total_size) * 100, 2) . '%' : 'N/A'; ?></td>
+                                <td><?php echo esc_html($plugin_name); ?></td>
+                                <td><span class="notice <?php echo esc_attr($option['status']['class']); ?>" style="padding: 2px 8px; display: inline-block;"><?php echo esc_html($option['status']['text']); ?></span></td>
                                 <td>
-                                    <?php if (($option['status']['code'] ?? '') === 'plugin_inactive' || $option['is_safe']) : ?>
-                                        <button class="button disable-single" data-option="<?php echo esc_attr($option['name']); ?>"><?php _e('Disable Autoload', 'autoload-optimizer'); ?></button>
+                                    <?php if ($option['status']['code'] === 'plugin_inactive' || $option['is_safe']) : ?>
+                                        <button class="button disable-single" data-option="<?php echo esc_attr($option['name']); ?>"><?php _e('Disable', 'autoload-optimizer'); ?></button>
                                     <?php else : ?>
                                         <span title="<?php _e('Disabling autoload for core or active plugins is not recommended.', 'autoload-optimizer'); ?>"><?php _e('N/A', 'autoload-optimizer'); ?></span>
                                     <?php endif; ?>
@@ -305,56 +309,36 @@ function ao_ajax_get_option_value() {
 
 function ao_ajax_disable_autoload_options() {
     check_ajax_referer('ao_disable_autoload_nonce', 'nonce');
-    if (!current_user_can('manage_options')) {
-        wp_send_json_error(['message' => __('Permission denied.', 'autoload-optimizer')]);
-    }
+    if (!current_user_can('manage_options')) wp_send_json_error(['message' => __('Permission denied.', 'autoload-optimizer')]);
 
     $options_to_disable = isset($_POST['option_names']) ? (array) $_POST['option_names'] : [];
-    if (empty($options_to_disable)) {
-        wp_send_json_error(['message' => __('No options were selected.', 'autoload-optimizer')]);
-    }
+    if (empty($options_to_disable)) wp_send_json_error(['message' => __('No options were selected.', 'autoload-optimizer')]);
 
-    // Prepare for logging
     $upload_dir = wp_upload_dir();
     $log_file = $upload_dir['basedir'] . '/autoload-options-debug.log';
     $log_content = "\n=== Autoload Disable Action - " . date('Y-m-d H:i:s') . " ===\n";
     $log_content .= "User: " . wp_get_current_user()->user_login . "\n";
     
     global $wpdb;
-    $success_count = 0;
-    $failure_count = 0;
-    $already_done = 0;
+    $success_count = 0; $failure_count = 0; $already_done = 0;
 
     foreach ($options_to_disable as $option_name) {
         $sane_option_name = sanitize_text_field($option_name);
         $current_autoload = $wpdb->get_var($wpdb->prepare("SELECT autoload FROM {$wpdb->options} WHERE option_name = %s", $sane_option_name));
-
         if ('no' === $current_autoload) {
-            $already_done++;
-            $log_content .= "[SKIPPED] '{$sane_option_name}' - Autoload was already 'no'.\n";
-            continue;
+            $already_done++; $log_content .= "[SKIPPED] '{$sane_option_name}' - Already 'no'.\n"; continue;
         }
-
         $result = $wpdb->update($wpdb->options, ['autoload' => 'no'], ['option_name' => $sane_option_name]);
-        
         if (false === $result) {
-            $failure_count++;
-            $log_content .= "[FAILED]  '{$sane_option_name}' - Database error on update.\n";
+            $failure_count++; $log_content .= "[FAILED]  '{$sane_option_name}' - DB error.\n";
         } else {
-            $success_count++;
-            $log_content .= "[SUCCESS] '{$sane_option_name}' - Set autoload to 'no'.\n";
+            $success_count++; $log_content .= "[SUCCESS] '{$sane_option_name}' - Set to 'no'.\n";
         }
     }
 
-    // Write to the log file
     file_put_contents($log_file, $log_content, FILE_APPEND);
-
-    $message = sprintf(
-        __('Processed %d options: %d successfully disabled, %d failed, %d already disabled.', 'autoload-optimizer'),
-        count($options_to_disable), $success_count, $failure_count, $already_done
-    );
-    $message .= ' ' . sprintf(__('A detailed record has been saved to %s.', 'autoload-optimizer'), '<code>/wp-content/uploads/autoload-options-debug.log</code>');
-
+    $message = sprintf(__('Processed %d options: %d disabled, %d failed, %d already off.', 'autoload-optimizer'), count($options_to_disable), $success_count, $failure_count, $already_done);
+    $message .= ' ' . sprintf(__('Log saved to %s.', 'autoload-optimizer'), '<code>/wp-content/uploads/autoload-options-debug.log</code>');
     wp_send_json_success(['message' => $message]);
 }
 
@@ -371,15 +355,15 @@ function ao_admin_page_scripts() {
         const modalBody = document.getElementById('ao-modal-body');
         const resultsContainer = document.getElementById('ao-results-container');
         const ajaxurl = '<?php echo admin_url('admin-ajax.php'); ?>';
+        const mainCheckbox = document.querySelector('.wp-list-table #cb input[type="checkbox"]');
+        const itemCheckboxes = document.querySelectorAll('.wp-list-table .ao-option-checkbox');
 
         function showModal(title, content) { modalTitle.textContent = title; modalBody.innerHTML = content; modalOverlay.style.display = 'flex'; }
         function hideModal() { modalOverlay.style.display = 'none'; }
         function showResult(message, type = 'success') { resultsContainer.innerHTML = `<div class="notice notice-${type} is-dismissible"><p>${message}</p></div>`; resultsContainer.style.display = 'block'; }
 
         function disableOptions(optionNames, button) {
-            if (!confirm(`<?php _e('Are you sure you want to disable autoload for the selected option(s)?', 'autoload-optimizer'); ?>`)) {
-                return;
-            }
+            if (!confirm(`<?php _e('Are you sure you want to disable autoload for the selected option(s)?', 'autoload-optimizer'); ?>`)) return;
 
             const isBulk = Array.isArray(optionNames) && optionNames.length > 1;
             const spinner = isBulk ? document.querySelector('#ao-disable-selected + .spinner') : null;
@@ -395,14 +379,10 @@ function ao_admin_page_scripts() {
             fetch(ajaxurl, { method: 'POST', body: formData })
                 .then(response => response.json())
                 .then(data => {
-                    if (data.success) {
-                        showResult(data.data.message, 'success');
-                        setTimeout(() => location.reload(), 3000);
-                    } else {
-                        showResult(data.data.message, 'error');
-                    }
+                    showResult(data.data.message, data.success ? 'success' : 'error');
+                    if (data.success) setTimeout(() => location.reload(), 3000);
                 })
-                .catch(() => showResult('<?php _e('Request failed. Please try again.', 'autoload-optimizer'); ?>', 'error'))
+                .catch(() => showResult('<?php _e('Request failed. Please check the browser console for errors.', 'autoload-optimizer'); ?>', 'error'))
                 .finally(() => {
                     if (button) button.disabled = false;
                     if (spinner) spinner.classList.remove('is-active');
@@ -426,7 +406,7 @@ function ao_admin_page_scripts() {
             }
         });
         
-        document.getElementById('ao-disable-selected').addEventListener('click', function(e){
+        document.getElementById('ao-disable-selected').addEventListener('click', e => {
             const selected = Array.from(document.querySelectorAll('.ao-option-checkbox:checked')).map(cb => cb.value);
             if (selected.length === 0) {
                 alert('<?php _e('Please select at least one option from the table.', 'autoload-optimizer'); ?>');
@@ -434,8 +414,14 @@ function ao_admin_page_scripts() {
             }
             disableOptions(selected, e.target);
         });
+        
+        if(mainCheckbox) {
+            mainCheckbox.addEventListener('change', () => {
+                itemCheckboxes.forEach(cb => cb.checked = mainCheckbox.checked);
+            });
+        }
 
-        modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) hideModal(); });
+        modalOverlay.addEventListener('click', e => { if (e.target === modalOverlay) hideModal(); });
         modalContent.querySelector('.close-modal').addEventListener('click', hideModal);
     });
     </script>
