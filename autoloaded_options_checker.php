@@ -148,14 +148,12 @@ function ao_display_admin_page() {
     $config = $config_manager->get_config();
     $status_message = $config_manager->get_config_status();
 
-    // 1. Get total stats for ALL autoloaded options
     $total_autoload_stats = $wpdb->get_row(
         "SELECT COUNT(option_name) as count, SUM(LENGTH(option_value)) as size
          FROM {$wpdb->options}
          WHERE autoload = 'yes'"
     );
 
-    // 2. Get only the LARGE options for the main table
     $large_options = $wpdb->get_results($wpdb->prepare(
         "SELECT option_name, LENGTH(option_value) AS option_length
          FROM {$wpdb->options}
@@ -166,6 +164,7 @@ function ao_display_admin_page() {
     $active_plugin_paths = get_option('active_plugins', []);
     $grouped_options = [];
     $large_options_size = 0;
+    $inactive_plugin_option_count = 0;
     
     foreach($large_options as $option) { $large_options_size += $option->option_length; }
 
@@ -200,6 +199,7 @@ function ao_display_admin_page() {
             if (!$active_freemius_plugin_found) {
                 $plugin_name = __('Freemius SDK (Shared)', 'autoload-optimizer');
                 $status_info = ['code' => 'plugin_inactive', 'text' => __('Inactive/Legacy', 'autoload-optimizer'), 'class' => 'notice-error'];
+                $inactive_plugin_option_count++;
             }
             
             $mapping_found = true;
@@ -211,7 +211,10 @@ function ao_display_admin_page() {
             if ($mapping['file'] === 'core') $status_info = ['code' => 'core', 'text' => __('WordPress Core', 'autoload-optimizer'), 'class' => 'notice-info'];
             elseif ($mapping['file'] === 'theme') $status_info = ['code' => 'theme', 'text' => __('Active Theme', 'autoload-optimizer'), 'class' => 'notice-info'];
             elseif (in_array($mapping['file'], $active_plugin_paths)) $status_info = ['code' => 'plugin_active', 'text' => __('Active Plugin', 'autoload-optimizer'), 'class' => 'notice-success'];
-            else $status_info = ['code' => 'plugin_inactive', 'text' => __('Inactive Plugin', 'autoload-optimizer'), 'class' => 'notice-error'];
+            else {
+                $status_info = ['code' => 'plugin_inactive', 'text' => __('Inactive Plugin', 'autoload-optimizer'), 'class' => 'notice-error'];
+                $inactive_plugin_option_count++;
+            }
             
             $mapping_found = true;
         }
@@ -238,7 +241,6 @@ function ao_display_admin_page() {
     <div class="wrap">
         <h1><?php _e('Autoloaded Options Optimizer', 'autoload-optimizer'); ?></h1>
 
-        <!-- *** THIS IS THE CHANGED SECTION *** -->
         <div class="notice notice-warning notice-alt" style="margin-top: 1rem;">
             <?php if ($total_autoload_stats && $total_autoload_stats->count > 0) : ?>
                 <p>
@@ -259,6 +261,31 @@ function ao_display_admin_page() {
                 <?php endif; ?>
             <?php endif; ?>
         </div>
+        
+        <div class="notice notice-success is-dismissible">
+            <p><strong><?php _e('Safe to Disable:', 'autoload-optimizer'); ?></strong> <?php _e('Options marked with a green checkmark are generally safe to disable. These are typically cache data, logs, or other non-critical data.', 'autoload-optimizer'); ?></p>
+            <!-- // <-- NEW: The button for disabling all safe options -->
+            <p><button id="ao-disable-safe-options" class="button"><?php _e('Disable Autoload for All Safe Options', 'autoload-optimizer'); ?></button>
+            <span class="spinner" style="float: none; vertical-align: middle; margin-left: 5px;"></span></p>
+        </div>
+
+        <?php if ($inactive_plugin_option_count > 0) : ?>
+            <div class="notice notice-success is-dismissible">
+                <p>
+                    <?php 
+                    printf(
+                        _n(
+                            '<strong>Found %d option from an inactive plugin.</strong> Disabling autoload for these options can improve performance.',
+                            '<strong>Found %d options from inactive plugins.</strong> Disabling autoload for these options can improve performance.',
+                            $inactive_plugin_option_count,
+                            'autoload-optimizer'
+                        ),
+                        $inactive_plugin_option_count
+                    );
+                    ?>
+                </p>
+            </div>
+        <?php endif; ?>
 
         <div class="notice notice-error"><p><strong><?php _e('Warning:', 'autoload-optimizer'); ?></strong> <?php _e('Always have a backup before making changes. Only disable autoload for options that belong to inactive plugins or are marked as safe.', 'autoload-optimizer'); ?></p></div>
         
@@ -330,7 +357,8 @@ function ao_display_admin_page() {
                             </td>
                         </tr>
                         <?php foreach ($data['options'] as $option) : ?>
-                            <tr class="<?php echo $group_class; ?>">
+                            <?php $row_attributes = $option['is_safe'] ? 'data-is-safe="true"' : ''; // <-- NEW: Prepare data attribute ?>
+                            <tr class="<?php echo $group_class; ?>" <?php echo $row_attributes; // <-- CHANGED: Add data attribute to the row ?>>
                                 <th class="check-column">
                                     <?php if ($option['status']['code'] === 'plugin_inactive' || $option['is_safe']) : ?>
                                         <input type="checkbox" class="ao-option-checkbox" value="<?php echo esc_attr($option['name']); ?>">
@@ -446,11 +474,11 @@ function ao_admin_page_scripts() {
         function disableOptions(optionNames, button) {
             if (!confirm(`<?php _e('Are you sure you want to disable autoload for the selected option(s)?', 'autoload-optimizer'); ?>`)) return;
 
-            const isBulk = Array.isArray(optionNames) && optionNames.length > 1;
-            const spinner = isBulk ? document.querySelector('#ao-disable-selected + .spinner') : null;
+            // <-- CHANGED: More generic spinner logic that finds the next sibling of the clicked button
+            const spinner = button ? button.nextElementSibling : null;
             
             if (button) button.disabled = true;
-            if (spinner) spinner.classList.add('is-active');
+            if (spinner && spinner.classList.contains('spinner')) spinner.classList.add('is-active');
 
             const formData = new FormData();
             formData.append('action', 'ao_disable_autoload_options');
@@ -466,7 +494,7 @@ function ao_admin_page_scripts() {
                 .catch(() => showResult('<?php _e('Request failed. Please check the browser console for errors.', 'autoload-optimizer'); ?>', 'error'))
                 .finally(() => {
                     if (button) button.disabled = false;
-                    if (spinner) spinner.classList.remove('is-active');
+                    if (spinner && spinner.classList.contains('spinner')) spinner.classList.remove('is-active');
                 });
         }
 
@@ -496,6 +524,20 @@ function ao_admin_page_scripts() {
             }
             disableOptions(selected, e.target);
         });
+
+        // <-- NEW: Event listener for the "Disable All Safe" button
+        const disableSafeBtn = document.getElementById('ao-disable-safe-options');
+        if (disableSafeBtn) {
+            disableSafeBtn.addEventListener('click', e => {
+                e.preventDefault();
+                const safeOptions = Array.from(document.querySelectorAll('tr[data-is-safe="true"] .ao-option-checkbox')).map(cb => cb.value);
+                if (safeOptions.length === 0) {
+                    alert('<?php _e('No safe options were found in the table to disable.', 'autoload-optimizer'); ?>');
+                    return;
+                }
+                disableOptions(safeOptions, e.target);
+            });
+        }
         
         if(mainCheckbox) {
             mainCheckbox.addEventListener('change', () => {
