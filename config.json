@@ -227,7 +227,7 @@
         },
         "complianz_options": {
             "name": "Complianz Privacy Suite",
-            "file": "complianz-gdpr-premium/complianz-gpdr-premium.php"
+            "file": "complianz-gdpr-premium/complianz-gdpr-premium.php"
         },
         "elementor_active_kit": {
             "name": "Elementor",
