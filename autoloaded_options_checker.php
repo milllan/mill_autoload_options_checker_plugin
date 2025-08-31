@@ -143,10 +143,15 @@ function ao_display_admin_page() {
         if ($option->option_length < 1024) continue;
 
         $is_safe = in_array($option->option_name, $config['safe_literals']);
-        if (!$is_safe) {
-            foreach ($config['safe_patterns'] as $pattern) {
+        if (!$is_safe && !empty($config['safe_patterns'])) {
+            $glob_patterns = array_map(
+                static fn($p) => strtr($p, ['%' => '*', '_' => '?']),
+                $config['safe_patterns']
+            );
+            foreach ($glob_patterns as $pattern) {
                 if (fnmatch($pattern, $option->option_name)) { $is_safe = true; break; }
             }
+        }
         }
         
         $plugin_name = __('Unknown', 'autoload-optimizer');
