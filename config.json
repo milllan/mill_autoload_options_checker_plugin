@@ -1,5 +1,5 @@
 {
-    "version": "1.0.0",
+    "version": "1.2.0",
     "plugin_mappings": {
         "elementskit_options": {
             "name": "ElementsKit Lite",
@@ -382,11 +382,21 @@
             "file": "limit-login-attempts-reloaded/limit-login-attempts-reloaded.php"
         },
         "fs_accounts": {
+            "name": "Freemius SDK (Shared by Multiple Plugins)",
+            "file": "freemius_sdk"
+        },
+
+        "aelia_currency_switcher_options": {
             "name": "Aelia Currency Switcher",
             "file": "woocommerce-aelia-currencyswitcher/woocommerce-aelia-currencyswitcher.php"
+        },
+        "unlimited_elements_options": {
+            "name": "Unlimited Elements for Elementor",
+            "file": "unlimited-elements-for-elementor/unlimited-elements-for-elementor.php"
         }
     },
     "safe_literals": [
+        "fs_accounts",
         "elementskit-lite__banner_data",
         "elementskit-lite__stories_data",
         "addon_library_catalog",
@@ -419,7 +429,6 @@
         "et_divi",
         "fusion_options",
         "fusion_options_500_backup",
-        "fs_accounts",
         "fbrfg_favicon_non_interactive_api_request",
         "itsec-storage",
         "ig_last_gallery_items",
@@ -533,7 +542,9 @@
         "Unlimited Elements for Elementor": "<strong>Unlimited Elements for Elementor:</strong> The <code>addon_library_catalog</code> option is a very large cache of the plugin's widget library. It is only needed when browsing widgets in the Elementor editor and is very safe to disable autoload for.",
         "All in One SEO": "<strong>All in One SEO:</strong> The options <code>aioseo_options_v3</code> and <code>aioseop_options</code> are legacy data from older versions. They have been marked as safe to disable autoload. Do not disable autoload for the other <code>aioseo_</code> options if the plugin is active.",
         "WPML": "<strong>WPML:</strong> This is often a large contributor to autoloaded data. Since WPML is active, do not disable its core options.",
-        "Aelia Currency Switcher": "<strong>Aelia Currency Switcher (fs_accounts):</strong> This is a large option that is marked as safe to disable. Disabling autoload for this option can significantly improve performance.",
+        "Freemius SDK (Shared by Multiple Plugins)": "<strong>Freemius SDK (<code>fs_accounts</code>):</strong> This shared option is used for licensing by plugins like <em>Unlimited Elements for Elementor</em> and <em>Aelia Currency Switcher</em>. It is safe to disable autoload. Do not delete this option if you have any active plugins that use Freemius.",
+        "Aelia Currency Switcher": "This plugin uses the shared Freemius SDK (<code>fs_accounts</code>) for licensing.",
+        "Unlimited Elements for Elementor": "This plugin uses the shared Freemius SDK (<code>fs_accounts</code>) for licensing.",
         "Duplicator Pro": "<strong>Duplicator Pro:</strong> If you no longer use this plugin, consider disabling autoload for its options.",
         "WP Asset Cleanup": "<strong>WP Asset Cleanup:</strong> If you no longer use this plugin, consider disabling autoload for its options.",
         "Ad Inserter": "<strong>Ad Inserter:</strong> If you no longer use this plugin, consider disabling autoload for its options.",
