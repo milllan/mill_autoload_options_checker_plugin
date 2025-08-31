@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Autoloaded Options Checker
  * Description: Adds a tool to check, manage, and view autoloaded options in the wp_options table.
- * Version: 1.8
+ * Version: 1.9
  */
 
 /**
@@ -189,9 +189,11 @@ function disable_safe_autoload_options_ajax() {
     
     // Safe options to disable (literal matches)
     $safe_options_literal = array(
-        'aioseop_options',      // <<< LEGACY AIOSEO (Classic)
-        'aioseo_options_v3',    // <<< LEGACY AIOSEO (v3 Backup)
+        'aioseop_options',
+        'aioseo_options_v3',
         'yst_ga_top_pageviews',
+        'yst_ga_top_countries', // <<< NEW
+        'yst_ga_source',        // <<< NEW
         '_transient_wpassetcleanup_assets_info',
         '_transient_wc_attribute_taxonomies',
         '_transient_dirsize_cache',
@@ -424,12 +426,19 @@ function display_autoloaded_options() {
         // Mapping for Starbox
         'abh_options' => array('name' => 'Starbox - the Author Box for Humans', 'file' => 'starbox/starbox.php'),
         
-        // CORRECTED MAPPING FOR WPCODE BASED ON YOUR SITE'S PATH
+        // MAPPING FOR WPCODE
         'wpcode_snippets' => array('name' => 'WPCode Lite', 'file' => 'insert-headers-and-footers/ihaf.php'),
 
-        // Mappings for Ezoic and Yoast
+        // Mappings for Ezoic
         'ez_adtester_config' => array('name' => 'Ezoic Integration', 'file' => 'ezoic-integration/ezoic-integration.php'),
+
+        // <<< YOAST SEO MAPPINGS (GROUPED) >>>
         'yst_ga_top_pageviews' => array('name' => 'Yoast SEO', 'file' => 'wordpress-seo/wp-seo.php'),
+        'yst_ga_top_countries' => array('name' => 'Yoast SEO', 'file' => 'wordpress-seo/wp-seo.php'),
+        'yst_ga_source'        => array('name' => 'Yoast SEO', 'file' => 'wordpress-seo/wp-seo.php'),
+        'wpseo_titles'         => array('name' => 'Yoast SEO', 'file' => 'wordpress-seo/wp-seo.php'),
+        'wpseo'                => array('name' => 'Yoast SEO', 'file' => 'wordpress-seo/wp-seo.php'),
+        'wpseo_premium'        => array('name' => 'Yoast SEO Premium', 'file' => 'wordpress-seo-premium/wp-seo-premium.php'),
 
         // <<< AIOSEO MAPPINGS (GROUPED) >>>
         'aioseo_options'                     => array('name' => 'All in One SEO', 'file' => 'all-in-one-seo-pack/all-in-one-seo-pack.php'),
@@ -528,9 +537,11 @@ function display_autoloaded_options() {
     
     // Safe options to disable (literal matches)
     $safe_options_literal = array(
-        'aioseop_options',      // <<< LEGACY AIOSEO (Classic)
-        'aioseo_options_v3',    // <<< LEGACY AIOSEO (v3 Backup)
+        'aioseop_options',      // LEGACY AIOSEO (Classic)
+        'aioseo_options_v3',    // LEGACY AIOSEO (v3 Backup)
         'yst_ga_top_pageviews',
+        'yst_ga_top_countries', // <<< NEW
+        'yst_ga_source',        // <<< NEW
         '_transient_wpassetcleanup_assets_info',
         '_transient_wc_attribute_taxonomies',
         '_transient_dirsize_cache',
