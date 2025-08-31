@@ -292,9 +292,15 @@ function ao_display_admin_page() {
         <?php endif; ?>
 
         <div class="notice notice-error"><p><strong><?php _e('Warning:', 'autoload-optimizer'); ?></strong> <?php _e('Always have a backup before making changes. Only disable autoload for options that belong to inactive plugins or are marked as safe.', 'autoload-optimizer'); ?></p></div>
+
+        <div class="notice notice-info notice-alt" style="margin-top: 1rem;">
+            <p><strong><?php _e('Configuration Status:', 'autoload-optimizer'); ?></strong> <?php echo esc_html($status_message); ?></p>
+            <p><a href="<?php echo esc_url(wp_nonce_url(add_query_arg('ao_refresh_config', '1'), 'ao_refresh_config')); ?>" class="button"><?php _e('Force Refresh Configuration', 'autoload-optimizer'); ?></a></p>
+        </div>
         
         <div id="ao-dashboard-widgets-wrap" style="display: flex; gap: 20px; margin-top: 1rem;">
             <div class="card" style="flex: 1;">
+                <!-- Bulk actions card -->
                 <h2 class="title"><?php _e('Bulk Actions', 'autoload-optimizer'); ?></h2>
                 <p><?php _e('Select options from the table and disable their autoload status in one go.', 'autoload-optimizer'); ?></p>
                 <button id="ao-disable-selected" class="button button-primary"><?php _e('Disable Autoload for Selected', 'autoload-optimizer'); ?></button>
@@ -306,27 +312,40 @@ function ao_display_admin_page() {
                     <?php
                     $recommendation_found = false;
                     foreach ($grouped_options as $plugin_name => $data) {
+                        // Check if a recommendation exists for this plugin in the config
                         if (isset($config['recommendations'][$plugin_name])) {
-                            $recommendation_found = true;
-                            $rec_text = $config['recommendations'][$plugin_name];
-                            $status_class = $data['status']['class'] ?? 'notice-info';
                             
-                            // *** THIS IS THE CORRECTED CODE BLOCK ***
-                            $styled_rec_text = preg_replace_callback(
-                                '/<strong>(.*?:)<\/strong>/', // PATTERN FIX: Match the colon inside the tag
-                                function($matches) use ($status_class) {
-                                    // $matches[1] now contains the text AND the colon (e.g., "ElementsKit Lite:")
-                                    return sprintf(
-                                        '<span class="notice %s" style="padding: 2px 8px; display: inline-block; margin: 0; font-weight: bold;">%s</span>', // REPLACEMENT FIX: Removed extra colon from the end
-                                        esc_attr($status_class),
-                                        esc_html($matches[1])
-                                    );
-                                },
-                                $rec_text,
-                                1
-                            );
+                            // *** THIS IS THE NEW LOGIC BLOCK ***
+                            // First, check if the group contains any options marked as safe
+                            $has_safe_options = false;
+                            foreach ($data['options'] as $option) {
+                                if ($option['is_safe']) {
+                                    $has_safe_options = true;
+                                    break; // Optimization: stop checking once one is found
+                                }
+                            }
 
-                            echo '<span>' . wp_kses_post($styled_rec_text) . '</span><br><br>';
+                            // Only show the recommendation if the plugin is inactive OR it has safe options
+                            if ($data['status']['code'] === 'plugin_inactive' || $has_safe_options) {
+                                $recommendation_found = true;
+                                $rec_text = $config['recommendations'][$plugin_name];
+                                $status_class = $data['status']['class'] ?? 'notice-info';
+                                
+                                $styled_rec_text = preg_replace_callback(
+                                    '/<strong>(.*?:)<\/strong>/',
+                                    function($matches) use ($status_class) {
+                                        return sprintf(
+                                            '<span class="notice %s" style="padding: 2px 8px; display: inline-block; margin: 0; font-weight: bold;">%s</span>',
+                                            esc_attr($status_class),
+                                            esc_html($matches[1])
+                                        );
+                                    },
+                                    $rec_text,
+                                    1
+                                );
+
+                                echo '<span>' . wp_kses_post($styled_rec_text) . '</span><br><br>';
+                            }
                         }
                     }
                     if (!$recommendation_found) {
@@ -335,11 +354,6 @@ function ao_display_admin_page() {
                     ?>
                 </p>
             </div>
-        </div>
-
-        <div class="notice notice-info notice-alt" style="margin-top: 1rem;">
-            <p><strong><?php _e('Configuration Status:', 'autoload-optimizer'); ?></strong> <?php echo esc_html($status_message); ?></p>
-            <p><a href="<?php echo esc_url(wp_nonce_url(add_query_arg('ao_refresh_config', '1'), 'ao_refresh_config')); ?>" class="button"><?php _e('Force Refresh Configuration', 'autoload-optimizer'); ?></a></p>
         </div>
 
         <?php if (empty($large_options)) : ?>
