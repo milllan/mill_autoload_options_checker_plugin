@@ -314,6 +314,24 @@ function get_autoload_options_config() {
             'wfcm%',
             'wpseo-gsc-%',
         ),
+        'recommendations' => array(
+            'ElementsKit Lite' => '<strong>ElementsKit Lite:</strong> Options like <code>elementskit-lite__banner_data</code> and <code>elementskit-lite__stories_data</code> contain data for the admin dashboard and are safe to disable autoload for. Review the main <code>elementskit_options</code> carefully before disabling it.',
+            'Unlimited Elements for Elementor' => '<strong>Unlimited Elements for Elementor:</strong> The `addon_library_catalog` option is a very large cache of the plugin\'s widget library. It is only needed when browsing widgets in the Elementor editor and is very safe to disable autoload for.',
+            'All in One SEO' => '<strong>All in One SEO:</strong> The options `aioseo_options_v3` and `aioseop_options` are legacy data from older versions. They have been marked as safe to disable autoload. Do not disable autoload for the other `aioseo_` options if the plugin is active.',
+            'WPML' => '<strong>WPML:</strong> This is often a large contributor to autoloaded data. Since WPML is active, do not disable its core options.',
+            'Aelia Currency Switcher' => '<strong>Aelia Currency Switcher (fs_accounts):</strong> This is a large option that is marked as safe to disable. Disabling autoload for this option can significantly improve performance.',
+            'Duplicator Pro' => '<strong>Duplicator Pro:</strong> If you no longer use this plugin, consider disabling autoload for its options.',
+            'WP Asset Cleanup' => '<strong>WP Asset Cleanup:</strong> If you no longer use this plugin, consider disabling autoload for its options.',
+            'Ad Inserter' => '<strong>Ad Inserter:</strong> If you no longer use this plugin, consider disabling autoload for its options.',
+            'WP Customer Reviews' => '<strong>WP Customer Reviews:</strong> If you no longer use this plugin, consider disabling autoload for its options.',
+            'Custom Post Type UI' => '<strong>Custom Post Type UI:</strong> If you no longer use this plugin, consider disabling autoload for its options.',
+            'Yoast SEO' => '<strong>Yoast SEO:</strong> If you no longer use this plugin, consider disabling autoload for its options.',
+            'Limit Login Attempts Reloaded' => '<strong>Limit Login Attempts Reloaded:</strong> Security-related options should generally remain autoloaded for optimal protection.',
+        ),
+        'general_recommendations' => array(
+            '<strong>Safe Options:</strong> Options marked with a green checkmark are generally safe to disable. These are typically cache data, logs, or other non-critical data.',
+            '<strong>WordPress Core:</strong> Core options should not be disabled.',
+        ),
     );
 
     // Remove duplicates from safe_literals for cleanliness
@@ -874,23 +892,25 @@ function display_autoloaded_options() {
     echo '<div class="card">';
     echo '<h2>Recommendations</h2>';
     echo '<ol>';
-    // <<< NEW RECOMMENDATION FOR ELEMENTSKIT LITE >>>
-    echo '<li><strong>ElementsKit Lite:</strong> Options like <code>elementskit-lite__banner_data</code> and <code>elementskit-lite__stories_data</code> contain data for the admin dashboard and are safe to disable autoload for. Review the main <code>elementskit_options</code> carefully before disabling it.</li>';
-    
-    // <<< NEW RECOMMENDATION FOR UNLIMITED ELEMENTS FOR ELEMENTOR >>>
-    echo '<li><strong>Unlimited Elements for Elementor:</strong> The `addon_library_catalog` option is a very large cache of the plugin\'s widget library. It is only needed when browsing widgets in the Elementor editor and is very safe to disable autoload for.</li>';
-    echo '<li><strong>All in One SEO:</strong> The options `aioseo_options_v3` and `aioseop_options` are legacy data from older versions. They have been marked as safe to disable autoload. Do not disable autoload for the other `aioseo_` options if the plugin is active.</li>';
-    echo '<li><strong>WPML (Total: ~232 KB):</strong> This is the largest contributor to autoloaded data. Since WPML is active, do not disable these options.</li>';
-    echo '<li><strong>Aelia Currency Switcher (fs_accounts):</strong> This is a large option that is marked as safe to disable. Disabling autoload for this option can significantly improve performance.</li>';
-    echo '<li><strong>Duplicator Pro (Total: ~31 KB):</strong> If you no longer use this plugin, disable autoload for its options.</li>';
-    echo '<li><strong>WordPress Core (Total: ~38 KB):</strong> Core options should not be disabled.</li>';
-    echo '<li><strong>WP Asset Cleanup (Total: ~29 KB):</strong> If you no longer use this plugin, disable autoload for its options.</li>';
-    echo '<li><strong>Ad Inserter (Total: ~20 KB):</strong> If you no longer use this plugin, disable autoload for its options.</li>';
-    echo '<li><strong>WP Customer Reviews (Total: ~19 KB):</strong> If you no longer use this plugin, disable autoload for its options.</li>';
-    echo '<li><strong>Custom Post Type UI (Total: ~17 KB):</strong> If you no longer use this plugin, disable autoload for its options.</li>';
-    echo '<li><strong>Yoast SEO (Total: ~10 KB):</strong> If you no longer use this plugin, disable autoload for its options.</li>';
-    echo '<li><strong>Limit Login Attempts Reloaded:</strong> Security-related options should generally remain autoloaded for optimal protection.</li>';
-    echo '<li><strong>Safe Options:</strong> Options marked with a green checkmark are generally safe to disable. These are typically cache data, logs, or other non-critical data.</li>';
+
+    // Get recommendations from config
+    $recommendations = $config['recommendations'];
+    $general_recommendations = isset($config['general_recommendations']) ? $config['general_recommendations'] : [];
+    $displayed_recommendations = [];
+
+    // Display plugin-specific recommendations based on what was found
+    foreach ($grouped_options as $plugin_name => $plugin_data) {
+        if (isset($recommendations[$plugin_name]) && !in_array($plugin_name, $displayed_recommendations)) {
+            echo '<li>' . $recommendations[$plugin_name] . '</li>';
+            $displayed_recommendations[] = $plugin_name;
+        }
+    }
+
+    // Display general recommendations
+    foreach ($general_recommendations as $rec) {
+        echo '<li>' . $rec . '</li>';
+    }
+
     echo '</ol>';
     echo '</div>';
     
