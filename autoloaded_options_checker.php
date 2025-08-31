@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Autoloaded Options Checker
  * Description: Adds a tool to check, manage, and view autoloaded options in the wp_options table.
- * Version: 2.0
+ * Version: 2.1
  */
 
 /**
@@ -424,8 +424,12 @@ function display_autoloaded_options() {
     
     // Create mapping of options to plugins with exact file paths
     $option_plugin_mapping = array(
+        // <<< NEW THEME WIDGET MAPPINGS
+        'widget_mh_advertising'  => array('name' => 'MH Magazine Theme Widgets', 'file' => 'theme'),
+        'widget_mh_custom_posts' => array('name' => 'MH Magazine Theme Widgets', 'file' => 'theme'),
+
         // Mapping for PublishPress Revisions
-        'revisionary_sent_mail' => array('name' => 'PublishPress Revisions', 'file' => 'revisionary/revisionary.php'), // <<< NEW
+        'revisionary_sent_mail' => array('name' => 'PublishPress Revisions', 'file' => 'revisionary/revisionary.php'),
 
         // Mapping for Starbox
         'abh_options' => array('name' => 'Starbox - the Author Box for Humans', 'file' => 'starbox/starbox.php'),
@@ -719,6 +723,9 @@ function display_autoloaded_options() {
             
             if ($plugin_file === 'core') {
                 $status = 'WordPress Core';
+                $status_class = 'notice-info';
+            } elseif ($plugin_file === 'theme') { // <<< NEW LOGIC FOR THEMES
+                $status = 'Active Theme';
                 $status_class = 'notice-info';
             } elseif (in_array($plugin_file, $active_plugin_paths)) {
                 $status = 'Active Plugin';
