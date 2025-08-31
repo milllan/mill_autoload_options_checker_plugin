@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: Autoloaded Options Checker
- * Description: Adds a tool to check and manage autoloaded options in the wp_options table.
- * Version: 1.4
+ * Description: Adds a tool to check, manage, and view autoloaded options in the wp_options table.
+ * Version: 1.5.1
  */
 
 /**
@@ -20,13 +20,55 @@ function add_autoloaded_options_page() {
 add_action('admin_menu', 'add_autoloaded_options_page');
 
 /**
- * Register AJAX handler for disabling autoload
+ * Register AJAX handlers
  */
 function register_autoload_ajax_handler() {
     add_action('wp_ajax_disable_autoload_options', 'disable_autoload_options_ajax');
     add_action('wp_ajax_disable_safe_autoload_options', 'disable_safe_autoload_options_ajax');
+    add_action('wp_ajax_get_option_value', 'get_option_value_ajax_handler');
 }
 add_action('admin_init', 'register_autoload_ajax_handler');
+
+
+/**
+ * AJAX handler for fetching a single option's value.
+ */
+function get_option_value_ajax_handler() {
+    // Verify nonce for security
+    if (!check_ajax_referer('view_option_nonce', 'nonce', false)) {
+        wp_send_json_error(array('message' => 'Security check failed. Please refresh the page.'));
+    }
+
+    // Check user permissions
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error(array('message' => 'You do not have permission to view this data.'));
+    }
+
+    // Get and sanitize the option name from the AJAX request
+    $option_name = isset($_POST['option_name']) ? sanitize_text_field($_POST['option_name']) : '';
+
+    if (empty($option_name)) {
+        wp_send_json_error(array('message' => 'No option name provided.'));
+    }
+
+    // Retrieve the option from the database
+    $option_value = get_option($option_name);
+
+    // Check if the option exists
+    if ($option_value === false) {
+        wp_send_json_error(array('message' => 'This option does not exist in the database.'));
+    }
+
+    // Format the value for readability (handles arrays and objects)
+    $formatted_value = print_r($option_value, true);
+
+    // Wrap in <pre> tags for clean display and escape for security
+    $display_value = '<pre>' . esc_html($formatted_value) . '</pre>';
+
+    // Send the formatted value back in a success response
+    wp_send_json_success(array('value' => $display_value));
+}
+
 
 /**
  * AJAX handler for disabling autoload options
@@ -779,7 +821,8 @@ function display_autoloaded_options() {
             }
             
             echo '<tr' . $row_class . '>';
-            echo '<td><strong>' . esc_html($option->option_name) . '</strong>';
+            // <<< MODIFIED: Option name is now a clickable link for the modal
+            echo '<td><strong><a href="#" class="view-option-content" data-option-name="' . esc_attr($option->option_name) . '">' . esc_html($option->option_name) . '</a></strong>';
             if ($option->is_safe) {
                 echo ' <span class="dashicons dashicons-yes" style="color:#46b450;" title="Safe to disable"></span>';
             }
@@ -808,13 +851,53 @@ function display_autoloaded_options() {
     echo '</tbody>';
     echo '</table>';
     
-    // Add CSS for safe options
+    // Add CSS for safe options and the new modal
     echo '<style>
     .safe-option {
         background-color: #f6f7f7;
     }
     .safe-option td:first-child {
         font-weight: bold;
+    }
+    .view-option-content {
+        cursor: pointer;
+    }
+    #option-modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.7);
+        z-index: 10000;
+        justify-content: center;
+        align-items: center;
+    }
+    #option-modal-content {
+        background-color: #fff;
+        padding: 20px;
+        border-radius: 5px;
+        width: 80%;
+        max-width: 900px;
+        max-height: 80vh;
+        overflow-y: auto;
+        position: relative;
+    }
+    .close-modal {
+        position: absolute;
+        top: 10px;
+        right: 15px;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+    #modal-body pre {
+        background-color: #f1f1f1;
+        padding: 15px;
+        border: 1px solid #ccc;
+        white-space: pre-wrap;
+        word-wrap: break-word;
     }
     </style>';
     
@@ -872,13 +955,72 @@ function display_autoloaded_options() {
     
     // Add results container
     echo '<div id="results-container" style="display:none;"></div>';
-    
-    echo '</div>';
+
+    // NEW HTML FOR THE MODAL CONTAINER
+    echo '<div id="option-modal-overlay">
+            <div id="option-modal-content">
+                <span class="close-modal">&times;</span>
+                <h2 id="option-modal-title">Option Content</h2>
+                <div id="modal-body">Loading...</div>
+            </div>
+          </div>';
+
+    echo '</div>'; // This closes the main <div class="wrap">
     
     // Add JavaScript for AJAX functionality
     ?>
     <script type="text/javascript">
     jQuery(document).ready(function($) {
+        
+        // NEW JAVASCRIPT FOR MODAL FUNCTIONALITY
+
+        var viewOptionNonce = '<?php echo wp_create_nonce("view_option_nonce"); ?>';
+
+        // Open the modal on click using event delegation on the table body
+        $('.wp-list-table tbody').on('click', '.view-option-content', function(e) {
+            e.preventDefault();
+            
+            var optionName = $(this).data('option-name');
+            
+            // Set modal title and show loading state
+            $('#option-modal-title').text('Viewing: ' + optionName);
+            $('#modal-body').html('Loading...');
+            $('#option-modal-overlay').css('display', 'flex'); // Use flex to center
+
+            var data = {
+                action: 'get_option_value',
+                nonce: viewOptionNonce,
+                option_name: optionName
+            };
+
+            $.post(ajaxurl, data, function(response) {
+                if (response.success) {
+                    $('#modal-body').html(response.data.value);
+                } else {
+                    $('#modal-body').html('<p style="color:red;">Error: ' + response.data.message + '</p>');
+                }
+            }).fail(function() {
+                $('#modal-body').html('<p style="color:red;">Error: The AJAX request failed.</p>');
+            });
+        });
+
+        // Close the modal
+        function closeModal() {
+            $('#option-modal-overlay').hide();
+            $('#modal-body').html(''); // Clear content
+        }
+
+        // Event handlers for closing
+        $('#option-modal-overlay').on('click', function(e) {
+            if (e.target === this) { // Only close if clicking the overlay itself
+                closeModal();
+            }
+        });
+        $('.close-modal').on('click', closeModal);
+
+
+        // EXISTING JAVASCRIPT (UNCHANGED)
+        
         // Function to disable autoload for selected options
         $('#disable-selected').on('click', function() {
             var selectedOptions = [];
