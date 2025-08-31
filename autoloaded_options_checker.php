@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Autoloaded Options Checker
  * Description: Adds a tool to check, manage, and view autoloaded options in the wp_options table.
- * Version: 1.6
+ * Version: 1.7
  */
 
 /**
@@ -189,7 +189,8 @@ function disable_safe_autoload_options_ajax() {
     
     // Safe options to disable (literal matches)
     $safe_options_literal = array(
-        'aioseo_options_v3', // <<< NEW AIOSEO LEGACY OPTION
+        'aioseop_options',      // <<< LEGACY AIOSEO (Classic)
+        'aioseo_options_v3',    // <<< LEGACY AIOSEO (v3 Backup)
         'yst_ga_top_pageviews',
         '_transient_wpassetcleanup_assets_info',
         '_transient_wc_attribute_taxonomies',
@@ -430,12 +431,17 @@ function display_autoloaded_options() {
         'ez_adtester_config' => array('name' => 'Ezoic Integration', 'file' => 'ezoic-integration/ezoic-integration.php'),
         'yst_ga_top_pageviews' => array('name' => 'Yoast SEO', 'file' => 'wordpress-seo/wp-seo.php'),
 
-        // <<< NEW AIOSEO MAPPINGS
-        'aioseo_options'         => array('name' => 'All in One SEO', 'file' => 'all-in-one-seo-pack/all-in-one-seo-pack.php'),
-        'aioseo_options_dynamic' => array('name' => 'All in One SEO', 'file' => 'all-in-one-seo-pack/all-in-one-seo-pack.php'),
-        'aioseo_options_network' => array('name' => 'All in One SEO', 'file' => 'all-in-one-seo-pack/all-in-one-seo-pack.php'),
-        'aioseo_options_internal'=> array('name' => 'All in One SEO', 'file' => 'all-in-one-seo-pack/all-in-one-seo-pack.php'),
-        'aioseo_options_v3'      => array('name' => 'All in One SEO (Legacy v3)', 'file' => 'all-in-one-seo-pack/all-in-one-seo-pack.php'),
+        // <<< AIOSEO MAPPINGS (GROUPED) >>>
+        'aioseo_options'                     => array('name' => 'All in One SEO', 'file' => 'all-in-one-seo-pack/all-in-one-seo-pack.php'),
+        'aioseo_options_dynamic'             => array('name' => 'All in One SEO', 'file' => 'all-in-one-seo-pack/all-in-one-seo-pack.php'),
+        'aioseo_options_network'             => array('name' => 'All in One SEO', 'file' => 'all-in-one-seo-pack/all-in-one-seo-pack.php'),
+        'aioseo_options_internal'            => array('name' => 'All in One SEO', 'file' => 'all-in-one-seo-pack/all-in-one-seo-pack.php'),
+        'aioseo_options_dynamic_network'     => array('name' => 'All in One SEO', 'file' => 'all-in-one-seo-pack/all-in-one-seo-pack.php'),
+        'aioseo_options_dynamic_localized'   => array('name' => 'All in One SEO', 'file' => 'all-in-one-seo-pack/all-in-one-seo-pack.php'),
+        'aioseo_options_localized'           => array('name' => 'All in One SEO', 'file' => 'all-in-one-seo-pack/all-in-one-seo-pack.php'),
+        'aioseo_options_internal_network'    => array('name' => 'All in One SEO', 'file' => 'all-in-one-seo-pack/all-in-one-seo-pack.php'),
+        'aioseo_options_v3'                  => array('name' => 'All in One SEO', 'file' => 'all-in-one-seo-pack/all-in-one-seo-pack.php'),
+        'aioseop_options'                    => array('name' => 'All in One SEO', 'file' => 'all-in-one-seo-pack/all-in-one-seo-pack.php'),
 
         // Original mappings
         'wp_installer_settings' => array('name' => 'WPML', 'file' => 'sitepress-multilingual-cms/sitepress.php'),
@@ -450,7 +456,6 @@ function display_autoloaded_options() {
         'wpseo_titles' => array('name' => 'Yoast SEO', 'file' => 'wordpress-seo/wp-seo.php'),
         'otgs-installer-log' => array('name' => 'WPML', 'file' => 'sitepress-multilingual-cms/sitepress.php'),
         'wp_user_roles' => array('name' => 'WordPress Core', 'file' => 'core'),
-        'aioseop_options' => array('name' => 'All in One SEO (Classic)', 'file' => 'all-in-one-seo-pack/all_in_one_seo_pack.php'),
         'wpcf-custom-taxonomies' => array('name' => 'Toolset Types', 'file' => 'types/types.php'),
         'cpt_custom_post_types' => array('name' => 'Custom Post Types', 'file' => 'custom-post-types/custom-post-types.php'),
         'cptui_taxonomies' => array('name' => 'Custom Post Type UI', 'file' => 'custom-post-type-ui/custom-post-type-ui.php'),
@@ -523,7 +528,8 @@ function display_autoloaded_options() {
     
     // Safe options to disable (literal matches)
     $safe_options_literal = array(
-        'aioseo_options_v3', // <<< NEW AIOSEO LEGACY OPTION
+        'aioseop_options',      // <<< LEGACY AIOSEO (Classic)
+        'aioseo_options_v3',    // <<< LEGACY AIOSEO (v3 Backup)
         'yst_ga_top_pageviews',
         '_transient_wpassetcleanup_assets_info',
         '_transient_wc_attribute_taxonomies',
@@ -945,6 +951,7 @@ function display_autoloaded_options() {
     echo '<div class="card">';
     echo '<h2>Recommendations</h2>';
     echo '<ol>';
+    echo '<li><strong>All in One SEO:</strong> The options `aioseo_options_v3` and `aioseop_options` are legacy data from older versions. They have been marked as safe to disable autoload. Do not disable autoload for the other `aioseo_` options if the plugin is active.</li>';
     echo '<li><strong>WPML (Total: ~232 KB):</strong> This is the largest contributor to autoloaded data. Since WPML is active, do not disable these options.</li>';
     echo '<li><strong>Aelia Currency Switcher (fs_accounts):</strong> This is a large option that is marked as safe to disable. Disabling autoload for this option can significantly improve performance.</li>';
     echo '<li><strong>Duplicator Pro (Total: ~31 KB):</strong> If you no longer use this plugin, disable autoload for its options.</li>';
