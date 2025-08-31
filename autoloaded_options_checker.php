@@ -1,1132 +1,411 @@
 <?php
 /**
- * Plugin Name: Autoloaded Options Checker
- * Description: Adds a tool to check, manage, and view autoloaded options in the wp_options table.
- * Version: 2.3
+ * Plugin Name:       Autoloaded Options Optimizer
+ * Plugin URI:        https://github.com/milllan/mill_autoload_options_checker_plugin
+ * Description:       A tool to analyze, view, and manage autoloaded options in the wp_options table, with a remotely managed configuration.
+ * Version:           3.1
+ * Author:            Milan
+ * Author URI:        https://wpspeedopt.net/
+ * License:           GPL v2 or later
+ * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
+ * Text Domain:       autoload-optimizer
  */
 
-/**
- * Adds Autoloaded Options Checker under Tools menu
- */
-function add_autoloaded_options_page() {
+// Prevent direct access
+if (!defined('ABSPATH')) {
+    exit;
+}
+
+// --- Main Plugin Hooks ---
+
+add_action('admin_menu', 'ao_add_admin_page');
+function ao_add_admin_page() {
     add_management_page(
-        'Autoloaded Options',
-        'Autoloaded Options',
+        __('Autoloaded Options', 'autoload-optimizer'),
+        __('Autoloaded Options', 'autoload-optimizer'),
         'manage_options',
         'autoloaded-options',
-        'display_autoloaded_options'
+        'ao_display_admin_page'
     );
 }
-add_action('admin_menu', 'add_autoloaded_options_page');
 
-/**
- * Register AJAX handlers
- */
-function register_autoload_ajax_handler() {
-    add_action('wp_ajax_disable_autoload_options', 'disable_autoload_options_ajax');
-    add_action('wp_ajax_disable_safe_autoload_options', 'disable_safe_autoload_options_ajax');
-    add_action('wp_ajax_get_option_value', 'get_option_value_ajax_handler');
+add_action('admin_init', 'ao_register_ajax_handlers');
+function ao_register_ajax_handlers() {
+    add_action('wp_ajax_ao_disable_autoload_options', 'ao_ajax_disable_autoload_options');
+    add_action('wp_ajax_ao_get_option_value', 'ao_ajax_get_option_value');
 }
-add_action('admin_init', 'register_autoload_ajax_handler');
 
 /**
- * Centralized configuration for plugin option mappings and safe-to-disable lists.
- *
- * This function consolidates all static data about plugin options into a single
- * source of truth to improve maintainability and reduce code duplication.
- *
- * @return array The configuration array with 'plugin_mappings', 'safe_literals', and 'safe_patterns'.
+ * Manages the remote configuration.
  */
-function get_autoload_options_config() {
-    static $config = null;
+final class AO_Remote_Config_Manager {
+    private static $instance;
+    private const REMOTE_URL = 'https://raw.githubusercontent.com/milllan/mill_autoload_options_checker_plugin/main/config.json';
+    private const CACHE_KEY = 'ao_remote_config_cache';
+    private const CACHE_DURATION = 30 * DAY_IN_SECONDS;
+    private $config_status = 'Not loaded yet.';
 
-    if ($config !== null) {
+    private function __construct() {}
+
+    public static function get_instance() {
+        if (!isset(self::$instance)) {
+            self::$instance = new self();
+        }
+        return self::$instance;
+    }
+
+    public function get_config() {
+        $config = get_transient(self::CACHE_KEY);
+
+        if (false === $config) {
+            $this->config_status = __('Fetching from GitHub...', 'autoload-optimizer');
+            $remote_config = $this->fetch_remote_config();
+            
+            if (false !== $remote_config) {
+                $this->config_status = sprintf(
+                    __('Live (Fetched from GitHub, Version: %s)', 'autoload-optimizer'),
+                    esc_html($remote_config['version'] ?? 'N/A')
+                );
+                set_transient(self::CACHE_KEY, $remote_config, self::CACHE_DURATION);
+                return $remote_config;
+            } else {
+                $this->config_status = __('Error: Could not fetch remote config and no fallback is available.', 'autoload-optimizer');
+                return $this->get_empty_config_structure();
+            }
+        }
+
+        $this->config_status = sprintf(
+            __('Cached (Version: %s)', 'autoload-optimizer'),
+            esc_html($config['version'] ?? 'N/A')
+        );
         return $config;
     }
 
-    $config = array(
-        'plugin_mappings' => array(
-            // <<< NEW MAPPING FOR ELEMENTSKIT LITE >>>
-            'elementskit_options'              => array('name' => 'ElementsKit Lite', 'file' => 'elementskit-lite/elementskit-lite.php'),
-            'elementskit-lite__banner_data'    => array('name' => 'ElementsKit Lite', 'file' => 'elementskit-lite/elementskit-lite.php'),
-            'elementskit-lite__stories_data'   => array('name' => 'ElementsKit Lite', 'file' => 'elementskit-lite/elementskit-lite.php'),
+    private function fetch_remote_config() {
+        $response = wp_remote_get(self::REMOTE_URL, ['timeout' => 10, 'headers' => ['Accept' => 'application/json']]);
 
-            // <<< NEW MAPPING FOR UNLIMITED ELEMENTS
-            'addon_library_catalog' => array('name' => 'Unlimited Elements for Elementor', 'file' => 'unlimited-elements-for-elementor/unlimited-elements-for-elementor.php'),
-            
-            // <<< NEW MAPPING FOR PUBLISHPRESS CAPABILITIES
-            'ppc_feature_post_metaboxes_data' => array('name' => 'PublishPress Capabilities', 'file' => 'capability-manager-enhanced/capability-manager-enhanced.php'),
+        if (is_wp_error($response) || 200 !== wp_remote_retrieve_response_code($response)) {
+            return false;
+        }
 
-            // THEME WIDGET MAPPINGS
-            'widget_mh_advertising'  => array('name' => 'MH Magazine Theme Widgets', 'file' => 'theme'),
-            'widget_mh_custom_posts' => array('name' => 'MH Magazine Theme Widgets', 'file' => 'theme'),
+        $body = wp_remote_retrieve_body($response);
+        $config = json_decode($body, true);
 
-            // Mapping for PublishPress Revisions
-            'revisionary_sent_mail' => array('name' => 'PublishPress Revisions', 'file' => 'revisionary/revisionary.php'),
+        if (json_last_error() !== JSON_ERROR_NONE || !$this->is_config_valid($config)) {
+            return false;
+        }
+        
+        return $config;
+    }
 
-            // Mapping for Starbox
-            'abh_options' => array('name' => 'Starbox - the Author Box for Humans', 'file' => 'starbox/starbox.php'),
-            
-            // MAPPING FOR WPCODE
-            'wpcode_snippets' => array('name' => 'WPCode Lite', 'file' => 'insert-headers-and-footers/ihaf.php'),
+    private function is_config_valid($config) {
+        if (!is_array($config)) return false;
+        $required_keys = ['version', 'plugin_mappings', 'safe_literals', 'safe_patterns'];
+        foreach ($required_keys as $key) {
+            if (!isset($config[$key])) return false;
+        }
+        return true;
+    }
 
-            // Mappings for Ezoic
-            'ez_adtester_config' => array('name' => 'Ezoic Integration', 'file' => 'ezoic-integration/ezoic-integration.php'),
+    private function get_empty_config_structure() {
+        return [
+            'version' => '0.0.0 (Error)', 'plugin_mappings' => [], 'safe_literals' => [],
+            'safe_patterns' => [], 'recommendations' => [], 'general_recommendations' => [],
+        ];
+    }
 
-            // YOAST SEO MAPPINGS (GROUPED)
-            'yst_ga_top_pageviews' => array('name' => 'Yoast SEO', 'file' => 'wordpress-seo/wp-seo.php'),
-            'yst_ga_top_countries' => array('name' => 'Yoast SEO', 'file' => 'wordpress-seo/wp-seo.php'),
-            'yst_ga_source'        => array('name' => 'Yoast SEO', 'file' => 'wordpress-seo/wp-seo.php'),
-            'wpseo_titles'         => array('name' => 'Yoast SEO', 'file' => 'wordpress-seo/wp-seo.php'),
-            'wpseo'                => array('name' => 'Yoast SEO', 'file' => 'wordpress-seo/wp-seo.php'),
-            'wpseo_premium'        => array('name' => 'Yoast SEO Premium', 'file' => 'wordpress-seo-premium/wp-seo-premium.php'),
-
-            // AIOSEO MAPPINGS (GROUPED)
-            'aioseo_options'                     => array('name' => 'All in One SEO', 'file' => 'all-in-one-seo-pack/all-in-one-seo-pack.php'),
-            'aioseo_options_dynamic'             => array('name' => 'All in One SEO', 'file' => 'all-in-one-seo-pack/all-in-one-seo-pack.php'),
-            'aioseo_options_network'             => array('name' => 'All in One SEO', 'file' => 'all-in-one-seo-pack/all-in-one-seo-pack.php'),
-            'aioseo_options_internal'            => array('name' => 'All in One SEO', 'file' => 'all-in-one-seo-pack/all-in-one-seo-pack.php'),
-            'aioseo_options_dynamic_network'     => array('name' => 'All in One SEO', 'file' => 'all-in-one-seo-pack/all-in-one-seo-pack.php'),
-            'aioseo_options_dynamic_localized'   => array('name' => 'All in One SEO', 'file' => 'all-in-one-seo-pack/all-in-one-seo-pack.php'),
-            'aioseo_options_localized'           => array('name' => 'All in One SEO', 'file' => 'all-in-one-seo-pack/all-in-one-seo-pack.php'),
-            'aioseo_options_internal_network'    => array('name' => 'All in One SEO', 'file' => 'all-in-one-seo-pack/all-in-one-seo-pack.php'),
-            'aioseo_options_v3'                  => array('name' => 'All in One SEO', 'file' => 'all-in-one-seo-pack/all-in-one-seo-pack.php'),
-            'aioseop_options'                    => array('name' => 'All in One SEO', 'file' => 'all-in-one-seo-pack/all-in-one-seo-pack.php'),
-
-            // Original mappings
-            'wp_installer_settings' => array('name' => 'WPML', 'file' => 'sitepress-multilingual-cms/sitepress.php'),
-            'wpml_strings_need_links_fixed' => array('name' => 'WPML', 'file' => 'sitepress-multilingual-cms/sitepress.php'),
-            'duplicator_pro_package_active' => array('name' => 'Duplicator Pro', 'file' => 'duplicator-pro/duplicator-pro.php'),
-            'rewrite_rules' => array('name' => 'WordPress Core', 'file' => 'core'),
-            'wpassetcleanup_global_data' => array('name' => 'WP Asset Cleanup', 'file' => 'wp-asset-cleanup/wp-asset-cleanup.php'),
-            'icl_sitepress_settings' => array('name' => 'WPML', 'file' => 'sitepress-multilingual-cms/sitepress.php'),
-            'ad_inserter' => array('name' => 'Ad Inserter', 'file' => 'ad-inserter/ad-inserter.php'),
-            'wpcr3_options' => array('name' => 'WP Customer Reviews', 'file' => 'wp-customer-reviews/wp-customer-reviews.php'),
-            'cptui_post_types' => array('name' => 'Custom Post Type UI', 'file' => 'custom-post-type-ui/custom-post-type-ui.php'),
-            'otgs-installer-log' => array('name' => 'WPML', 'file' => 'sitepress-multilingual-cms/sitepress.php'),
-            'wp_user_roles' => array('name' => 'WordPress Core', 'file' => 'core'),
-            'wpcf-custom-taxonomies' => array('name' => 'Toolset Types', 'file' => 'types/types.php'),
-            'cpt_custom_post_types' => array('name' => 'Custom Post Types', 'file' => 'custom-post-types/custom-post-types.php'),
-            'cptui_taxonomies' => array('name' => 'Custom Post Type UI', 'file' => 'custom-post-type-ui/custom-post-type-ui.php'),
-            'rank_math_analytics_all_services' => array('name' => 'Rank Math', 'file' => 'seo-by-rank-math/rank-math.php'),
-            'wpml_language_switcher' => array('name' => 'WPML', 'file' => 'sitepress-multilingual-cms/sitepress.php'),
-            'tve_default_styles' => array('name' => 'Thrive Themes', 'file' => 'thrive-visual-editor/thrive-visual-editor.php'),
-            'otgs_active_components' => array('name' => 'WPML', 'file' => 'sitepress-multilingual-cms/sitepress.php'),
-            'brainstrom_products' => array('name' => 'Brainstorm Force', 'file' => 'brainstorm-force/brainstorm-force.php'),
-            'adsensexplosion' => array('name' => 'AdSense Explosion', 'file' => 'adsensexplosion/adsensexplosion.php'),
-            'ATE_RETURNED_JOBS_QUEUE' => array('name' => 'WPML', 'file' => 'sitepress-multilingual-cms/sitepress.php'),
-            
-            // New mappings for the second website
-            'aaa_option_optimizer_settings' => array('name' => 'AAA Option Optimizer', 'file' => 'aaa-option-optimizer/aaa-option-optimizer.php'),
-            'al_plugin_options' => array('name' => 'Activity Log', 'file' => 'aryo-activity-log/aryo-activity-log.php'),
-            'iaff_options' => array('name' => 'Auto Image Attributes From Filename', 'file' => 'auto-image-attributes-from-filename-with-bulk-updater/iaff_image-attributes-from-filename.php'),
-            'aiap_settings' => array('name' => 'Auto Image Attributes Pro', 'file' => 'auto-image-attributes-pro/auto-image-attributes-pro.php'),
-            'bsr_options' => array('name' => 'Better Search Replace', 'file' => 'better-search-replace/better-search-replace.php'),
-            'brb_options' => array('name' => 'Business Reviews Bundle', 'file' => 'business-reviews-bundle/brb.php'),
-            'cloudflare_api_email' => array('name' => 'Cloudflare', 'file' => 'cloudflare/cloudflare.php'),
-            'code_snippets_settings' => array('name' => 'Code Snippets', 'file' => 'code-snippets/code-snippets.php'),
-            'complianz_options' => array('name' => 'Complianz Privacy Suite', 'file' => 'complianz-gdpr-premium/complianz-gpdr-premium.php'),
-            'elementor_active_kit' => array('name' => 'Elementor', 'file' => 'elementor/elementor.php'),
-            'elementor_pro_license_key' => array('name' => 'Elementor Pro', 'file' => 'elementor-pro/elementor-pro.php'),
-            'fma_settings' => array('name' => 'File Manager Advanced', 'file' => 'file-manager-advanced/file_manager_advanced.php'),
-            'gtm_server_side_settings' => array('name' => 'GTM Server Side', 'file' => 'gtm-server-side/gtm-server-side.php'),
-            'imagify_settings' => array('name' => 'Imagify', 'file' => 'imagify/imagify.php'),
-            'instant_indexing_settings' => array('name' => 'Instant Indexing', 'file' => 'fast-indexing-api/instant-indexing.php'),
-            'link_whisper_settings' => array('name' => 'Link Whisper', 'file' => 'link-whisper-premium/link-whisper.php'),
-            'wp_media_cleaner' => array('name' => 'Media Cleaner', 'file' => 'media-cleaner/media-cleaner.php'),
-            'salc_options' => array('name' => 'Simple Admin Language Change', 'file' => 'simple-admin-language-change/simple-admin-language-change.php'),
-            'bodhi_svg_options' => array('name' => 'SVG Support', 'file' => 'svg-support/svg-support.php'),
-            'tlw_options' => array('name' => 'Temporary Login Without Password', 'file' => 'temporary-login-without-password/temporary-login-without-password.php'),
-            'updraft_options' => array('name' => 'UpdraftPlus', 'file' => 'updraftplus/updraftplus.php'),
-            'grw_options' => array('name' => 'Widgets for Google Reviews', 'file' => 'widget-google-reviews/grw.php'),
-            'wp_rocket_settings' => array('name' => 'WP Rocket', 'file' => 'wp-rocket/wp-rocket.php'),
-            'wp_rocket_d_bugger_settings' => array('name' => 'WP Rocket D-bugger', 'file' => 'wp-rocket-debugger/wp-rocket-d-bugger.php'),
-            'wp_rocket_disable_used_css_font_preload' => array('name' => 'WP Rocket Disable Used CSS Fonts Preload', 'file' => 'wp-rocket-disable-used-css-font-preload/wp-rocket-disable-used-css-font-preload.php'),
-            'wp_rocket_cache_ignore_query_strings' => array('name' => 'WP Rocket Ignore Query Strings', 'file' => 'wp-rocket-cache-ignore-query-strings/wp-rocket-cache-ignore-query-strings.php'),
-            'wpml_cms_nav_settings' => array('name' => 'WPML CMS Navigation', 'file' => 'wpml-cms-nav/plugin.php'),
-            'wpml_media_settings' => array('name' => 'WPML Media Translation', 'file' => 'wpml-media-translation/plugin.php'),
-            'sitepress_settings' => array('name' => 'WPML Multilingual CMS', 'file' => 'sitepress-multilingual-cms/sitepress.php'),
-            'wpmlseo_options' => array('name' => 'WPML SEO', 'file' => 'wp-seo-multilingual/plugin.php'),
-            'wpml_sticky_links_options' => array('name' => 'WPML Sticky Links', 'file' => 'wpml-sticky-links/plugin.php'),
-            'wpml_st_options' => array('name' => 'WPML String Translation', 'file' => 'wpml-string-translation/plugin.php'),
-            'wptd_image_compare_options' => array('name' => 'WPTD Image Compare', 'file' => 'wptd-image-compare/wptd-image-compare.php'),
-            'youlo_price_calculator_settings' => array('name' => 'YOULO Price Calculator', 'file' => 'youlo-price-calculator/youlo-price-calculator.php'),
-            
-            // Inactive plugins
-            'ai_engine_settings' => array('name' => 'AI Engine', 'file' => 'ai-engine/ai-engine.php'),
-            'disable_elementor_editor_translation' => array('name' => 'Disable Elementor Editor Translation', 'file' => 'disable-elementor-editor-translation/disable-elementor-editor-translation.php'),
-            'enable_media_replace' => array('name' => 'Enable Media Replace', 'file' => 'enable-media-replace/enable-media-replace.php'),
-            'imagify_tools_settings' => array('name' => 'Imagify Tools', 'file' => 'imagify-tools/imagify-tools.php'),
-            'mfrh_settings' => array('name' => 'Media File Renamer Pro', 'file' => 'media-file-renamer-pro/media-file-renamer-pro.php'),
-            'mla_options' => array('name' => 'Media Library Assistant', 'file' => 'media-library-assistant/index.php'),
-            'mystickymenu_options' => array('name' => 'My Sticky Bar Pro', 'file' => 'mystickymenu-pro/mystickymenu.php'),
-            'query_monitor' => array('name' => 'Query Monitor', 'file' => 'query-monitor/query-monitor.php'),
-            'wpcf-types' => array('name' => 'Toolset Types', 'file' => 'types/wpcf.php'),
-            'wpmudev_updates' => array('name' => 'WPMU DEV Dashboard', 'file' => 'wpmudev-updates/update-notifications.php'),
-            'wps_hide_login' => array('name' => 'WPS Hide Login', 'file' => 'wps-hide-login/wps-hide-login.php'),
-            'yoast_test_helper' => array('name' => 'Yoast Test Helper', 'file' => 'yoast-test-helper/yoast-test-helper.php'),
-            
-            // Additional mapping for Limit Login Attempts Reloaded
-            'limit_login_logged' => array('name' => 'Limit Login Attempts Reloaded', 'file' => 'limit-login-attempts-reloaded/limit-login-attempts-reloaded.php'),
-            
-            // Mapping for Aelia Currency Switcher
-            'fs_accounts' => array('name' => 'Aelia Currency Switcher', 'file' => 'woocommerce-aelia-currencyswitcher/woocommerce-aelia-currencyswitcher.php'),
-        ),
-        'safe_literals' => array(
-            'elementskit-lite__banner_data',
-            'elementskit-lite__stories_data',
-            'addon_library_catalog',
-            'revisionary_sent_mail',
-            'aioseop_options',
-            'aioseo_options_v3',
-            'yst_ga_top_pageviews',
-            'yst_ga_top_countries',
-            'yst_ga_source',
-            '_transient_wpassetcleanup_assets_info',
-            '_transient_wc_attribute_taxonomies',
-            '_transient_dirsize_cache',
-            'asp_updates',
-            'Avada_backups',
-            'aviaAsset_css_filecontent',
-            'aviaAsset_js_filecontent',
-            'apmm_font_family',
-            'blc_installation_log',
-            'br_get_taxonomy_hierarchy_product_cat',
-            'brainstrom_bundled_products',
-            'ced_etsy_chunk_products',
-            'channel_statics',
-            'cherry_customiser_fonts_google',
-            'count_per_day_search',
-            'cron_projects',
-            'cp_modal_preset_templates',
-            'dd_normal_button',
-            'dd_float_button',
-            'essential-grid_update_info',
-            'et_divi',
-            'fusion_options',
-            'fusion_options_500_backup',
-            'fs_accounts',
-            'fbrfg_favicon_non_interactive_api_request',
-            'itsec-storage',
-            'ig_last_gallery_items',
-            'IWP_backup_history',
-            'jetpack_file_data',
-            'jetpack_static_asset_cdn_files',
-            'jetpack_plugin_api_action_links',
-            'jet_menu_options',
-            'jetpack_active_plan',
-            'joc_plugins',
-            'gform_version_info',
-            'fs_api_cache',
-            'limit_login_logged',
-            'mepr_options',
-            'monsterinsights_report_data_overview',
-            'mwp_public_keys',
-            'mw_adminimize',
-            'nss_plugin_info_sfwd_lms',
-            'nm_theme_custom_styles',
-            'nm_instant_suggestions_product_data',
-            'thrive_tcb_download_lp',
-            'top_opt_already_tweeted_posts',
-            'page_scroll_to_id_instances',
-            'permalink-manager-external-redirects',
-            'permalink-manager-redirects',
-            'permalink-manager-uris',
-            'personify_active_campaign_tags',
-            'redux_builder_amp',
-            'revslider-addons',
-            'td_011',
-            'td_011_log',
-            'td_011_settings',
-            'tve_leads_saved_tpl_meta',
-            'otgs-installer-log',
-            'otgs_active_components',
-            'personify_active_campaign_fields',
-            'ping_sites',
-            'rank_math_seo_analysis_results',
-            'uninstall_plugins',
-            'um_cache_fonticons',
-            'uncode',
-            'widget_custom_html',
-            'wd_audit_cached',
-            'wc_psad_google_font_list',
-            'wc_facebook_google_product_categories',
-            'wc_remote_inbox_notifications_specs',
-            'wp_installer_settings',
-            'wp_schema_pro_optimized_structured_data',
-            'ws_menu_editor_pro',
-            'wcml_trbl_products_needs_fix_postmeta',
-            'woocommerce_ultimate_tabs_options',
-            'woocommerce_tracker_ua',
-            'woolementor-docs-json',
-            'wp_custom_admin_interface_settings_AdminMenu',
-            'wpf_template',
-            'wpassetcleanup_global_data',
-            'wphb_scripts_collection',
-            'wphb_styles_collection',
-            'wpml_strings_need_links_fixed',
-            'wpseo_taxonomy_meta',
-            'wpseo-premium-redirects-export-plain',
-            'yikes_woo_reusable_products_tabs_applied',
-            'zero-spam-settings',
-        ),
-        'safe_patterns' => array(
-            '_transient_amp%',
-            '_transient_bawmrp%',
-            '_transient_fusion%',
-            '_transient_google%',
-            '_wpallexport_session_%',
-            '%mytheme%',
-            'ai1wm%',
-            'astra-sites-and-pages%',
-            'astra-blocks%',
-            'bwp_minify_detector%',
-            'cherry_customiser%',
-            'ctf%',
-            'css3_vertical_table_shortcode%',
-            'duplicator%',
-            'edd_api_request_%',
-            'ced_etsy_product_logs_%',
-            'ced_etsy_product_inventory_logs_%',
-            'ced_etsy_chunk_products_%',
-            'ced_etsy_order_logs_%',
-            'elementor_pro_remote%',
-            'fs_contact_form%',
-            'Jupiter_options%',
-            'fusion_dynamic%',
-            'giapi%',
-            'nf_form_%',
-            'mailserver%',
-            'qode_options%',
-            'quickppr_redirects%',
-            'tinypng%',
-            'trustpilot%',
-            'of_template%',
-            'premiothemes_comingsoon_%',
-            'p3%',
-            'userpro%',
-            'updraft%',
-            'ywsn%',
-            'ywccp%',
-            'wc_csv_import_suite_background_import_results_%',
-            'wfacp_c_%',
-            'wp-optimize%',
-            'wfcm%',
-            'wpseo-gsc-%',
-        ),
-        'recommendations' => array(
-            'ElementsKit Lite' => '<strong>ElementsKit Lite:</strong> Options like <code>elementskit-lite__banner_data</code> and <code>elementskit-lite__stories_data</code> contain data for the admin dashboard and are safe to disable autoload for. Review the main <code>elementskit_options</code> carefully before disabling it.',
-            'Unlimited Elements for Elementor' => '<strong>Unlimited Elements for Elementor:</strong> The `addon_library_catalog` option is a very large cache of the plugin\'s widget library. It is only needed when browsing widgets in the Elementor editor and is very safe to disable autoload for.',
-            'All in One SEO' => '<strong>All in One SEO:</strong> The options `aioseo_options_v3` and `aioseop_options` are legacy data from older versions. They have been marked as safe to disable autoload. Do not disable autoload for the other `aioseo_` options if the plugin is active.',
-            'WPML' => '<strong>WPML:</strong> This is often a large contributor to autoloaded data. Since WPML is active, do not disable its core options.',
-            'Aelia Currency Switcher' => '<strong>Aelia Currency Switcher (fs_accounts):</strong> This is a large option that is marked as safe to disable. Disabling autoload for this option can significantly improve performance.',
-            'Duplicator Pro' => '<strong>Duplicator Pro:</strong> If you no longer use this plugin, consider disabling autoload for its options.',
-            'WP Asset Cleanup' => '<strong>WP Asset Cleanup:</strong> If you no longer use this plugin, consider disabling autoload for its options.',
-            'Ad Inserter' => '<strong>Ad Inserter:</strong> If you no longer use this plugin, consider disabling autoload for its options.',
-            'WP Customer Reviews' => '<strong>WP Customer Reviews:</strong> If you no longer use this plugin, consider disabling autoload for its options.',
-            'Custom Post Type UI' => '<strong>Custom Post Type UI:</strong> If you no longer use this plugin, consider disabling autoload for its options.',
-            'Yoast SEO' => '<strong>Yoast SEO:</strong> If you no longer use this plugin, consider disabling autoload for its options.',
-            'Limit Login Attempts Reloaded' => '<strong>Limit Login Attempts Reloaded:</strong> Security-related options should generally remain autoloaded for optimal protection.',
-        ),
-        'general_recommendations' => array(
-            '<strong>Safe Options:</strong> Options marked with a green checkmark are generally safe to disable. These are typically cache data, logs, or other non-critical data.',
-            '<strong>WordPress Core:</strong> Core options should not be disabled.',
-        ),
-    );
-
-    // Remove duplicates from safe_literals for cleanliness
-    $config['safe_literals'] = array_unique($config['safe_literals']);
-
-    return $config;
+    public function get_config_status() {
+        return $this->config_status;
+    }
 }
 
-
-/**
- * AJAX handler for fetching a single option's value.
- */
-function get_option_value_ajax_handler() {
-    // Verify nonce for security
-    if (!check_ajax_referer('view_option_nonce', 'nonce', false)) {
-        wp_send_json_error(array('message' => 'Security check failed. Please refresh the page.'));
-    }
-
-    // Check user permissions
-    if (!current_user_can('manage_options')) {
-        wp_send_json_error(array('message' => 'You do not have permission to view this data.'));
-    }
-
-    // Get and sanitize the option name from the AJAX request
-    $option_name = isset($_POST['option_name']) ? sanitize_text_field($_POST['option_name']) : '';
-
-    if (empty($option_name)) {
-        wp_send_json_error(array('message' => 'No option name provided.'));
-    }
-
-    // Retrieve the option from the database
-    $option_value = get_option($option_name);
-
-    // Check if the option exists
-    if ($option_value === false) {
-        wp_send_json_error(array('message' => 'This option does not exist in the database.'));
-    }
-
-    // Format the value for readability (handles arrays and objects)
-    $formatted_value = print_r($option_value, true);
-
-    // Wrap in <pre> tags for clean display and escape for security
-    $display_value = '<pre>' . esc_html($formatted_value) . '</pre>';
-
-    // Send the formatted value back in a success response
-    wp_send_json_success(array('value' => $display_value));
+function ao_get_config() {
+    return AO_Remote_Config_Manager::get_instance()->get_config();
 }
 
+// --- Display & UI Logic ---
 
-/**
- * AJAX handler for disabling autoload options
- */
-function disable_autoload_options_ajax() {
-    // Verify nonce
-    if (!check_ajax_referer('disable_autoload_nonce', 'nonce', false)) {
-        wp_send_json_error(array('message' => 'Security check failed'));
-    }
-    
-    // Check permissions
-    if (!current_user_can('manage_options')) {
-        wp_send_json_error(array('message' => 'You do not have permission to perform this action'));
-    }
-    
-    // Get selected options
-    $options_to_disable = isset($_POST['options']) ? $_POST['options'] : array();
-    
-    if (empty($options_to_disable) || !is_array($options_to_disable)) {
-        wp_send_json_error(array('message' => 'No options selected'));
-    }
-    
-    // Log file path
-    $upload_dir = wp_upload_dir();
-    $log_file = $upload_dir['basedir'] . '/autoload-options-debug.log';
-    
-    // Initialize log
-    $log = "=== Autoload Options Debug Log - " . date('Y-m-d H:i:s') . " ===\n";
-    $log .= "User: " . wp_get_current_user()->user_login . "\n";
-    $log .= "Options to disable: " . implode(', ', $options_to_disable) . "\n";
-    
+function ao_display_admin_page() {
+    if (!current_user_can('manage_options')) return;
+
     global $wpdb;
-    $disabled_count = 0;
-    $disabled_options = array();
-    $failed_options = array();
-    
-    foreach ($options_to_disable as $option_name) {
-        // Sanitize option name
-        $option_name = sanitize_text_field($option_name);
-        
-        // Check if option exists
-        $option = $wpdb->get_row($wpdb->prepare(
-            "SELECT option_name, autoload FROM {$wpdb->options} WHERE option_name = %s",
-            $option_name
-        ));
-        
-        if (!$option) {
-            $log .= "Option not found: $option_name\n";
-            $failed_options[] = $option_name;
-            continue;
-        }
-        
-        if ($option->autoload === 'no') {
-            $log .= "Option already set to no autoload: $option_name\n";
-            $disabled_options[] = $option_name;
-            $disabled_count++;
-            continue;
-        }
-        
-        // Update autoload status
-        $result = $wpdb->update(
-            $wpdb->options,
-            array('autoload' => 'no'),
-            array('option_name' => $option_name),
-            array('%s'),
-            array('%s')
-        );
-        
-        if ($result === false) {
-            $log .= "Failed to update option: $option_name - Error: " . $wpdb->last_error . "\n";
-            $failed_options[] = $option_name;
-        } else {
-            $log .= "Successfully updated option: $option_name\n";
-            $disabled_options[] = $option_name;
-            $disabled_count++;
-        }
-    }
-    
-    // Write to log file
-    file_put_contents($log_file, $log, FILE_APPEND);
-    
-    // Prepare response
-    $response = array(
-        'success' => true,
-        'disabled_count' => $disabled_count,
-        'disabled_options' => $disabled_options,
-        'failed_options' => $failed_options,
-        'log_file' => $upload_dir['baseurl'] . '/autoload-options-debug.log'
-    );
-    
-    wp_send_json_success($response);
-}
+    $config_manager = AO_Remote_Config_Manager::get_instance();
+    $config = $config_manager->get_config();
+    $status_message = $config_manager->get_config_status();
 
-/**
- * AJAX handler for disabling safe autoload options
- */
-function disable_safe_autoload_options_ajax() {
-    // Verify nonce
-    if (!check_ajax_referer('disable_autoload_nonce', 'nonce', false)) {
-        wp_send_json_error(array('message' => 'Security check failed'));
-    }
-    
-    // Check permissions
-    if (!current_user_can('manage_options')) {
-        wp_send_json_error(array('message' => 'You do not have permission to perform this action'));
-    }
-    
-    // Log file path
-    $upload_dir = wp_upload_dir();
-    $log_file = $upload_dir['basedir'] . '/autoload-options-debug.log';
-    
-    // Initialize log
-    $log = "=== Safe Autoload Options Debug Log - " . date('Y-m-d H:i:s') . " ===\n";
-    $log .= "User: " . wp_get_current_user()->user_login . "\n";
-    $log .= "Disabling safe autoload options\n";
-    
-    global $wpdb;
-
-    // Get centralized configuration
-    $config = get_autoload_options_config();
-    $safe_options_literal = $config['safe_literals'];
-    $safe_options_patterns = $config['safe_patterns'];
-    
-    $disabled_count = 0;
-    $disabled_options = array();
-    
-    // Process literal matches
-    foreach ($safe_options_literal as $option_name) {
-        $result = $wpdb->update(
-            $wpdb->options,
-            array('autoload' => 'no'),
-            array('option_name' => $option_name, 'autoload' => 'yes'),
-            array('%s'),
-            array('%s', '%s')
-        );
-        
-        if ($result !== false) {
-            $disabled_count++;
-            $disabled_options[] = $option_name;
-            $log .= "Disabled autoload for literal match: $option_name\n";
-        }
-    }
-    
-    // Process pattern matches
-    foreach ($safe_options_patterns as $pattern) {
-        $result = $wpdb->query($wpdb->prepare(
-            "UPDATE {$wpdb->options} SET autoload = 'no' WHERE autoload = 'yes' AND option_name LIKE %s",
-            $pattern
-        ));
-        
-        if ($result !== false) {
-            $disabled_count += $result;
-            $log .= "Disabled autoload for $result options matching pattern: $pattern\n";
-            
-            // Get the actual option names for logging
-            $matched_options = $wpdb->get_col($wpdb->prepare(
-                "SELECT option_name FROM {$wpdb->options} WHERE autoload = 'no' AND option_name LIKE %s",
-                $pattern
-            ));
-            
-            foreach ($matched_options as $option) {
-                if (!in_array($option, $disabled_options)) {
-                    $disabled_options[] = $option;
-                }
-            }
-        }
-    }
-    
-    // Write to log file
-    file_put_contents($log_file, $log, FILE_APPEND);
-    
-    // Prepare response
-    $response = array(
-        'success' => true,
-        'disabled_count' => $disabled_count,
-        'disabled_options' => array_slice($disabled_options, 0, 50), // Limit to first 50 for display
-        'total_options' => count($disabled_options),
-        'log_file' => $upload_dir['baseurl'] . '/autoload-options-debug.log'
-    );
-    
-    wp_send_json_success($response);
-}
-
-/**
- * Displays the autoloaded options page with plugin grouping in table format
- */
-function display_autoloaded_options() {
-    global $wpdb;
-    
-    if (!current_user_can('manage_options')) {
-        return;
-    }
-    
-    echo '<div class="wrap">';
-    echo '<h1>Autoloaded Options Analysis</h1>';
-    
-    // Get all autoloaded options
-    $options = $wpdb->get_results(
-        "SELECT option_name, LENGTH(option_value) AS option_length 
-        FROM {$wpdb->options} 
-        WHERE autoload = 'yes' 
-        ORDER BY option_length DESC"
-    );
-    
-    if (empty($options)) {
-        echo '<p>No autoloaded options found.</p>';
-        echo '</div>';
-        return;
-    }
-    
-    // Get active plugins with full paths
-    $active_plugins = get_option('active_plugins');
-    $active_plugin_paths = $active_plugins;
-    
-    // Get centralized configuration
-    $config = get_autoload_options_config();
-    $option_plugin_mapping = $config['plugin_mappings'];
-    $safe_options_literal = $config['safe_literals'];
-    $safe_options_patterns = $config['safe_patterns'];
-    
-    // Group options by plugin
-    $grouped_options = array();
+    $options = $wpdb->get_results("SELECT option_name, LENGTH(option_value) AS option_length FROM {$wpdb->options} WHERE autoload = 'yes' ORDER BY option_length DESC");
+    $active_plugin_paths = get_option('active_plugins', []);
+    $grouped_options = [];
     $total_size = 0;
     
     foreach ($options as $option) {
         $total_size += $option->option_length;
-        
-        // Skip options smaller than 1KB
         if ($option->option_length < 1024) continue;
-        
-        // Determine plugin
-        $plugin_name = 'Unknown';
-        $plugin_file = '';
-        $status = 'Unknown';
-        $status_class = '';
-        $is_safe = false;
-        
-        // Check if option is in safe list
-        if (in_array($option->option_name, $safe_options_literal)) {
-            $is_safe = true;
-        } else {
-            foreach ($safe_options_patterns as $pattern) {
-                if (fnmatch($pattern, $option->option_name)) {
-                    $is_safe = true;
-                    break;
-                }
+
+        $is_safe = in_array($option->option_name, $config['safe_literals']);
+        if (!$is_safe) {
+            foreach ($config['safe_patterns'] as $pattern) {
+                if (fnmatch($pattern, $option->option_name)) { $is_safe = true; break; }
             }
         }
         
-        // Try to find the plugin in our mapping
-        if (isset($option_plugin_mapping[$option->option_name])) {
-            $plugin_name = $option_plugin_mapping[$option->option_name]['name'];
-            $plugin_file = $option_plugin_mapping[$option->option_name]['file'];
-            
-            if ($plugin_file === 'core') {
-                $status = 'WordPress Core';
-                $status_class = 'notice-info';
-            } elseif ($plugin_file === 'theme') { // <<< NEW LOGIC FOR THEMES
-                $status = 'Active Theme';
-                $status_class = 'notice-info';
-            } elseif (in_array($plugin_file, $active_plugin_paths)) {
-                $status = 'Active Plugin';
-                $status_class = 'notice-success';
-            } else {
-                $status = 'Inactive Plugin';
-                $status_class = 'notice-error';
-            }
+        $plugin_name = __('Unknown', 'autoload-optimizer');
+        $status_info = ['text' => __('Unknown', 'autoload-optimizer'), 'class' => ''];
+
+        if (isset($config['plugin_mappings'][$option->option_name])) {
+            $mapping = $config['plugin_mappings'][$option->option_name];
+            $plugin_name = $mapping['name'];
+            if ($mapping['file'] === 'core') $status_info = ['text' => __('WordPress Core', 'autoload-optimizer'), 'class' => 'notice-info'];
+            elseif ($mapping['file'] === 'theme') $status_info = ['text' => __('Active Theme', 'autoload-optimizer'), 'class' => 'notice-info'];
+            elseif (in_array($mapping['file'], $active_plugin_paths)) $status_info = ['text' => __('Active Plugin', 'autoload-optimizer'), 'class' => 'notice-success'];
+            else $status_info = ['text' => __('Inactive Plugin', 'autoload-optimizer'), 'class' => 'notice-error'];
         } else {
-            // Try to guess the plugin based on the option name
-            if (strpos($option->option_name, 'p3_') === 0) { // <<< ADDED THIS GUESSER BLOCK
-                $plugin_name = 'P3 (Plugin Performance Profiler)';
-                $plugin_file = 'p3-profiler/p3-profiler.php';
-                $status = in_array($plugin_file, $active_plugin_paths) ? 'Active Plugin' : 'Inactive Plugin';
-                $status_class = in_array($plugin_file, $active_plugin_paths) ? 'notice-success' : 'notice-error';
-            } elseif (strpos($option->option_name, 'elementor') !== false) {
-                $plugin_name = 'Elementor';
-                $plugin_file = 'elementor/elementor.php';
-                $status = in_array($plugin_file, $active_plugin_paths) ? 'Active Plugin' : 'Inactive Plugin';
-                $status_class = in_array($plugin_file, $active_plugin_paths) ? 'notice-success' : 'notice-error';
-            } elseif (strpos($option->option_name, 'wpml') !== false) {
-                $plugin_name = 'WPML';
-                $plugin_file = 'sitepress-multilingual-cms/sitepress.php';
-                $status = in_array($plugin_file, $active_plugin_paths) ? 'Active Plugin' : 'Inactive Plugin';
-                $status_class = in_array($plugin_file, $active_plugin_paths) ? 'notice-success' : 'notice-error';
-            } elseif (strpos($option->option_name, 'wpseo') !== false) {
-                $plugin_name = 'Yoast SEO';
-                $plugin_file = 'wordpress-seo/wp-seo.php';
-                $status = in_array($plugin_file, $active_plugin_paths) ? 'Active Plugin' : 'Inactive Plugin';
-                $status_class = in_array($plugin_file, $active_plugin_paths) ? 'notice-success' : 'notice-error';
-            } elseif (strpos($option->option_name, 'rocket') !== false) {
-                $plugin_name = 'WP Rocket';
-                $plugin_file = 'wp-rocket/wp-rocket.php';
-                $status = in_array($plugin_file, $active_plugin_paths) ? 'Active Plugin' : 'Inactive Plugin';
-                $status_class = in_array($plugin_file, $active_plugin_paths) ? 'notice-success' : 'notice-error';
-            } elseif (strpos($option->option_name, 'imagify') !== false) {
-                $plugin_name = 'Imagify';
-                $plugin_file = 'imagify/imagify.php';
-                $status = in_array($plugin_file, $active_plugin_paths) ? 'Active Plugin' : 'Inactive Plugin';
-                $status_class = in_array($plugin_file, $active_plugin_paths) ? 'notice-success' : 'notice-error';
-            } elseif (strpos($option->option_name, 'limit_login') !== false) {
-                $plugin_name = 'Limit Login Attempts Reloaded';
-                $plugin_file = 'limit-login-attempts-reloaded/limit-login-attempts-reloaded.php';
-                $status = in_array($plugin_file, $active_plugin_paths) ? 'Active Plugin' : 'Inactive Plugin';
-                $status_class = in_array($plugin_file, $active_plugin_paths) ? 'notice-success' : 'notice-error';
-            } elseif (strpos($option->option_name, 'fs_accounts') !== false) {
-                $plugin_name = 'Aelia Currency Switcher';
-                $plugin_file = 'woocommerce-aelia-currencyswitcher/woocommerce-aelia-currencyswitcher.php';
-                $status = in_array($plugin_file, $active_plugin_paths) ? 'Active Plugin' : 'Inactive Plugin';
-                $status_class = in_array($plugin_file, $active_plugin_paths) ? 'notice-success' : 'notice-error';
-            } elseif (strpos($option->option_name, 'transient') !== false || strpos($option->option_name, 'cron') !== false) {
-                $plugin_name = 'WordPress Core';
-                $plugin_file = 'core';
-                $status = 'WordPress Core';
-                $status_class = 'notice-info';
-            }
+            if (strpos($option->option_name, 'elementor') === 0) $plugin_name = 'Elementor';
+            elseif (strpos($option->option_name, 'wpseo') === 0) $plugin_name = 'Yoast SEO';
+            elseif (strpos($option->option_name, 'rocket') === 0) $plugin_name = 'WP Rocket';
+            elseif (strpos($option->option_name, 'transient') !== false) $plugin_name = 'WordPress Core (Transient)';
         }
-        
-        // Add to group
+
         if (!isset($grouped_options[$plugin_name])) {
-            $grouped_options[$plugin_name] = array(
-                'name' => $plugin_name,
-                'file' => $plugin_file,
-                'status' => $status,
-                'status_class' => $status_class,
-                'total_size' => 0,
-                'count' => 0,
-                'options' => array()
-            );
+            $grouped_options[$plugin_name] = ['total_size' => 0, 'count' => 0, 'options' => []];
         }
-        
+
         $grouped_options[$plugin_name]['total_size'] += $option->option_length;
         $grouped_options[$plugin_name]['count']++;
-        
-        // Add option with safe flag
-        $option_array = (array)$option;
-        $option_array['is_safe'] = $is_safe;
-        $grouped_options[$plugin_name]['options'][] = (object)$option_array;
+        $grouped_options[$plugin_name]['options'][] = ['name' => $option->option_name, 'length' => $option->option_length, 'is_safe' => $is_safe, 'status' => $status_info];
     }
     
-    // Sort groups by total size (descending)
-    uasort($grouped_options, function($a, $b) {
-        return $b['total_size'] - $a['total_size'];
-    });
-    
-    // Display summary
-    echo '<div class="notice notice-info">';
-    echo '<p><strong>Total autoloaded options:</strong> ' . count($options) . ' | <strong>Total size:</strong> ' . size_format($total_size) . '</p>';
-    echo '</div>';
-    
-    // Add safe options button
-    echo '<div class="notice notice-warning">';
-    echo '<p><strong>Safe to Disable:</strong> There are many options that are generally safe to disable autoload for. These are typically cache data, logs, or other non-critical data.</p>';
-    echo '<p>';
-    echo '<button id="disable-safe-options" class="button button-primary">Disable All Safe Options</button> ';
-    echo '<span id="safe-loading-indicator" style="display:none;">Processing... <img src="' . admin_url('images/loading.gif') . '" alt="Loading..." /></span>';
-    echo '</p>';
-    echo '</div>';
-    
-    // Display table with plugin grouping
-    echo '<h2>Large Autoloaded Options (>1KB) by Plugin</h2>';
-    echo '<table class="wp-list-table widefat fixed striped">';
-    echo '<thead>';
-    echo '<tr>';
-    echo '<th>Option Name</th>';
-    echo '<th>Size</th>';
-    echo '<th>Percentage</th>';
-    echo '<th>Plugin</th>';
-    echo '<th>Status</th>';
-    echo '<th>Action</th>';
-    echo '</tr>';
-    echo '</thead>';
-    echo '<tbody>';
-    
-    $inactive_plugin_options = array();
-    $safe_plugin_options = array();
-    $current_plugin = '';
-    
-    foreach ($grouped_options as $plugin_name => $plugin_data) {
-        // Add plugin header row
-        echo '<tr class="plugin-header">';
-        echo '<td colspan="6"><strong>' . esc_html($plugin_name) . '</strong> - ';
-        echo size_format($plugin_data['total_size']) . ' total, ';
-        echo $plugin_data['count'] . ' options, ';
-        echo number_format(($plugin_data['total_size'] / $total_size) * 100, 2) . '% of total</td>';
-        echo '</tr>';
-        
-        // Add individual options for this plugin
-        foreach ($plugin_data['options'] as $option) {
-            $percentage = ($option->option_length / $total_size) * 100;
+    uasort($grouped_options, fn($a, $b) => $b['total_size'] <=> $a['total_size']);
+
+    ?>
+    <div class="wrap">
+        <h1><?php _e('Autoloaded Options Optimizer', 'autoload-optimizer'); ?></h1>
+        <div class="notice notice-info notice-alt"><p><strong><?php _e('Configuration Status:', 'autoload-optimizer'); ?></strong> <?php echo esc_html($status_message); ?></p></div>
+
+        <?php if (empty($options)) : ?>
+            <p><?php _e('No autoloaded options found.', 'autoload-optimizer'); ?></p>
+        <?php else : ?>
+            <div class="notice notice-warning notice-alt"><p><?php printf(__('<strong>Total Found:</strong> %d autoloaded options (%s).', 'autoload-optimizer'), count($options), size_format($total_size)); ?></p></div>
             
-            // Determine row class based on safety
-            $row_class = '';
-            if ($option->is_safe) {
-                $row_class = ' class="safe-option"';
-                $safe_plugin_options[] = $option->option_name;
-            }
-            
-            echo '<tr' . $row_class . '>';
-            // <<< MODIFIED: Option name is now a clickable link for the modal
-            echo '<td><strong><a href="#" class="view-option-content" data-option-name="' . esc_attr($option->option_name) . '">' . esc_html($option->option_name) . '</a></strong>';
-            if ($option->is_safe) {
-                echo ' <span class="dashicons dashicons-yes" style="color:#46b450;" title="Safe to disable"></span>';
-            }
-            echo '</td>';
-            echo '<td>' . size_format($option->option_length) . '</td>';
-            echo '<td>' . number_format($percentage, 2) . '%</td>';
-            echo '<td>' . esc_html($plugin_name) . '</td>';
-            echo '<td><span class="notice ' . esc_attr($plugin_data['status_class']) . '">' . esc_html($plugin_data['status']) . '</span></td>';
-            echo '<td>';
-            
-            if ($plugin_data['status'] === 'Inactive Plugin' || $option->is_safe) {
-                if ($plugin_data['status'] === 'Inactive Plugin') {
-                    $inactive_plugin_options[] = $option->option_name;
-                }
-                echo '<input type="checkbox" class="option-checkbox" value="' . esc_attr($option->option_name) . '" /> ';
-                echo '<button class="button disable-single" data-option="' . esc_attr($option->option_name) . '">Disable Autoload</button>';
-            } else {
-                echo 'N/A';
-            }
-            
-            echo '</td>';
-            echo '</tr>';
-        }
-    }
-    
-    echo '</tbody>';
-    echo '</table>';
-    
-    // Add CSS for safe options and the new modal
-    echo '<style>
-    .safe-option {
-        background-color: #f6f7f7;
-    }
-    .safe-option td:first-child {
-        font-weight: bold;
-    }
-    .view-option-content {
-        cursor: pointer;
-    }
-    #option-modal-overlay {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.7);
-        z-index: 10000;
-        justify-content: center;
-        align-items: center;
-    }
-    #option-modal-content {
-        background-color: #fff;
-        padding: 20px;
-        border-radius: 5px;
-        width: 80%;
-        max-width: 900px;
-        max-height: 80vh;
-        overflow-y: auto;
-        position: relative;
-    }
-    .close-modal {
-        position: absolute;
-        top: 10px;
-        right: 15px;
-        font-size: 28px;
-        font-weight: bold;
-        cursor: pointer;
-    }
-    #modal-body pre {
-        background-color: #f1f1f1;
-        padding: 15px;
-        border: 1px solid #ccc;
-        white-space: pre-wrap;
-        word-wrap: break-word;
-    }
-    </style>';
-    
-    // Display large options summary
-    echo '<div class="notice notice-warning">';
-    echo '<p><strong>Large options summary:</strong> ' . count($options) . ' options (' . size_format($total_size) . ') account for 100% of all autoloaded data</p>';
-    echo '</div>';
-    
-    // Display form submission button if there are inactive plugin options
-    if (!empty($inactive_plugin_options)) {
-        echo '<div class="notice notice-warning">';
-        echo '<p><strong>Found ' . count($inactive_plugin_options) . ' options from inactive plugins.</strong> Disabling autoload for these options can improve performance.</p>';
-        echo '<p>';
-        echo '<button id="disable-selected" class="button button-primary">Disable Autoload for Selected Options</button> ';
-        echo '<span id="loading-indicator" style="display:none;">Processing... <img src="' . admin_url('images/loading.gif') . '" alt="Loading..." /></span>';
-        echo '</p>';
-        echo '</div>';
-    }
-    
-    // Add a manual query section for direct database access
-    echo '<div class="card">';
-    echo '<h2>Manual Database Query</h2>';
-    echo '<p>If the automatic method doesn\'t work, you can manually run these SQL queries to disable autoload for specific options:</p>';
-    echo '<textarea readonly style="width:100%; height:100px; font-family:monospace;">';
-    
-    foreach ($inactive_plugin_options as $option) {
-        echo "UPDATE {$wpdb->options} SET autoload = 'no' WHERE option_name = '" . esc_sql($option) . "';\n";
-    }
-    
-    echo '</textarea>';
-    echo '<p class="description">You can run these queries using phpMyAdmin or a database management tool.</p>';
-    echo '</div>';
-    
-    // Display recommendations
-    echo '<div class="card">';
-    echo '<h2>Recommendations</h2>';
-    echo '<ol>';
+            <div id="ao-results-container" style="display:none; margin-top: 1rem;"></div>
 
-    // Get recommendations from config
-    $recommendations = $config['recommendations'];
-    $general_recommendations = isset($config['general_recommendations']) ? $config['general_recommendations'] : [];
-    $displayed_recommendations = [];
-
-    // Display plugin-specific recommendations based on what was found
-    foreach ($grouped_options as $plugin_name => $plugin_data) {
-        if (isset($recommendations[$plugin_name]) && !in_array($plugin_name, $displayed_recommendations)) {
-            echo '<li>' . $recommendations[$plugin_name] . '</li>';
-            $displayed_recommendations[] = $plugin_name;
-        }
-    }
-
-    // Display general recommendations
-    foreach ($general_recommendations as $rec) {
-        echo '<li>' . $rec . '</li>';
-    }
-
-    echo '</ol>';
-    echo '</div>';
-    
-    echo '<div class="notice notice-error">';
-    echo '<p><strong>Warning:</strong> Only disable autoload for options that belong to inactive plugins or are marked as safe. Disabling autoload for active plugins or core options may break your site. Always backup your database before making changes.</p>';
-    echo '</div>';
-    
-    // Add results container
-    echo '<div id="results-container" style="display:none;"></div>';
-
-    // NEW HTML FOR THE MODAL CONTAINER
-    echo '<div id="option-modal-overlay">
-            <div id="option-modal-content">
-                <span class="close-modal">&times;</span>
-                <h2 id="option-modal-title">Option Content</h2>
-                <div id="modal-body">Loading...</div>
+            <div class="card" style="margin-top: 1rem;">
+                <h2 class="title"><?php _e('Bulk Actions', 'autoload-optimizer'); ?></h2>
+                <p><?php _e('Select multiple options from the table below and disable their autoload status in one go.', 'autoload-optimizer'); ?></p>
+                <button id="ao-disable-selected" class="button button-primary"><?php _e('Disable Autoload for Selected', 'autoload-optimizer'); ?></button>
+                <span class="spinner" style="float: none; margin-left: 5px;"></span>
             </div>
-          </div>';
 
-    echo '</div>'; // This closes the main <div class="wrap">
+            <h2><?php _e('Large Autoloaded Options (>1KB)', 'autoload-optimizer'); ?></h2>
+            <table class="wp-list-table widefat fixed striped">
+                <thead>
+                    <tr>
+                        <th id="cb" class="manage-column column-cb check-column"><input type="checkbox" /></th>
+                        <th><?php _e('Option Name / Status', 'autoload-optimizer'); ?></th>
+                        <th><?php _e('Size', 'autoload-optimizer'); ?></th>
+                        <th><?php _e('Action', 'autoload-optimizer'); ?></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($grouped_options as $plugin_name => $data) : ?>
+                        <tr class="plugin-header">
+                            <th class="check-column"></th>
+                            <td colspan="3"><strong><?php echo esc_html($plugin_name); ?></strong> <small>(<?php printf('%d options, %s total', $data['count'], size_format($data['total_size'])); ?>)</small></td>
+                        </tr>
+                        <?php foreach ($data['options'] as $option) : ?>
+                            <tr>
+                                <th class="check-column">
+                                    <?php if ($option['status']['text'] === __('Inactive Plugin', 'autoload-optimizer') || $option['is_safe']) : ?>
+                                        <input type="checkbox" class="ao-option-checkbox" value="<?php echo esc_attr($option['name']); ?>">
+                                    <?php endif; ?>
+                                </th>
+                                <td>
+                                    <strong><a href="#" class="view-option-content" data-option-name="<?php echo esc_attr($option['name']); ?>"><?php echo esc_html($option['name']); ?></a></strong>
+                                    <?php if ($option['is_safe']) : ?><span class="dashicons dashicons-yes-alt" style="color:#46b450;" title="<?php _e('Safe to disable autoload', 'autoload-optimizer'); ?>"></span><?php endif; ?>
+                                    <br><small class="<?php echo esc_attr($option['status']['class']); ?>"><?php echo esc_html($option['status']['text']); ?></small>
+                                </td>
+                                <td><?php echo size_format($option['length']); ?></td>
+                                <td>
+                                    <?php if ($option['status']['text'] === __('Inactive Plugin', 'autoload-optimizer') || $option['is_safe']) : ?>
+                                        <button class="button disable-single" data-option="<?php echo esc_attr($option['name']); ?>"><?php _e('Disable Autoload', 'autoload-optimizer'); ?></button>
+                                    <?php else : ?>
+                                        <span title="<?php _e('Disabling autoload for core or active plugins is not recommended.', 'autoload-optimizer'); ?>"><?php _e('N/A', 'autoload-optimizer'); ?></span>
+                                    <?php endif; ?>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+
+            <div class="card" style="margin-top: 2rem;">
+                <h2><?php _e('Recommendations', 'autoload-optimizer'); ?></h2>
+                <ul>
+                    <?php
+                    $displayed_recs = [];
+                    foreach ($grouped_options as $plugin_name => $data) {
+                        if (isset($config['recommendations'][$plugin_name]) && !in_array($plugin_name, $displayed_recs)) {
+                            echo '<li>' . wp_kses_post($config['recommendations'][$plugin_name]) . '</li>';
+                            $displayed_recs[] = $plugin_name;
+                        }
+                    }
+                    foreach ($config['general_recommendations'] as $rec) { echo '<li>' . wp_kses_post($rec) . '</li>'; }
+                    ?>
+                </ul>
+            </div>
+            <div class="notice notice-error" style="margin-top: 1rem;"><p><strong><?php _e('Warning:', 'autoload-optimizer'); ?></strong> <?php _e('Always have a backup before making changes.', 'autoload-optimizer'); ?></p></div>
+        <?php endif; ?>
+
+        <div id="ao-option-modal-overlay"><div id="ao-option-modal-content"><span class="close-modal">&times;</span><h2 id="ao-option-modal-title"></h2><div id="ao-modal-body"></div></div></div>
+    </div>
+    <style>.plugin-header th, .plugin-header td { font-weight: bold; background-color: #f6f6f6; } .view-option-content { cursor: pointer; } #ao-option-modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.7); z-index: 10001; justify-content: center; align-items: center; } #ao-option-modal-content { background: #fff; padding: 20px; border-radius: 4px; width: 80%; max-width: 900px; max-height: 80vh; overflow-y: auto; position: relative; } .close-modal { position: absolute; top: 5px; right: 15px; font-size: 28px; font-weight: bold; cursor: pointer; color: #555; } #ao-modal-body pre { background: #f1f1f1; padding: 15px; border: 1px solid #ddd; white-space: pre-wrap; word-wrap: break-word; }</style>
+    <?php
+}
+
+// --- AJAX Handlers & JavaScript ---
+
+function ao_ajax_get_option_value() {
+    check_ajax_referer('ao_view_option_nonce', 'nonce');
+    if (!current_user_can('manage_options')) wp_send_json_error(['message' => __('Permission denied.', 'autoload-optimizer')]);
+    $option_name = sanitize_text_field($_POST['option_name']);
+    $option_value = get_option($option_name);
+    if (false === $option_value) wp_send_json_error(['message' => __('Option not found.', 'autoload-optimizer')]);
+    wp_send_json_success(['value' => '<pre>' . esc_html(print_r($option_value, true)) . '</pre>']);
+}
+
+function ao_ajax_disable_autoload_options() {
+    check_ajax_referer('ao_disable_autoload_nonce', 'nonce');
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error(['message' => __('Permission denied.', 'autoload-optimizer')]);
+    }
+
+    $options_to_disable = isset($_POST['option_names']) ? (array) $_POST['option_names'] : [];
+    if (empty($options_to_disable)) {
+        wp_send_json_error(['message' => __('No options were selected.', 'autoload-optimizer')]);
+    }
+
+    // Prepare for logging
+    $upload_dir = wp_upload_dir();
+    $log_file = $upload_dir['basedir'] . '/autoload-options-debug.log';
+    $log_content = "\n=== Autoload Disable Action - " . date('Y-m-d H:i:s') . " ===\n";
+    $log_content .= "User: " . wp_get_current_user()->user_login . "\n";
     
-    // Add JavaScript for AJAX functionality
+    global $wpdb;
+    $success_count = 0;
+    $failure_count = 0;
+    $already_done = 0;
+
+    foreach ($options_to_disable as $option_name) {
+        $sane_option_name = sanitize_text_field($option_name);
+        $current_autoload = $wpdb->get_var($wpdb->prepare("SELECT autoload FROM {$wpdb->options} WHERE option_name = %s", $sane_option_name));
+
+        if ('no' === $current_autoload) {
+            $already_done++;
+            $log_content .= "[SKIPPED] '{$sane_option_name}' - Autoload was already 'no'.\n";
+            continue;
+        }
+
+        $result = $wpdb->update($wpdb->options, ['autoload' => 'no'], ['option_name' => $sane_option_name]);
+        
+        if (false === $result) {
+            $failure_count++;
+            $log_content .= "[FAILED]  '{$sane_option_name}' - Database error on update.\n";
+        } else {
+            $success_count++;
+            $log_content .= "[SUCCESS] '{$sane_option_name}' - Set autoload to 'no'.\n";
+        }
+    }
+
+    // Write to the log file
+    file_put_contents($log_file, $log_content, FILE_APPEND);
+
+    $message = sprintf(
+        __('Processed %d options: %d successfully disabled, %d failed, %d already disabled.', 'autoload-optimizer'),
+        count($options_to_disable), $success_count, $failure_count, $already_done
+    );
+    $message .= ' ' . sprintf(__('A detailed record has been saved to %s.', 'autoload-optimizer'), '<code>/wp-content/uploads/autoload-options-debug.log</code>');
+
+    wp_send_json_success(['message' => $message]);
+}
+
+add_action('admin_footer', 'ao_admin_page_scripts');
+function ao_admin_page_scripts() {
+    $screen = get_current_screen();
+    if (!$screen || 'tools_page_autoloaded-options' !== $screen->id) return;
     ?>
     <script type="text/javascript">
-    jQuery(document).ready(function($) {
-        
-        // NEW JAVASCRIPT FOR MODAL FUNCTIONALITY
+    document.addEventListener('DOMContentLoaded', function() {
+        const modalOverlay = document.getElementById('ao-option-modal-overlay');
+        const modalContent = document.getElementById('ao-option-modal-content');
+        const modalTitle = document.getElementById('ao-option-modal-title');
+        const modalBody = document.getElementById('ao-modal-body');
+        const resultsContainer = document.getElementById('ao-results-container');
+        const ajaxurl = '<?php echo admin_url('admin-ajax.php'); ?>';
 
-        var viewOptionNonce = '<?php echo wp_create_nonce("view_option_nonce"); ?>';
+        function showModal(title, content) { modalTitle.textContent = title; modalBody.innerHTML = content; modalOverlay.style.display = 'flex'; }
+        function hideModal() { modalOverlay.style.display = 'none'; }
+        function showResult(message, type = 'success') { resultsContainer.innerHTML = `<div class="notice notice-${type} is-dismissible"><p>${message}</p></div>`; resultsContainer.style.display = 'block'; }
 
-        // Open the modal on click using event delegation on the table body
-        $('.wp-list-table tbody').on('click', '.view-option-content', function(e) {
-            e.preventDefault();
-            
-            var optionName = $(this).data('option-name');
-            
-            // Set modal title and show loading state
-            $('#option-modal-title').text('Viewing: ' + optionName);
-            $('#modal-body').html('Loading...');
-            $('#option-modal-overlay').css('display', 'flex'); // Use flex to center
-
-            var data = {
-                action: 'get_option_value',
-                nonce: viewOptionNonce,
-                option_name: optionName
-            };
-
-            $.post(ajaxurl, data, function(response) {
-                if (response.success) {
-                    $('#modal-body').html(response.data.value);
-                } else {
-                    $('#modal-body').html('<p style="color:red;">Error: ' + response.data.message + '</p>');
-                }
-            }).fail(function() {
-                $('#modal-body').html('<p style="color:red;">Error: The AJAX request failed.</p>');
-            });
-        });
-
-        // Close the modal
-        function closeModal() {
-            $('#option-modal-overlay').hide();
-            $('#modal-body').html(''); // Clear content
-        }
-
-        // Event handlers for closing
-        $('#option-modal-overlay').on('click', function(e) {
-            if (e.target === this) { // Only close if clicking the overlay itself
-                closeModal();
-            }
-        });
-        $('.close-modal').on('click', closeModal);
-
-
-        // EXISTING JAVASCRIPT (UNCHANGED)
-        
-        // Function to disable autoload for selected options
-        $('#disable-selected').on('click', function() {
-            var selectedOptions = [];
-            $('.option-checkbox:checked').each(function() {
-                selectedOptions.push($(this).val());
-            });
-            
-            if (selectedOptions.length === 0) {
-                alert('Please select at least one option to disable.');
+        function disableOptions(optionNames, button) {
+            if (!confirm(`<?php _e('Are you sure you want to disable autoload for the selected option(s)?', 'autoload-optimizer'); ?>`)) {
                 return;
             }
+
+            const isBulk = Array.isArray(optionNames) && optionNames.length > 1;
+            const spinner = isBulk ? document.querySelector('#ao-disable-selected + .spinner') : null;
             
-            disableAutoloadOptions(selectedOptions);
+            if (button) button.disabled = true;
+            if (spinner) spinner.classList.add('is-active');
+
+            const formData = new FormData();
+            formData.append('action', 'ao_disable_autoload_options');
+            formData.append('nonce', '<?php echo wp_create_nonce('ao_disable_autoload_nonce'); ?>');
+            optionNames.forEach(name => formData.append('option_names[]', name));
+
+            fetch(ajaxurl, { method: 'POST', body: formData })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showResult(data.data.message, 'success');
+                        setTimeout(() => location.reload(), 3000);
+                    } else {
+                        showResult(data.data.message, 'error');
+                    }
+                })
+                .finally(() => {
+                    if (button) button.disabled = false;
+                    if (spinner) spinner.classList.remove('is-active');
+                });
+        }
+
+        document.querySelector('.wp-list-table').addEventListener('click', function(e) {
+            if (e.target.classList.contains('view-option-content')) {
+                e.preventDefault();
+                const optionName = e.target.dataset.optionName;
+                showModal('<?php _e('Viewing:', 'autoload-optimizer'); ?> ' + optionName, '<?php _e('Loading...', 'autoload-optimizer'); ?>');
+                const formData = new FormData();
+                formData.append('action', 'ao_get_option_value');
+                formData.append('nonce', '<?php echo wp_create_nonce('ao_view_option_nonce'); ?>');
+                formData.append('option_name', optionName);
+                fetch(ajaxurl, { method: 'POST', body: formData }).then(r => r.json()).then(d => modalBody.innerHTML = d.success ? d.data.value : `<p style="color:red;">${d.data.message}</p>`);
+            }
+            if (e.target.classList.contains('disable-single')) {
+                e.preventDefault();
+                disableOptions([e.target.dataset.option], e.target);
+            }
         });
         
-        // Function to disable autoload for safe options
-        $('#disable-safe-options').on('click', function() {
-            if (!confirm('Are you sure you want to disable autoload for all safe options? This action cannot be undone.')) {
+        document.getElementById('ao-disable-selected').addEventListener('click', function(e){
+            const selected = Array.from(document.querySelectorAll('.ao-option-checkbox:checked')).map(cb => cb.value);
+            if (selected.length === 0) {
+                alert('<?php _e('Please select at least one option from the table.', 'autoload-optimizer'); ?>');
                 return;
             }
-            
-            // Show loading indicator
-            $('#safe-loading-indicator').show();
-            $('#disable-safe-options').prop('disabled', true);
-            
-            // Prepare data
-            var data = {
-                action: 'disable_safe_autoload_options',
-                nonce: '<?php echo wp_create_nonce('disable_autoload_nonce'); ?>'
-            };
-            
-            // Send AJAX request
-            $.post(ajaxurl, data, function(response) {
-                if (response.success) {
-                    // Display results
-                    var resultsHtml = '<div class="notice notice-success">';
-                    resultsHtml += '<p>Successfully disabled autoload for ' + response.data.disabled_count + ' safe options.</p>';
-                    
-                    if (response.data.total_options > 50) {
-                        resultsHtml += '<p>Showing first 50 options of ' + response.data.total_options + ' total options:</p>';
-                    }
-                    
-                    resultsHtml += '<ul>';
-                    $.each(response.data.disabled_options, function(index, option) {
-                        resultsHtml += '<li>' + option + '</li>';
-                    });
-                    resultsHtml += '</ul>';
-                    
-                    resultsHtml += '<p>Debug log: <a href="' + response.data.log_file + '" target="_blank">View Log File</a></p>';
-                    resultsHtml += '</div>';
-                    
-                    $('#results-container').html(resultsHtml).show();
-                    
-                    // Reload page after 3 seconds to show updated status
-                    setTimeout(function() {
-                        location.reload();
-                    }, 3000);
-                } else {
-                    // Display error
-                    $('#results-container').html('<div class="notice notice-error"><p>Error: ' + response.data.message + '</p></div>').show();
-                }
-                
-                // Hide loading indicator
-                $('#safe-loading-indicator').hide();
-                $('#disable-safe-options').prop('disabled', false);
-            }).fail(function(xhr, status, error) {
-                // Display error
-                $('#results-container').html('<div class="notice notice-error"><p>AJAX request failed: ' + error + '</p></div>').show();
-                
-                // Hide loading indicator
-                $('#safe-loading-indicator').hide();
-                $('#disable-safe-options').prop('disabled', false);
-            });
+            disableOptions(selected, e.target);
         });
-        
-        // Function to disable autoload for a single option
-        $('.disable-single').on('click', function() {
-            var optionName = $(this).data('option');
-            disableAutoloadOptions([optionName]);
-        });
-        
-        // Function to handle AJAX request
-        function disableAutoloadOptions(options) {
-            // Show loading indicator
-            $('#loading-indicator').show();
-            $('#disable-selected').prop('disabled', true);
-            
-            // Prepare data
-            var data = {
-                action: 'disable_autoload_options',
-                nonce: '<?php echo wp_create_nonce('disable_autoload_nonce'); ?>',
-                options: options
-            };
-            
-            // Send AJAX request
-            $.post(ajaxurl, data, function(response) {
-                if (response.success) {
-                    // Display results
-                    var resultsHtml = '<div class="notice notice-success">';
-                    resultsHtml += '<p>Successfully disabled autoload for ' + response.data.disabled_count + ' options:</p>';
-                    resultsHtml += '<ul>';
-                    $.each(response.data.disabled_options, function(index, option) {
-                        resultsHtml += '<li>' + option + '</li>';
-                    });
-                    resultsHtml += '</ul>';
-                    
-                    if (response.data.failed_options.length > 0) {
-                        resultsHtml += '<p>Failed to disable autoload for ' + response.data.failed_options.length + ' options:</p>';
-                        resultsHtml += '<ul>';
-                        $.each(response.data.failed_options, function(index, option) {
-                            resultsHtml += '<li>' + option + '</li>';
-                        });
-                        resultsHtml += '</ul>';
-                    }
-                    
-                    resultsHtml += '<p>Debug log: <a href="' + response.data.log_file + '" target="_blank">View Log File</a></p>';
-                    resultsHtml += '</div>';
-                    
-                    $('#results-container').html(resultsHtml).show();
-                    
-                    // Reload page after 3 seconds to show updated status
-                    setTimeout(function() {
-                        location.reload();
-                    }, 3000);
-                } else {
-                    // Display error
-                    $('#results-container').html('<div class="notice notice-error"><p>Error: ' + response.data.message + '</p></div>').show();
-                }
-                
-                // Hide loading indicator
-                $('#loading-indicator').hide();
-                $('#disable-selected').prop('disabled', false);
-            }).fail(function(xhr, status, error) {
-                // Display error
-                $('#results-container').html('<div class="notice notice-error"><p>AJAX request failed: ' + error + '</p></div>').show();
-                
-                // Hide loading indicator
-                $('#loading-indicator').hide();
-                $('#disable-selected').prop('disabled', false);
-            });
-        }
+
+        modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) hideModal(); });
+        modalContent.querySelector('.close-modal').addEventListener('click', hideModal);
     });
     </script>
     <?php
