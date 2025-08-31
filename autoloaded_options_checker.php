@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Autoloaded Options Checker
  * Description: Adds a tool to check, manage, and view autoloaded options in the wp_options table.
- * Version: 1.9
+ * Version: 2.0
  */
 
 /**
@@ -189,11 +189,12 @@ function disable_safe_autoload_options_ajax() {
     
     // Safe options to disable (literal matches)
     $safe_options_literal = array(
+        'revisionary_sent_mail', // <<< NEW
         'aioseop_options',
         'aioseo_options_v3',
         'yst_ga_top_pageviews',
-        'yst_ga_top_countries', // <<< NEW
-        'yst_ga_source',        // <<< NEW
+        'yst_ga_top_countries',
+        'yst_ga_source',
         '_transient_wpassetcleanup_assets_info',
         '_transient_wc_attribute_taxonomies',
         '_transient_dirsize_cache',
@@ -423,6 +424,9 @@ function display_autoloaded_options() {
     
     // Create mapping of options to plugins with exact file paths
     $option_plugin_mapping = array(
+        // Mapping for PublishPress Revisions
+        'revisionary_sent_mail' => array('name' => 'PublishPress Revisions', 'file' => 'revisionary/revisionary.php'), // <<< NEW
+
         // Mapping for Starbox
         'abh_options' => array('name' => 'Starbox - the Author Box for Humans', 'file' => 'starbox/starbox.php'),
         
@@ -432,7 +436,7 @@ function display_autoloaded_options() {
         // Mappings for Ezoic
         'ez_adtester_config' => array('name' => 'Ezoic Integration', 'file' => 'ezoic-integration/ezoic-integration.php'),
 
-        // <<< YOAST SEO MAPPINGS (GROUPED) >>>
+        // YOAST SEO MAPPINGS (GROUPED)
         'yst_ga_top_pageviews' => array('name' => 'Yoast SEO', 'file' => 'wordpress-seo/wp-seo.php'),
         'yst_ga_top_countries' => array('name' => 'Yoast SEO', 'file' => 'wordpress-seo/wp-seo.php'),
         'yst_ga_source'        => array('name' => 'Yoast SEO', 'file' => 'wordpress-seo/wp-seo.php'),
@@ -440,7 +444,7 @@ function display_autoloaded_options() {
         'wpseo'                => array('name' => 'Yoast SEO', 'file' => 'wordpress-seo/wp-seo.php'),
         'wpseo_premium'        => array('name' => 'Yoast SEO Premium', 'file' => 'wordpress-seo-premium/wp-seo-premium.php'),
 
-        // <<< AIOSEO MAPPINGS (GROUPED) >>>
+        // AIOSEO MAPPINGS (GROUPED)
         'aioseo_options'                     => array('name' => 'All in One SEO', 'file' => 'all-in-one-seo-pack/all-in-one-seo-pack.php'),
         'aioseo_options_dynamic'             => array('name' => 'All in One SEO', 'file' => 'all-in-one-seo-pack/all-in-one-seo-pack.php'),
         'aioseo_options_network'             => array('name' => 'All in One SEO', 'file' => 'all-in-one-seo-pack/all-in-one-seo-pack.php'),
@@ -537,11 +541,12 @@ function display_autoloaded_options() {
     
     // Safe options to disable (literal matches)
     $safe_options_literal = array(
-        'aioseop_options',      // LEGACY AIOSEO (Classic)
-        'aioseo_options_v3',    // LEGACY AIOSEO (v3 Backup)
+        'revisionary_sent_mail', // <<< NEW
+        'aioseop_options',
+        'aioseo_options_v3',
         'yst_ga_top_pageviews',
-        'yst_ga_top_countries', // <<< NEW
-        'yst_ga_source',        // <<< NEW
+        'yst_ga_top_countries',
+        'yst_ga_source',
         '_transient_wpassetcleanup_assets_info',
         '_transient_wc_attribute_taxonomies',
         '_transient_dirsize_cache',
