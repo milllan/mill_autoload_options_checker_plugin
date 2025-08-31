@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Autoloaded Options Checker
  * Description: Adds a tool to check, manage, and view autoloaded options in the wp_options table.
- * Version: 2.1
+ * Version: 2.2
  */
 
 /**
@@ -424,7 +424,10 @@ function display_autoloaded_options() {
     
     // Create mapping of options to plugins with exact file paths
     $option_plugin_mapping = array(
-        // <<< NEW THEME WIDGET MAPPINGS
+        // <<< NEW MAPPING FOR PUBLISHPRESS CAPABILITIES
+        'ppc_feature_post_metaboxes_data' => array('name' => 'PublishPress Capabilities', 'file' => 'capability-manager-enhanced/capability-manager-enhanced.php'),
+
+        // THEME WIDGET MAPPINGS
         'widget_mh_advertising'  => array('name' => 'MH Magazine Theme Widgets', 'file' => 'theme'),
         'widget_mh_custom_posts' => array('name' => 'MH Magazine Theme Widgets', 'file' => 'theme'),
 
