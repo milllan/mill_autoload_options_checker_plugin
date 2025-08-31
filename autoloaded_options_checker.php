@@ -189,6 +189,8 @@ function disable_safe_autoload_options_ajax() {
     
     // Safe options to disable (literal matches)
     $safe_options_literal = array(
+        'elementskit-lite__banner_data',    // <<< NEW: ElementsKit dashboard data
+        'elementskit-lite__stories_data',   // <<< NEW: ElementsKit dashboard data
         'addon_library_catalog', // <<< NEW: Added Unlimited Elements catalog
         'revisionary_sent_mail',
         'aioseop_options',
@@ -425,6 +427,11 @@ function display_autoloaded_options() {
     
     // Create mapping of options to plugins with exact file paths
     $option_plugin_mapping = array(
+        // <<< NEW MAPPING FOR ELEMENTSKIT LITE >>>
+        'elementskit_options'              => array('name' => 'ElementsKit Lite', 'file' => 'elementskit-lite/elementskit-lite.php'),
+        'elementskit-lite__banner_data'    => array('name' => 'ElementsKit Lite', 'file' => 'elementskit-lite/elementskit-lite.php'),
+        'elementskit-lite__stories_data'   => array('name' => 'ElementsKit Lite', 'file' => 'elementskit-lite/elementskit-lite.php'),
+
         // <<< NEW MAPPING FOR UNLIMITED ELEMENTS
         'addon_library_catalog' => array('name' => 'Unlimited Elements for Elementor', 'file' => 'unlimited-elements-for-elementor/unlimited-elements-for-elementor.php'),
         
@@ -549,6 +556,8 @@ function display_autoloaded_options() {
     
     // Safe options to disable (literal matches) - THIS LIST IS FOR THE UI (GREEN CHECKMARK)
     $safe_options_literal = array(
+        'elementskit-lite__banner_data',    // <<< NEW: ElementsKit dashboard data
+        'elementskit-lite__stories_data',   // <<< NEW: ElementsKit dashboard data
         'addon_library_catalog', // <<< NEW: Added Unlimited Elements catalog
         'revisionary_sent_mail',
         'aioseop_options',
@@ -984,7 +993,10 @@ function display_autoloaded_options() {
     echo '<div class="card">';
     echo '<h2>Recommendations</h2>';
     echo '<ol>';
-    // <<< NEW RECOMMENDATION FOR UNLIMITED ELEMENTS
+    // <<< NEW RECOMMENDATION FOR ELEMENTSKIT LITE >>>
+    echo '<li><strong>ElementsKit Lite:</strong> Options like <code>elementskit-lite__banner_data</code> and <code>elementskit-lite__stories_data</code> contain data for the admin dashboard and are safe to disable autoload for. Review the main <code>elementskit_options</code> carefully before disabling it.</li>';
+    
+    // <<< NEW RECOMMENDATION FOR UNLIMITED ELEMENTS FOR ELEMENTOR >>>
     echo '<li><strong>Unlimited Elements for Elementor:</strong> The `addon_library_catalog` option is a very large cache of the plugin\'s widget library. It is only needed when browsing widgets in the Elementor editor and is very safe to disable autoload for.</li>';
     echo '<li><strong>All in One SEO:</strong> The options `aioseo_options_v3` and `aioseop_options` are legacy data from older versions. They have been marked as safe to disable autoload. Do not disable autoload for the other `aioseo_` options if the plugin is active.</li>';
     echo '<li><strong>WPML (Total: ~232 KB):</strong> This is the largest contributor to autoloaded data. Since WPML is active, do not disable these options.</li>';
