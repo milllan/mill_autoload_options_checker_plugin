@@ -148,7 +148,15 @@ function ao_display_admin_page() {
     $config = $config_manager->get_config();
     $status_message = $config_manager->get_config_status();
 
-    $options = $wpdb->get_results($wpdb->prepare(
+    // 1. Get total stats for ALL autoloaded options
+    $total_autoload_stats = $wpdb->get_row(
+        "SELECT COUNT(option_name) as count, SUM(LENGTH(option_value)) as size
+         FROM {$wpdb->options}
+         WHERE autoload = 'yes'"
+    );
+
+    // 2. Get only the LARGE options for the main table
+    $large_options = $wpdb->get_results($wpdb->prepare(
         "SELECT option_name, LENGTH(option_value) AS option_length
          FROM {$wpdb->options}
          WHERE autoload = 'yes' AND LENGTH(option_value) >= %d
@@ -157,11 +165,11 @@ function ao_display_admin_page() {
 
     $active_plugin_paths = get_option('active_plugins', []);
     $grouped_options = [];
-    $total_size = 0;
+    $large_options_size = 0;
     
-    foreach($options as $option) { $total_size += $option->option_length; }
+    foreach($large_options as $option) { $large_options_size += $option->option_length; }
 
-    foreach ($options as $option) {
+    foreach ($large_options as $option) {
         $is_safe = in_array($option->option_name, $config['safe_literals']);
         if (!$is_safe && !empty($config['safe_patterns'])) {
             foreach ($config['safe_patterns'] as $pattern) {
@@ -229,6 +237,30 @@ function ao_display_admin_page() {
     ?>
     <div class="wrap">
         <h1><?php _e('Autoloaded Options Optimizer', 'autoload-optimizer'); ?></h1>
+
+        <!-- *** THIS IS THE CHANGED SECTION *** -->
+        <div class="notice notice-warning notice-alt" style="margin-top: 1rem;">
+            <?php if ($total_autoload_stats && $total_autoload_stats->count > 0) : ?>
+                <p>
+                    <?php printf(
+                        __('<strong>Total autoloaded options:</strong> %d (%s).', 'autoload-optimizer'),
+                        esc_html($total_autoload_stats->count),
+                        esc_html(size_format($total_autoload_stats->size))
+                    ); ?>
+                </p>
+                <?php if (!empty($large_options)) : ?>
+                <p>
+                    <?php printf(
+                        __('This table shows the %d options that are larger than 1KB, which have a combined size of %s.', 'autoload-optimizer'),
+                        count($large_options),
+                        esc_html(size_format($large_options_size))
+                    ); ?>
+                </p>
+                <?php endif; ?>
+            <?php endif; ?>
+        </div>
+
+        <div class="notice notice-error"><p><strong><?php _e('Warning:', 'autoload-optimizer'); ?></strong> <?php _e('Always have a backup before making changes. Only disable autoload for options that belong to inactive plugins or are marked as safe.', 'autoload-optimizer'); ?></p></div>
         
         <div id="ao-dashboard-widgets-wrap" style="display: flex; gap: 20px; margin-top: 1rem;">
             <div class="card" style="flex: 1;">
@@ -263,11 +295,9 @@ function ao_display_admin_page() {
             <p><a href="<?php echo esc_url(wp_nonce_url(add_query_arg('ao_refresh_config', '1'), 'ao_refresh_config')); ?>" class="button"><?php _e('Force Refresh Configuration', 'autoload-optimizer'); ?></a></p>
         </div>
 
-        <?php if (empty($options)) : ?>
+        <?php if (empty($large_options)) : ?>
             <p><?php _e('No autoloaded options larger than 1KB found.', 'autoload-optimizer'); ?></p>
         <?php else : ?>
-            <div class="notice notice-warning notice-alt"><p><?php printf(__('<strong>Analysis:</strong> Found %d autoloaded options > 1KB with a combined size of %s.', 'autoload-optimizer'), count($options), size_format($total_size)); ?></p></div>
-            
             <div id="ao-results-container" style="display:none; margin-top: 1rem;"></div>
 
             <h2><?php _e('Large Autoloaded Options (>1KB)', 'autoload-optimizer'); ?></h2>
@@ -292,10 +322,10 @@ function ao_display_admin_page() {
                             <td colspan="6">
                                 <strong><?php echo esc_html($plugin_name); ?></strong> - 
                                 <?php printf(
-                                    __('%s total, %d options, %s of total', 'autoload-optimizer'),
+                                    __('%s total, %d options, %s of total large options', 'autoload-optimizer'),
                                     size_format($data['total_size']),
                                     $data['count'],
-                                    $total_size > 0 ? number_format(($data['total_size'] / $total_size) * 100, 2) . '%' : '0%'
+                                    $large_options_size > 0 ? number_format(($data['total_size'] / $large_options_size) * 100, 2) . '%' : '0%'
                                 ); ?>
                             </td>
                         </tr>
@@ -311,7 +341,7 @@ function ao_display_admin_page() {
                                     <?php if ($option['is_safe']) : ?><span class="dashicons dashicons-yes-alt" style="color:#46b450;" title="<?php _e('Safe to disable autoload', 'autoload-optimizer'); ?>"></span><?php endif; ?>
                                 </td>
                                 <td class="column-size"><?php echo size_format($option['length']); ?></td>
-                                <td class="column-percentage"><?php echo $total_size > 0 ? number_format(($option['length'] / $total_size) * 100, 2) . '%' : 'N/A'; ?></td>
+                                <td class="column-percentage"><?php echo $large_options_size > 0 ? number_format(($option['length'] / $large_options_size) * 100, 2) . '%' : 'N/A'; ?></td>
                                 <td class="column-plugin"><?php echo esc_html($plugin_name); ?></td>
                                 <td class="column-status"><span class="notice <?php echo esc_attr($option['status']['class']); ?>" style="padding: 2px 8px; display: inline-block; margin: 0;"><?php echo esc_html($option['status']['text']); ?></span></td>
                                 <td class="column-action">
@@ -328,7 +358,6 @@ function ao_display_admin_page() {
                 </tbody>
             </table>
 
-            <div class="notice notice-error" style="margin-top: 2rem;"><p><strong><?php _e('Warning:', 'autoload-optimizer'); ?></strong> <?php _e('Always have a backup before making changes.', 'autoload-optimizer'); ?></p></div>
         <?php endif; ?>
 
         <div id="ao-option-modal-overlay"><div id="ao-option-modal-content"><span class="close-modal">&times;</span><h2 id="ao-option-modal-title"></h2><div id="ao-modal-body"></div></div></div>
