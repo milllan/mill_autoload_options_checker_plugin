@@ -3,7 +3,7 @@
  * Plugin Name:       Autoloaded Options Optimizer
  * Plugin URI:        https://github.com/milllan/mill_autoload_options_checker_plugin
  * Description:       A tool to analyze, view, and manage autoloaded options in the wp_options table, with a remotely managed configuration.
- * Version:           3.4
+ * Version:           3.5
  * Author:            Milan
  * Author URI:        https://wpspeedopt.net/
  * License:           GPL v2 or later
@@ -220,7 +220,7 @@ function ao_display_admin_page() {
             </div>
 
             <h2><?php _e('Large Autoloaded Options (>1KB)', 'autoload-optimizer'); ?></h2>
-            <table class="wp-list-table widefat fixed striped">
+            <table class="wp-list-table widefat fixed">
                 <thead>
                     <tr>
                         <th id="cb" class="manage-column column-cb check-column"><input type="checkbox" /></th>
@@ -233,7 +233,9 @@ function ao_display_admin_page() {
                     </tr>
                 </thead>
                 <tbody>
+                    <?php $group_index = 0; ?>
                     <?php foreach ($grouped_options as $plugin_name => $data) : ?>
+                        <?php $group_class = ($group_index % 2 == 0) ? 'group-color-a' : 'group-color-b'; ?>
                         <tr class="plugin-header">
                             <th class="check-column"></th>
                             <td colspan="6">
@@ -247,7 +249,7 @@ function ao_display_admin_page() {
                             </td>
                         </tr>
                         <?php foreach ($data['options'] as $option) : ?>
-                            <tr>
+                            <tr class="<?php echo $group_class; ?>">
                                 <th class="check-column">
                                     <?php if ($option['status']['code'] === 'plugin_inactive' || $option['is_safe']) : ?>
                                         <input type="checkbox" class="ao-option-checkbox" value="<?php echo esc_attr($option['name']); ?>">
@@ -270,6 +272,7 @@ function ao_display_admin_page() {
                                 </td>
                             </tr>
                         <?php endforeach; ?>
+                        <?php $group_index++; ?>
                     <?php endforeach; ?>
                 </tbody>
             </table>
@@ -300,7 +303,11 @@ function ao_display_admin_page() {
         .wp-list-table .column-plugin { width: 15%; }
         .wp-list-table .column-status { width: 12%; }
         .wp-list-table .column-action { width: 10%; }
-        .plugin-header th, .plugin-header td { font-weight: bold; background-color: #f6f6f6; } .view-option-content { cursor: pointer; } #ao-option-modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.7); z-index: 10001; justify-content: center; align-items: center; } #ao-option-modal-content { background: #fff; padding: 20px; border-radius: 4px; width: 80%; max-width: 900px; max-height: 80vh; overflow-y: auto; position: relative; } .close-modal { position: absolute; top: 5px; right: 15px; font-size: 28px; font-weight: bold; cursor: pointer; color: #555; } #ao-modal-body pre { background: #f1f1f1; padding: 15px; border: 1px solid #ddd; white-space: pre-wrap; word-wrap: break-word; }
+        .wp-list-table tbody tr.group-color-a { background-color: #ffffff; }
+        .wp-list-table tbody tr.group-color-b { background-color: #f6f7f7; }
+        .wp-list-table tbody tr:hover { background-color: #f0f0f1 !important; }
+        .plugin-header th, .plugin-header td { font-weight: bold; background-color: #f0f0f1; border-bottom: 1px solid #ddd; }
+        .view-option-content { cursor: pointer; } #ao-option-modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.7); z-index: 10001; justify-content: center; align-items: center; } #ao-option-modal-content { background: #fff; padding: 20px; border-radius: 4px; width: 80%; max-width: 900px; max-height: 80vh; overflow-y: auto; position: relative; } .close-modal { position: absolute; top: 5px; right: 15px; font-size: 28px; font-weight: bold; cursor: pointer; color: #555; } #ao-modal-body pre { background: #f1f1f1; padding: 15px; border: 1px solid #ddd; white-space: pre-wrap; word-wrap: break-word; }
     </style>
     <?php
 }
