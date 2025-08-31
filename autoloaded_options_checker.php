@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Autoloaded Options Checker
  * Description: Adds a tool to check, manage, and view autoloaded options in the wp_options table.
- * Version: 1.5.1
+ * Version: 1.6
  */
 
 /**
@@ -189,6 +189,7 @@ function disable_safe_autoload_options_ajax() {
     
     // Safe options to disable (literal matches)
     $safe_options_literal = array(
+        'aioseo_options_v3', // <<< NEW AIOSEO LEGACY OPTION
         'yst_ga_top_pageviews',
         '_transient_wpassetcleanup_assets_info',
         '_transient_wc_attribute_taxonomies',
@@ -422,11 +423,19 @@ function display_autoloaded_options() {
         // Mapping for Starbox
         'abh_options' => array('name' => 'Starbox - the Author Box for Humans', 'file' => 'starbox/starbox.php'),
         
+        // CORRECTED MAPPING FOR WPCODE BASED ON YOUR SITE'S PATH
         'wpcode_snippets' => array('name' => 'WPCode Lite', 'file' => 'insert-headers-and-footers/ihaf.php'),
 
-        // NEW MAPPINGS
+        // Mappings for Ezoic and Yoast
         'ez_adtester_config' => array('name' => 'Ezoic Integration', 'file' => 'ezoic-integration/ezoic-integration.php'),
         'yst_ga_top_pageviews' => array('name' => 'Yoast SEO', 'file' => 'wordpress-seo/wp-seo.php'),
+
+        // <<< NEW AIOSEO MAPPINGS
+        'aioseo_options'         => array('name' => 'All in One SEO', 'file' => 'all-in-one-seo-pack/all-in-one-seo-pack.php'),
+        'aioseo_options_dynamic' => array('name' => 'All in One SEO', 'file' => 'all-in-one-seo-pack/all-in-one-seo-pack.php'),
+        'aioseo_options_network' => array('name' => 'All in One SEO', 'file' => 'all-in-one-seo-pack/all-in-one-seo-pack.php'),
+        'aioseo_options_internal'=> array('name' => 'All in One SEO', 'file' => 'all-in-one-seo-pack/all-in-one-seo-pack.php'),
+        'aioseo_options_v3'      => array('name' => 'All in One SEO (Legacy v3)', 'file' => 'all-in-one-seo-pack/all-in-one-seo-pack.php'),
 
         // Original mappings
         'wp_installer_settings' => array('name' => 'WPML', 'file' => 'sitepress-multilingual-cms/sitepress.php'),
@@ -441,7 +450,7 @@ function display_autoloaded_options() {
         'wpseo_titles' => array('name' => 'Yoast SEO', 'file' => 'wordpress-seo/wp-seo.php'),
         'otgs-installer-log' => array('name' => 'WPML', 'file' => 'sitepress-multilingual-cms/sitepress.php'),
         'wp_user_roles' => array('name' => 'WordPress Core', 'file' => 'core'),
-        'aioseop_options' => array('name' => 'All in One SEO', 'file' => 'all-in-one-seo-pack/all_in_one_seo_pack.php'),
+        'aioseop_options' => array('name' => 'All in One SEO (Classic)', 'file' => 'all-in-one-seo-pack/all_in_one_seo_pack.php'),
         'wpcf-custom-taxonomies' => array('name' => 'Toolset Types', 'file' => 'types/types.php'),
         'cpt_custom_post_types' => array('name' => 'Custom Post Types', 'file' => 'custom-post-types/custom-post-types.php'),
         'cptui_taxonomies' => array('name' => 'Custom Post Type UI', 'file' => 'custom-post-type-ui/custom-post-type-ui.php'),
@@ -514,6 +523,7 @@ function display_autoloaded_options() {
     
     // Safe options to disable (literal matches)
     $safe_options_literal = array(
+        'aioseo_options_v3', // <<< NEW AIOSEO LEGACY OPTION
         'yst_ga_top_pageviews',
         '_transient_wpassetcleanup_assets_info',
         '_transient_wc_attribute_taxonomies',
