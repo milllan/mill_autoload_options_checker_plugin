@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Autoloaded Options Checker
  * Description: Adds a tool to check, manage, and view autoloaded options in the wp_options table.
- * Version: 2.2
+ * Version: 2.3
  */
 
 /**
@@ -189,7 +189,8 @@ function disable_safe_autoload_options_ajax() {
     
     // Safe options to disable (literal matches)
     $safe_options_literal = array(
-        'revisionary_sent_mail', // <<< NEW
+        'addon_library_catalog', // <<< NEW: Added Unlimited Elements catalog
+        'revisionary_sent_mail',
         'aioseop_options',
         'aioseo_options_v3',
         'yst_ga_top_pageviews',
@@ -424,6 +425,9 @@ function display_autoloaded_options() {
     
     // Create mapping of options to plugins with exact file paths
     $option_plugin_mapping = array(
+        // <<< NEW MAPPING FOR UNLIMITED ELEMENTS
+        'addon_library_catalog' => array('name' => 'Unlimited Elements for Elementor', 'file' => 'unlimited-elements-for-elementor/unlimited-elements-for-elementor.php'),
+        
         // <<< NEW MAPPING FOR PUBLISHPRESS CAPABILITIES
         'ppc_feature_post_metaboxes_data' => array('name' => 'PublishPress Capabilities', 'file' => 'capability-manager-enhanced/capability-manager-enhanced.php'),
 
@@ -473,7 +477,6 @@ function display_autoloaded_options() {
         'ad_inserter' => array('name' => 'Ad Inserter', 'file' => 'ad-inserter/ad-inserter.php'),
         'wpcr3_options' => array('name' => 'WP Customer Reviews', 'file' => 'wp-customer-reviews/wp-customer-reviews.php'),
         'cptui_post_types' => array('name' => 'Custom Post Type UI', 'file' => 'custom-post-type-ui/custom-post-type-ui.php'),
-        'wpseo_titles' => array('name' => 'Yoast SEO', 'file' => 'wordpress-seo/wp-seo.php'),
         'otgs-installer-log' => array('name' => 'WPML', 'file' => 'sitepress-multilingual-cms/sitepress.php'),
         'wp_user_roles' => array('name' => 'WordPress Core', 'file' => 'core'),
         'wpcf-custom-taxonomies' => array('name' => 'Toolset Types', 'file' => 'types/types.php'),
@@ -521,8 +524,6 @@ function display_autoloaded_options() {
         'wpml_sticky_links_options' => array('name' => 'WPML Sticky Links', 'file' => 'wpml-sticky-links/plugin.php'),
         'wpml_st_options' => array('name' => 'WPML String Translation', 'file' => 'wpml-string-translation/plugin.php'),
         'wptd_image_compare_options' => array('name' => 'WPTD Image Compare', 'file' => 'wptd-image-compare/wptd-image-compare.php'),
-        'wpseo' => array('name' => 'Yoast SEO', 'file' => 'wordpress-seo/wp-seo.php'),
-        'wpseo_premium' => array('name' => 'Yoast SEO Premium', 'file' => 'wordpress-seo-premium/wp-seo-premium.php'),
         'youlo_price_calculator_settings' => array('name' => 'YOULO Price Calculator', 'file' => 'youlo-price-calculator/youlo-price-calculator.php'),
         
         // Inactive plugins
@@ -546,9 +547,10 @@ function display_autoloaded_options() {
         'fs_accounts' => array('name' => 'Aelia Currency Switcher', 'file' => 'woocommerce-aelia-currencyswitcher/woocommerce-aelia-currencyswitcher.php'),
     );
     
-    // Safe options to disable (literal matches)
+    // Safe options to disable (literal matches) - THIS LIST IS FOR THE UI (GREEN CHECKMARK)
     $safe_options_literal = array(
-        'revisionary_sent_mail', // <<< NEW
+        'addon_library_catalog', // <<< NEW: Added Unlimited Elements catalog
+        'revisionary_sent_mail',
         'aioseop_options',
         'aioseo_options_v3',
         'yst_ga_top_pageviews',
@@ -982,6 +984,8 @@ function display_autoloaded_options() {
     echo '<div class="card">';
     echo '<h2>Recommendations</h2>';
     echo '<ol>';
+    // <<< NEW RECOMMENDATION FOR UNLIMITED ELEMENTS
+    echo '<li><strong>Unlimited Elements for Elementor:</strong> The `addon_library_catalog` option is a very large cache of the plugin\'s widget library. It is only needed when browsing widgets in the Elementor editor and is very safe to disable autoload for.</li>';
     echo '<li><strong>All in One SEO:</strong> The options `aioseo_options_v3` and `aioseop_options` are legacy data from older versions. They have been marked as safe to disable autoload. Do not disable autoload for the other `aioseo_` options if the plugin is active.</li>';
     echo '<li><strong>WPML (Total: ~232 KB):</strong> This is the largest contributor to autoloaded data. Since WPML is active, do not disable these options.</li>';
     echo '<li><strong>Aelia Currency Switcher (fs_accounts):</strong> This is a large option that is marked as safe to disable. Disabling autoload for this option can significantly improve performance.</li>';
