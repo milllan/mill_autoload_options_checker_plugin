@@ -168,31 +168,27 @@ function ao_display_admin_page() {
                 if (fnmatch($pattern, $option->option_name)) { $is_safe = true; break; }
             }
         }
-
+        
         $plugin_name = __('Unknown', 'autoload-optimizer');
         $status_info = ['code' => 'unknown', 'text' => __('Unknown', 'autoload-optimizer'), 'class' => ''];
         $mapping_found = false;
 
-        // Special, prioritized handling for the 'fs_accounts' option
         if ('fs_accounts' === $option->option_name) {
-            // Define the check order, with the most likely candidate first.
             $freemius_plugins = [
                 'Unlimited Elements for Elementor' => 'unlimited-elements-for-elementor/unlimited-elements-for-elementor.php',
                 'Aelia Currency Switcher'          => 'woocommerce-aelia-currencyswitcher/woocommerce-aelia-currencyswitcher.php'
-                // Add more known Freemius plugins here, in order of likelihood.
             ];
             
             $active_freemius_plugin_found = false;
             foreach ($freemius_plugins as $name => $file) {
                 if (in_array($file, $active_plugin_paths)) {
-                    $plugin_name = $name; // Attribute to the first active plugin found
+                    $plugin_name = $name;
                     $status_info = ['code' => 'plugin_active', 'text' => __('Active Plugin', 'autoload-optimizer'), 'class' => 'notice-success'];
                     $active_freemius_plugin_found = true;
-                    break; // Stop checking once we find one
+                    break;
                 }
             }
 
-            // If no specific active plugin was found, attribute it to the generic SDK
             if (!$active_freemius_plugin_found) {
                 $plugin_name = __('Freemius SDK (Shared)', 'autoload-optimizer');
                 $status_info = ['code' => 'plugin_inactive', 'text' => __('Inactive/Legacy', 'autoload-optimizer'), 'class' => 'notice-error'];
@@ -201,7 +197,6 @@ function ao_display_admin_page() {
             $mapping_found = true;
 
         } elseif (isset($config['plugin_mappings'][$option->option_name])) {
-            // Standard handling for all other options
             $mapping = $config['plugin_mappings'][$option->option_name];
             $plugin_name = $mapping['name'];
             
@@ -213,7 +208,6 @@ function ao_display_admin_page() {
             $mapping_found = true;
         }
 
-        // Fallback guessing logic if no mapping was found at all
         if (!$mapping_found) {
             if (strpos($option->option_name, 'elementor') === 0) $plugin_name = 'Elementor';
             elseif (strpos($option->option_name, 'wpseo') === 0) $plugin_name = 'Yoast SEO';
@@ -235,7 +229,36 @@ function ao_display_admin_page() {
     ?>
     <div class="wrap">
         <h1><?php _e('Autoloaded Options Optimizer', 'autoload-optimizer'); ?></h1>
-        <div class="notice notice-info notice-alt">
+        
+        <div id="ao-dashboard-widgets-wrap" style="display: flex; gap: 20px; margin-top: 1rem;">
+            <div class="card" style="flex: 1;">
+                <h2 class="title"><?php _e('Bulk Actions', 'autoload-optimizer'); ?></h2>
+                <p><?php _e('Select options from the table and disable their autoload status in one go.', 'autoload-optimizer'); ?></p>
+                <button id="ao-disable-selected" class="button button-primary"><?php _e('Disable Autoload for Selected', 'autoload-optimizer'); ?></button>
+                <span class="spinner" style="float: none; vertical-align: middle; margin-left: 5px;"></span>
+            </div>
+            <div class="card" style="flex: 1.5;">
+                <h2 class="title"><?php _e('Recommendations', 'autoload-optimizer'); ?></h2>
+                <p>
+                    <?php
+                    $displayed_recs = [];
+                    $recommendation_found = false;
+                    foreach ($grouped_options as $plugin_name => $data) {
+                        if (isset($config['recommendations'][$plugin_name]) && !in_array($plugin_name, $displayed_recs)) {
+                            echo '<span>' . wp_kses_post($config['recommendations'][$plugin_name]) . '</span><br>';
+                            $displayed_recs[] = $plugin_name;
+                            $recommendation_found = true;
+                        }
+                    }
+                    if (!$recommendation_found) {
+                        echo '<em>' . __('No specific recommendations for the large options found on your site.', 'autoload-optimizer') . '</em>';
+                    }
+                    ?>
+                </p>
+            </div>
+        </div>
+
+        <div class="notice notice-info notice-alt" style="margin-top: 1rem;">
             <p><strong><?php _e('Configuration Status:', 'autoload-optimizer'); ?></strong> <?php echo esc_html($status_message); ?></p>
             <p><a href="<?php echo esc_url(wp_nonce_url(add_query_arg('ao_refresh_config', '1'), 'ao_refresh_config')); ?>" class="button"><?php _e('Force Refresh Configuration', 'autoload-optimizer'); ?></a></p>
         </div>
@@ -246,13 +269,6 @@ function ao_display_admin_page() {
             <div class="notice notice-warning notice-alt"><p><?php printf(__('<strong>Analysis:</strong> Found %d autoloaded options > 1KB with a combined size of %s.', 'autoload-optimizer'), count($options), size_format($total_size)); ?></p></div>
             
             <div id="ao-results-container" style="display:none; margin-top: 1rem;"></div>
-
-            <div class="card" style="margin-top: 1rem;">
-                <h2 class="title"><?php _e('Bulk Actions', 'autoload-optimizer'); ?></h2>
-                <p><?php _e('Select multiple options from the table below and disable their autoload status in one go.', 'autoload-optimizer'); ?></p>
-                <button id="ao-disable-selected" class="button button-primary"><?php _e('Disable Autoload for Selected', 'autoload-optimizer'); ?></button>
-                <span class="spinner" style="float: none; vertical-align: middle; margin-left: 5px;"></span>
-            </div>
 
             <h2><?php _e('Large Autoloaded Options (>1KB)', 'autoload-optimizer'); ?></h2>
             <table class="wp-list-table widefat fixed">
@@ -312,22 +328,7 @@ function ao_display_admin_page() {
                 </tbody>
             </table>
 
-            <div class="card" style="margin-top: 2rem;">
-                <h2><?php _e('Recommendations', 'autoload-optimizer'); ?></h2>
-                <ul>
-                    <?php
-                    $displayed_recs = [];
-                    foreach ($grouped_options as $plugin_name => $data) {
-                        if (isset($config['recommendations'][$plugin_name]) && !in_array($plugin_name, $displayed_recs)) {
-                            echo '<li>' . wp_kses_post($config['recommendations'][$plugin_name]) . '</li>';
-                            $displayed_recs[] = $plugin_name;
-                        }
-                    }
-                    foreach ($config['general_recommendations'] as $rec) { echo '<li>' . wp_kses_post($rec) . '</li>'; }
-                    ?>
-                </ul>
-            </div>
-            <div class="notice notice-error" style="margin-top: 1rem;"><p><strong><?php _e('Warning:', 'autoload-optimizer'); ?></strong> <?php _e('Always have a backup before making changes.', 'autoload-optimizer'); ?></p></div>
+            <div class="notice notice-error" style="margin-top: 2rem;"><p><strong><?php _e('Warning:', 'autoload-optimizer'); ?></strong> <?php _e('Always have a backup before making changes.', 'autoload-optimizer'); ?></p></div>
         <?php endif; ?>
 
         <div id="ao-option-modal-overlay"><div id="ao-option-modal-content"><span class="close-modal">&times;</span><h2 id="ao-option-modal-title"></h2><div id="ao-modal-body"></div></div></div>
