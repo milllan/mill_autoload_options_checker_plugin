@@ -3,7 +3,7 @@
  * Plugin Name:       Autoloaded Options Optimizer
  * Plugin URI:        https://github.com/milllan/mill_autoload_options_checker_plugin
  * Description:       A tool to analyze, view, and manage autoloaded options in the wp_options table, with a remotely managed configuration.
- * Version:           3.2
+ * Version:           3.3
  * Author:            Milan
  * Author URI:        https://wpspeedopt.net/
  * License:           GPL v2 or later
@@ -42,7 +42,7 @@ final class AO_Remote_Config_Manager {
     private static $instance;
     private const DEFAULT_REMOTE_URL = 'https://raw.githubusercontent.com/milllan/mill_autoload_options_checker_plugin/main/config.json';
     private const CACHE_KEY = 'ao_remote_config_cache';
-    private const CACHE_DURATION = 30 * DAY_IN_SECONDS;
+    private const CACHE_DURATION = 12 * HOUR_IN_SECONDS;
     private $config_status = 'Not loaded yet.';
 
     private function __construct() {}
@@ -86,7 +86,6 @@ final class AO_Remote_Config_Manager {
         $response = wp_remote_get($remote_url, ['timeout' => 10, 'headers' => ['Accept' => 'application/json']]);
 
         if (is_wp_error($response) || 200 !== wp_remote_retrieve_response_code($response)) {
-            // As a fallback, try to use a local bundled file if remote fails
             $local_path = plugin_dir_path(__FILE__) . 'config.json';
             if (file_exists($local_path)) {
                 $local_content = file_get_contents($local_path);
@@ -96,7 +95,7 @@ final class AO_Remote_Config_Manager {
                     return $config;
                 }
             }
-            return false; // Total failure
+            return false;
         }
 
         $body = wp_remote_retrieve_body($response);
@@ -143,7 +142,6 @@ function ao_display_admin_page() {
     $config_manager = AO_Remote_Config_Manager::get_instance();
     if (isset($_GET['ao_refresh_config']) && check_admin_referer('ao_refresh_config')) {
         delete_transient('ao_remote_config_cache');
-        // Redirect to clean the URL
         wp_safe_redirect(remove_query_arg(['ao_refresh_config', '_wpnonce']));
         exit;
     }
@@ -154,18 +152,14 @@ function ao_display_admin_page() {
         "SELECT option_name, LENGTH(option_value) AS option_length
          FROM {$wpdb->options}
          WHERE autoload = 'yes' AND LENGTH(option_value) >= %d
-         ORDER BY option_length DESC",
-         1024
+         ORDER BY option_length DESC", 1024
     ));
 
     $active_plugin_paths = get_option('active_plugins', []);
     $grouped_options = [];
     $total_size = 0;
     
-    // Calculate total size first for percentages
-    foreach($options as $option) {
-        $total_size += $option->option_length;
-    }
+    foreach($options as $option) { $total_size += $option->option_length; }
 
     foreach ($options as $option) {
         $is_safe = in_array($option->option_name, $config['safe_literals']);
@@ -230,7 +224,7 @@ function ao_display_admin_page() {
                 <thead>
                     <tr>
                         <th id="cb" class="manage-column column-cb check-column"><input type="checkbox" /></th>
-                        <th><?php _e('Option Name', 'autoload-optimizer'); ?></th>
+                        <th class="column-primary"><?php _e('Option Name', 'autoload-optimizer'); ?></th>
                         <th><?php _e('Size', 'autoload-optimizer'); ?></th>
                         <th><?php _e('% of Total', 'autoload-optimizer'); ?></th>
                         <th><?php _e('Plugin', 'autoload-optimizer'); ?></th>
@@ -242,7 +236,15 @@ function ao_display_admin_page() {
                     <?php foreach ($grouped_options as $plugin_name => $data) : ?>
                         <tr class="plugin-header">
                             <th class="check-column"></th>
-                            <td colspan="6"><strong><?php echo esc_html($plugin_name); ?></strong> <small>(<?php printf('%d options, %s total', $data['count'], size_format($data['total_size'])); ?>)</small></td>
+                            <td colspan="6">
+                                <strong><?php echo esc_html($plugin_name); ?></strong> - 
+                                <?php printf(
+                                    __('%s total, %d options, %s of total', 'autoload-optimizer'),
+                                    size_format($data['total_size']),
+                                    $data['count'],
+                                    $total_size > 0 ? number_format(($data['total_size'] / $total_size) * 100, 2) . '%' : '0%'
+                                ); ?>
+                            </td>
                         </tr>
                         <?php foreach ($data['options'] as $option) : ?>
                             <tr>
@@ -251,7 +253,7 @@ function ao_display_admin_page() {
                                         <input type="checkbox" class="ao-option-checkbox" value="<?php echo esc_attr($option['name']); ?>">
                                     <?php endif; ?>
                                 </th>
-                                <td>
+                                <td class="column-primary">
                                     <strong><a href="#" class="view-option-content" data-option-name="<?php echo esc_attr($option['name']); ?>"><?php echo esc_html($option['name']); ?></a></strong>
                                     <?php if ($option['is_safe']) : ?><span class="dashicons dashicons-yes-alt" style="color:#46b450;" title="<?php _e('Safe to disable autoload', 'autoload-optimizer'); ?>"></span><?php endif; ?>
                                 </td>
@@ -292,7 +294,14 @@ function ao_display_admin_page() {
 
         <div id="ao-option-modal-overlay"><div id="ao-option-modal-content"><span class="close-modal">&times;</span><h2 id="ao-option-modal-title"></h2><div id="ao-modal-body"></div></div></div>
     </div>
-    <style>.plugin-header th, .plugin-header td { font-weight: bold; background-color: #f6f6f6; } .view-option-content { cursor: pointer; } #ao-option-modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.7); z-index: 10001; justify-content: center; align-items: center; } #ao-option-modal-content { background: #fff; padding: 20px; border-radius: 4px; width: 80%; max-width: 900px; max-height: 80vh; overflow-y: auto; position: relative; } .close-modal { position: absolute; top: 5px; right: 15px; font-size: 28px; font-weight: bold; cursor: pointer; color: #555; } #ao-modal-body pre { background: #f1f1f1; padding: 15px; border: 1px solid #ddd; white-space: pre-wrap; word-wrap: break-word; }</style>
+    <style>
+        /* Table layout adjustments */
+        .wp-list-table .column-primary { width: 40%; }
+        .wp-list-table th.check-column { padding: 11px 5px !important; }
+        .wp-list-table th#cb { padding-left: 8px !important; }
+        /* Other styles */
+        .plugin-header th, .plugin-header td { font-weight: bold; background-color: #f6f6f6; } .view-option-content { cursor: pointer; } #ao-option-modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.7); z-index: 10001; justify-content: center; align-items: center; } #ao-option-modal-content { background: #fff; padding: 20px; border-radius: 4px; width: 80%; max-width: 900px; max-height: 80vh; overflow-y: auto; position: relative; } .close-modal { position: absolute; top: 5px; right: 15px; font-size: 28px; font-weight: bold; cursor: pointer; color: #555; } #ao-modal-body pre { background: #f1f1f1; padding: 15px; border: 1px solid #ddd; white-space: pre-wrap; word-wrap: break-word; }
+    </style>
     <?php
 }
 
@@ -389,7 +398,7 @@ function ao_admin_page_scripts() {
                 });
         }
 
-        document.querySelector('.wp-list-table').addEventListener('click', function(e) {
+        document.querySelector('.wp-list-table tbody').addEventListener('click', function(e) {
             if (e.target.classList.contains('view-option-content')) {
                 e.preventDefault();
                 const optionName = e.target.dataset.optionName;
