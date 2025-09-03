@@ -435,6 +435,7 @@
             "file": "unlimited-elements-for-elementor/unlimited-elements-for-elementor.php"
         }
     },
+    "safe_to_delete_literals": ["blc_installation_log"],
     "safe_literals": [
         "fs_accounts",
         "blc_installation_log",

@@ -571,6 +571,24 @@ function ao_admin_page_scripts() {
     <?php
 }
 
+// --- Add "Settings" Link to Plugins Page ---
+
+add_filter('plugin_action_links_' . plugin_basename(__FILE__), 'ao_add_settings_link');
+
+function ao_add_settings_link($links) {
+    // Build the URL for your plugin's admin page.
+    $settings_link = sprintf(
+        '<a href="%s">%s</a>',
+        esc_url(admin_url('tools.php?page=autoloaded-options')),
+        __('Settings', 'autoload-optimizer')
+    );
+
+    // Add the "Settings" link to the beginning of the links array.
+    array_unshift($links, $settings_link);
+
+    return $links;
+}
+
 // --- GitHub Plugin Updater ---
 
 /**
