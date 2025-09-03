@@ -1,5 +1,5 @@
 {
-    "version": "1.3.3",
+    "version": "1.3.5",
     "plugin_mappings": {
         "_transient_RCWFeed_*": {
             "name": "RCW Feed / RSS Widget Plugin",

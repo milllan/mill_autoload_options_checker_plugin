@@ -3,7 +3,7 @@
  * Plugin Name:       Autoloaded Options Optimizer
  * Plugin URI:        https://github.com/milllan/mill_autoload_options_checker_plugin
  * Description:       A tool to analyze, view, and manage autoloaded options in the wp_options table, with a remotely managed configuration.
- * Version:           3.5.6
+ * Version:           3.5.7
  * Author:            Milan Petrović
  * Author URI:        https://wpspeedopt.net/
  * License:           GPL v2 or later
@@ -342,6 +342,20 @@ function ao_display_admin_page() {
             </div>
         </div>
 
+        <!-- NEW: Manual Option Lookup Form -->
+        <div class="card" style="margin-top: 1rem;">
+            <h2 class="title"><?php _e('Manual Option Lookup', 'autoload-optimizer'); ?></h2>
+            <p><?php _e('Enter any option name from the wp_options table to view its content.', 'autoload-optimizer'); ?></p>
+            <form id="ao-manual-lookup-form" style="display: flex; gap: 10px; align-items: center;">
+                <input type="text" id="ao-manual-option-name" name="option_name" placeholder="<?php _e('e.g., active_plugins', 'autoload-optimizer'); ?>" style="width: 300px;" required>
+                <button type="submit" class="button button-secondary"><?php _e('View Option', 'autoload-optimizer'); ?></button>
+                <span class="spinner" style="float: none; vertical-align: middle;"></span>
+            </form>
+        </div>
+
+        <div class="notice notice-info notice-alt" style="margin-top: 1rem;">
+
+
         <?php if (empty($large_options)) : ?>
             <p><?php _e('No autoloaded options larger than 1KB found.', 'autoload-optimizer'); ?></p>
         <?php else : ?>
@@ -562,6 +576,7 @@ function ao_admin_page_scripts() {
     ?>
     <script type="text/javascript">
     document.addEventListener('DOMContentLoaded', function() {
+        // --- Element Selectors ---
         const modalOverlay = document.getElementById('ao-option-modal-overlay');
         const modalContent = document.getElementById('ao-option-modal-content');
         const modalTitle = document.getElementById('ao-option-modal-title');
@@ -571,14 +586,16 @@ function ao_admin_page_scripts() {
         const mainCheckbox = document.querySelector('.wp-list-table #cb input[type="checkbox"]');
         const itemCheckboxes = document.querySelectorAll('.wp-list-table .ao-option-checkbox');
 
-        function showModal(title, content) { modalTitle.textContent = title; modalBody.innerHTML = content; modalOverlay.style.display = 'flex'; }
-        function hideModal() { modalOverlay.style.display = 'none'; }
-        function showResult(message, type = 'success') { resultsContainer.innerHTML = `<div class="notice notice-${type} is-dismissible"><p>${message}</p></div>`; resultsContainer.style.display = 'block'; }
+        // --- Core Functions ---
+        
+        function showResult(message, type = 'success') { 
+            resultsContainer.innerHTML = `<div class="notice notice-${type} is-dismissible"><p>${message}</p></div>`; 
+            resultsContainer.style.display = 'block'; 
+        }
 
         function disableOptions(optionNames, button) {
             if (!confirm(`<?php _e('Are you sure you want to disable autoload for the selected option(s)?', 'autoload-optimizer'); ?>`)) return;
 
-            // <-- CHANGED: More generic spinner logic that finds the next sibling of the clicked button
             const spinner = button ? button.nextElementSibling : null;
             
             if (button) button.disabled = true;
@@ -602,34 +619,85 @@ function ao_admin_page_scripts() {
                 });
         }
 
-        document.querySelector('.wp-list-table tbody').addEventListener('click', function(e) {
-            if (e.target.classList.contains('view-option-content')) {
-                e.preventDefault();
-                const optionName = e.target.dataset.optionName;
-                showModal('<?php _e('Viewing:', 'autoload-optimizer'); ?> ' + optionName, '<?php _e('Loading...', 'autoload-optimizer'); ?>');
-                const formData = new FormData();
-                formData.append('action', 'ao_get_option_value');
-                formData.append('nonce', '<?php echo wp_create_nonce('ao_view_option_nonce'); ?>');
-                formData.append('option_name', optionName);
-                fetch(ajaxurl, { method: 'POST', body: formData }).then(r => r.json()).then(d => modalBody.innerHTML = d.success ? d.data.value : `<p style="color:red;">${d.data.message}</p>`);
-            }
-            if (e.target.classList.contains('disable-single')) {
-                e.preventDefault();
-                disableOptions([e.target.dataset.option], e.target);
-            }
-        });
-        
-        document.getElementById('ao-disable-selected').addEventListener('click', e => {
-            e.preventDefault();
-            const selected = Array.from(document.querySelectorAll('.ao-option-checkbox:checked')).map(cb => cb.value);
-            if (selected.length === 0) {
-                alert('<?php _e('Please select at least one option from the table.', 'autoload-optimizer'); ?>');
-                return;
-            }
-            disableOptions(selected, e.target);
-        });
+        function showModal(title, content) {
+            modalTitle.textContent = title;
+            modalBody.innerHTML = content;
+            modalOverlay.style.display = 'flex';
+        }
 
-        // <-- NEW: Event listener for the "Disable All Safe" button
+        function hideModal() {
+            modalOverlay.style.display = 'none';
+        }
+
+        function viewOptionContent(optionName, spinner) {
+            showModal('<?php _e('Viewing:', 'autoload-optimizer'); ?> ' + optionName, '<?php _e('Loading...', 'autoload-optimizer'); ?>');
+            if (spinner) spinner.classList.add('is-active');
+
+            const formData = new FormData();
+            formData.append('action', 'ao_get_option_value');
+            formData.append('nonce', '<?php echo wp_create_nonce('ao_view_option_nonce'); ?>');
+            formData.append('option_name', optionName);
+            
+            fetch(ajaxurl, { method: 'POST', body: formData })
+                .then(r => r.json())
+                .then(d => {
+                    modalBody.innerHTML = d.success ? d.data.value : `<p style="color:red;">${d.data.message}</p>`;
+                })
+                .catch(() => {
+                    modalBody.innerHTML = `<p style="color:red;"><?php _e('An error occurred during the request.', 'autoload-optimizer'); ?></p>`;
+                })
+                .finally(() => {
+                    if (spinner) spinner.classList.remove('is-active');
+                });
+        }
+
+        // --- Event Listeners ---
+        
+        // Listener for clicks within the main table (View, Disable)
+        const tableBody = document.querySelector('.wp-list-table tbody');
+        if (tableBody) {
+            tableBody.addEventListener('click', function(e) {
+                if (e.target.classList.contains('view-option-content')) {
+                    e.preventDefault();
+                    viewOptionContent(e.target.dataset.optionName, null);
+                }
+                if (e.target.classList.contains('disable-single')) {
+                    e.preventDefault();
+                    disableOptions([e.target.dataset.option], e.target);
+                }
+            });
+        }
+        
+        // Listener for the new Manual Lookup Form
+        const manualLookupForm = document.getElementById('ao-manual-lookup-form');
+        if (manualLookupForm) {
+            manualLookupForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const optionNameInput = document.getElementById('ao-manual-option-name');
+                const spinner = this.querySelector('.spinner');
+                const optionName = optionNameInput.value.trim();
+
+                if (optionName) {
+                    viewOptionContent(optionName, spinner);
+                }
+            });
+        }
+        
+        // Listener for the Bulk Disable button
+        const disableSelectedBtn = document.getElementById('ao-disable-selected');
+        if (disableSelectedBtn) {
+            disableSelectedBtn.addEventListener('click', e => {
+                e.preventDefault();
+                const selected = Array.from(document.querySelectorAll('.ao-option-checkbox:checked')).map(cb => cb.value);
+                if (selected.length === 0) {
+                    alert('<?php _e('Please select at least one option from the table.', 'autoload-optimizer'); ?>');
+                    return;
+                }
+                disableOptions(selected, e.target);
+            });
+        }
+
+        // Listener for the "Disable All Safe" button
         const disableSafeBtn = document.getElementById('ao-disable-safe-options');
         if (disableSafeBtn) {
             disableSafeBtn.addEventListener('click', e => {
@@ -643,6 +711,7 @@ function ao_admin_page_scripts() {
             });
         }
         
+        // Listener for the main "select all" checkbox
         if(mainCheckbox) {
             mainCheckbox.addEventListener('change', () => {
                 itemCheckboxes.forEach(cb => { 
@@ -653,6 +722,7 @@ function ao_admin_page_scripts() {
             });
         }
 
+        // Listeners for closing the modal
         modalOverlay.addEventListener('click', e => { if (e.target === modalOverlay) hideModal(); });
         modalContent.querySelector('.close-modal').addEventListener('click', hideModal);
     });
