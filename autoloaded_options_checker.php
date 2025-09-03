@@ -3,7 +3,7 @@
  * Plugin Name:       Autoloaded Options Optimizer
  * Plugin URI:        https://github.com/milllan/mill_autoload_options_checker_plugin
  * Description:       A tool to analyze, view, and manage autoloaded options in the wp_options table, with a remotely managed configuration.
- * Version:           3.5.9
+ * Version:           3.6.0
  * Author:            Milan Petrović
  * Author URI:        https://wpspeedopt.net/
  * License:           GPL v2 or later
@@ -182,38 +182,27 @@ function ao_display_admin_page() {
         $status_info = ['code' => 'unknown', 'text' => __('Unknown', 'autoload-optimizer'), 'class' => ''];
         $mapping_found = false;
         
-        // NEW: Get both parent and child theme slugs for accurate context checking.
         $active_theme = wp_get_theme();
-        $theme_slugs = [$active_theme->get_stylesheet()]; // Start with the child theme's slug
+        $theme_slugs = [$active_theme->get_stylesheet()];
         if ($active_theme->parent()) {
-            $theme_slugs[] = $active_theme->get_template(); // Add the parent theme's slug if it exists
+            $theme_slugs[] = $active_theme->get_template();
         }
 
         // 1. Precise & Pattern Match from config.json (Highest Priority)
         foreach ($config['plugin_mappings'] as $pattern => $mapping) {
             if (fnmatch($pattern, $option->option_name)) {
 
-                // Context Check (Now checks both parent and child themes)
+                $context_match = true;
                 if (isset($mapping['context'])) {
-                    $context_match = true;
-                    
-                    // Check for theme context
-                    if (isset($mapping['context']['theme'])) {
-                        // The context matches if the required theme is either the parent or the child.
-                        if (!in_array($mapping['context']['theme'], $theme_slugs, true)) {
-                            $context_match = false;
-                        }
-                    }
-
-                    // You can still add other context checks here in the future
-                    // if (isset($mapping['context']['plugin']) && ...) { ... }
-
-                    if (!$context_match) {
-                        continue; // This rule's context doesn't match, so skip to the next rule
+                    if (isset($mapping['context']['theme']) && !in_array($mapping['context']['theme'], $theme_slugs, true)) {
+                        $context_match = false;
                     }
                 }
+
+                if (!$context_match) {
+                    continue; 
+                }
                 
-                // If we get here, the name and context (if any) matched
                 $plugin_name = $mapping['name'];
                 if ($mapping['file'] === 'core') $status_info = ['code' => 'core', 'text' => __('WordPress Core', 'autoload-optimizer'), 'class' => 'notice-info'];
                 elseif ($mapping['file'] === 'theme') $status_info = ['code' => 'theme', 'text' => __('Active Theme', 'autoload-optimizer'), 'class' => 'notice-info'];
@@ -223,24 +212,33 @@ function ao_display_admin_page() {
                     $inactive_plugin_option_count++;
                 }
                 $mapping_found = true;
-                break; // Stop after the first match
+                break; 
             }
         }
 
         // 2. Fallbacks (ONLY run if no mapping was found above)
         if (!$mapping_found) {
-            // Check for Generic Core Transients
+            $guessed_plugin_name = ''; // <-- IMPORTANT: Use a temporary variable for guessing
+
             if (str_starts_with($option->option_name, '_transient_') || str_starts_with($option->option_name, '_site_transient_')) {
-                $plugin_name = __('WordPress Core (Transient)', 'autoload-optimizer');
+                $guessed_plugin_name = __('WordPress Core (Transient)', 'autoload-optimizer');
                 $status_info = ['code' => 'core', 'text' => __('WordPress Core', 'autoload-optimizer'), 'class' => 'notice-info'];
             } 
-            // Guessing Logic based on prefixes (Lowest Priority)
             elseif (strpos($option->option_name, 'elementor') === 0) {
-                 $plugin_name = 'Elementor';
+                 $guessed_plugin_name = 'Elementor';
             } elseif (strpos($option->option_name, 'wpseo') === 0) {
-                 $plugin_name = 'Yoast SEO';
+                 $guessed_plugin_name = 'Yoast SEO';
             } elseif (strpos($option->option_name, 'rocket') === 0) {
-                 $plugin_name = 'WP Rocket';
+                 $guessed_plugin_name = 'WP Rocket';
+            }
+
+            // Only assign the guessed name if a guess was actually successful
+            if (!empty($guessed_plugin_name)) {
+                $plugin_name = $guessed_plugin_name;
+            } else {
+                // If no guess matched, ensure it remains "Unknown"
+                $plugin_name = __('Unknown', 'autoload-optimizer');
+                $status_info = ['code' => 'unknown', 'text' => __('Unknown', 'autoload-optimizer'), 'class' => ''];
             }
         }
 
