@@ -1,6 +1,10 @@
 {
-    "version": "1.3.9",
+    "version": "1.4.0",
     "plugin_mappings": {
+        "betheme": {
+            "name": "Betheme",
+            "file": "theme:betheme"
+        },
         "simple_css": {
             "name": "GeneratePress Theme (Custom CSS)",
             "file": "theme:generatepress"
