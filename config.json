@@ -1,6 +1,18 @@
 {
-    "version": "1.2.0",
+    "version": "1.2.1",
     "plugin_mappings": {
+        "wf_known_file_list": {
+            "name": "Wordfence Security",
+            "file": "wordfence/wordfence.php"
+        },
+        "frm_options": {
+            "name": "Formidable Forms",
+            "file": "formidable/formidable.php"
+        },
+        "_transient_frm_options": {
+            "name": "Formidable Forms (Transient)",
+            "file": "formidable/formidable.php"
+        },
         "elementskit_options": {
             "name": "ElementsKit Lite",
             "file": "elementskit-lite/elementskit-lite.php"
@@ -396,6 +408,7 @@
         }
     },
     "safe_literals": [
+        "wf_known_file_list",
         "fs_accounts",
         "elementskit-lite__banner_data",
         "elementskit-lite__stories_data",
@@ -498,6 +511,10 @@
         "_transient_bawmrp*",
         "_transient_fusion*",
         "_transient_google*",
+
+        "_transient_*",
+        "_site_transient_*",
+
         "_wpallexport_session_*",
         "*mytheme*",
         "ai1wm*",

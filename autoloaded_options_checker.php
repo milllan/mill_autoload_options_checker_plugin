@@ -3,7 +3,7 @@
  * Plugin Name:       Autoloaded Options Optimizer
  * Plugin URI:        https://github.com/milllan/mill_autoload_options_checker_plugin
  * Description:       A tool to analyze, view, and manage autoloaded options in the wp_options table, with a remotely managed configuration.
- * Version:           3.5
+ * Version:           3.5.1
  * Author:            Milan
  * Author URI:        https://wpspeedopt.net/
  * License:           GPL v2 or later
@@ -178,33 +178,10 @@ function ao_display_admin_page() {
         
         $plugin_name = __('Unknown', 'autoload-optimizer');
         $status_info = ['code' => 'unknown', 'text' => __('Unknown', 'autoload-optimizer'), 'class' => ''];
-        $mapping_found = false;
 
-        if ('fs_accounts' === $option->option_name) {
-            $freemius_plugins = [
-                'Unlimited Elements for Elementor' => 'unlimited-elements-for-elementor/unlimited-elements-for-elementor.php',
-                'Aelia Currency Switcher'          => 'woocommerce-aelia-currencyswitcher/woocommerce-aelia-currencyswitcher.php'
-            ];
-            
-            $active_freemius_plugin_found = false;
-            foreach ($freemius_plugins as $name => $file) {
-                if (in_array($file, $active_plugin_paths)) {
-                    $plugin_name = $name;
-                    $status_info = ['code' => 'plugin_active', 'text' => __('Active Plugin', 'autoload-optimizer'), 'class' => 'notice-success'];
-                    $active_freemius_plugin_found = true;
-                    break;
-                }
-            }
-
-            if (!$active_freemius_plugin_found) {
-                $plugin_name = __('Freemius SDK (Shared)', 'autoload-optimizer');
-                $status_info = ['code' => 'plugin_inactive', 'text' => __('Inactive/Legacy', 'autoload-optimizer'), 'class' => 'notice-error'];
-                $inactive_plugin_option_count++;
-            }
-            
-            $mapping_found = true;
-
-        } elseif (isset($config['plugin_mappings'][$option->option_name])) {
+        // --- Option Identification Logic (Priority Order) ---
+        if (isset($config['plugin_mappings'][$option->option_name])) {
+            // 1. Precise Match from config.json (Highest Priority)
             $mapping = $config['plugin_mappings'][$option->option_name];
             $plugin_name = $mapping['name'];
             
@@ -215,16 +192,19 @@ function ao_display_admin_page() {
                 $status_info = ['code' => 'plugin_inactive', 'text' => __('Inactive Plugin', 'autoload-optimizer'), 'class' => 'notice-error'];
                 $inactive_plugin_option_count++;
             }
-            
-            $mapping_found = true;
+
+        } elseif (str_starts_with($option->option_name, '_transient_') || str_starts_with($option->option_name, '_site_transient_')) {
+            // 2. Generic Core Transient Fallback (Accurate check)
+            $plugin_name = __('WordPress Core (Transient)', 'autoload-optimizer');
+            $status_info = ['code' => 'core', 'text' => __('WordPress Core', 'autoload-optimizer'), 'class' => 'notice-info'];
+
+        } else {
+            // 3. Guessing Logic based on prefixes (Lowest Priority)
+            if (str_starts_with($option->option_name, 'elementor')) $plugin_name = 'Elementor';
+            elseif (str_starts_with($option->option_name, 'wpseo')) $plugin_name = 'Yoast SEO';
+            elseif (str_starts_with($option->option_name, 'rocket')) $plugin_name = 'WP Rocket';
         }
 
-        if (!$mapping_found) {
-            if (strpos($option->option_name, 'elementor') === 0) $plugin_name = 'Elementor';
-            elseif (strpos($option->option_name, 'wpseo') === 0) $plugin_name = 'Yoast SEO';
-            elseif (strpos($option->option_name, 'rocket') === 0) $plugin_name = 'WP Rocket';
-            elseif (strpos($option->option_name, 'transient') !== false) $plugin_name = 'WordPress Core (Transient)';
-        }
 
         if (!isset($grouped_options[$plugin_name])) {
             $grouped_options[$plugin_name] = [
