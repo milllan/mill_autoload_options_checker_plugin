@@ -193,16 +193,16 @@ function ao_display_admin_page() {
                 $inactive_plugin_option_count++;
             }
 
-        } elseif (str_starts_with($option->option_name, '_transient_') || str_starts_with($option->option_name, '_site_transient_')) {
+        } elseif (strpos($option->option_name, '_transient_') === 0 || strpos($option->option_name, '_site_transient_') === 0) {
             // 2. Generic Core Transient Fallback (Accurate check)
             $plugin_name = __('WordPress Core (Transient)', 'autoload-optimizer');
             $status_info = ['code' => 'core', 'text' => __('WordPress Core', 'autoload-optimizer'), 'class' => 'notice-info'];
 
         } else {
             // 3. Guessing Logic based on prefixes (Lowest Priority)
-            if (str_starts_with($option->option_name, 'elementor')) $plugin_name = 'Elementor';
-            elseif (str_starts_with($option->option_name, 'wpseo')) $plugin_name = 'Yoast SEO';
-            elseif (str_starts_with($option->option_name, 'rocket')) $plugin_name = 'WP Rocket';
+            if (strpos($option->option_name, 'elementor') === 0) $plugin_name = 'Elementor';
+            elseif (strpos($option->option_name, 'wpseo') === 0) $plugin_name = 'Yoast SEO';
+            elseif (strpos($option->option_name, 'rocket') === 0) $plugin_name = 'WP Rocket';
         }
 
 

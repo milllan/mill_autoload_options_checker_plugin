@@ -1,2 +1,4 @@
-workspace.code-workspace
-repomix-output.xml
+# VS Code workspace settings files
+*.code-workspace
+# XML output files from repomix tool
+/repomix-output.xml
