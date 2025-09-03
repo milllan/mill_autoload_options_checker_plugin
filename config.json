@@ -1,13 +1,18 @@
 {
-    "version": "1.3.6",
+    "version": "1.3.7",
     "plugin_mappings": {
         "_transient_RCWFeed_*": {
-            "name": "RCW Feed / RSS Widget Plugin",
+            "name": "RCW Feed / RSS Widget Plugin [unknown plugin]",
             "file": "rcw-feed/rcw-feed.php"
         },
         "_transient_RCWFeed_Ms_*": {
             "name": "RSS Feed Widget (Ad/Content Cache)",
             "file": "some-rss-widget/plugin-file.php"
+        },
+
+        "vcv-hubTeaser*": {
+            "name": "Visual Composer (Hub Cache)",
+            "file": "visualcomposer/visualcomposer.php"
         },
         "a2opt-benchmarks-frontend": {
             "name": "A2 Optimized",
@@ -577,6 +582,9 @@
         "_transient_wf-*",
         "wf_scan_*",
         "wfAdminNotice*",
+
+        "vcv-hubTeaser*",
+
         "_wpallexport_session_*",
         "*mytheme*",
         "ai1wm*",
@@ -636,7 +644,8 @@
         "Broken Link Checker": "<strong>Broken Link Checker:</strong> The <code>blc_installation_log</code> option is a one-time log created during the plugin's setup. It is very safe to disable its autoload status. In many cases, the entire option can be deleted from the database without any negative effects after the plugin has been installed.",
         "A2 Optimized": "<strong>A2 Optimized:</strong> The <code>a2opt-benchmarks-frontend</code> option stores performance test results and is very large. It is not needed for site operation and is highly recommended to disable autoload.",
         "Slider Revolution": "<strong>Slider Revolution:</strong> The <code>revslider-addons</code> option is a cache of available add-ons for the admin dashboard. It is not used on the front end of your site and is safe to disable autoload.",
-        "RSS Feed Widget (Ad/Content Cache)": "<strong>RSS Feed Widget:</strong> The <code>_transient_RCWFeed_Ms_*</code> options are very large cached RSS feeds, often for rotating ads or content. They should NEVER be autoloaded. Disabling autoload for all of these options is 100% safe and will provide a major performance boost."
+        "RSS Feed Widget (Ad/Content Cache)": "<strong>RSS Feed Widget:</strong> The <code>_transient_RCWFeed_Ms_*</code> options are very large cached RSS feeds, often for rotating ads or content. They should NEVER be autoloaded. Disabling autoload for all of these options is 100% safe and will provide a major performance boost.",
+        "Visual Composer (Hub Cache)": "<strong>Visual Composer:</strong> Options starting with <code>vcv-hubTeaser</code> are cached data from the Visual Composer Hub (their cloud library of elements and templates). This data is only used in the admin editor and is not needed on the live site. It is highly recommended and 100% safe to disable autoload for all of these options."
     },
     "general_recommendations": [
         "<strong>Safe Options:</strong> Options marked with a green checkmark are generally safe to disable. These are typically cache data, logs, or other non-critical data.",
