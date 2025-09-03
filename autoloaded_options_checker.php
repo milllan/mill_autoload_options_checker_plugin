@@ -3,7 +3,7 @@
  * Plugin Name:       Autoloaded Options Optimizer
  * Plugin URI:        https://github.com/milllan/mill_autoload_options_checker_plugin
  * Description:       A tool to analyze, view, and manage autoloaded options in the wp_options table, with a remotely managed configuration.
- * Version:           3.5.8
+ * Version:           3.5.9
  * Author:            Milan Petrović
  * Author URI:        https://wpspeedopt.net/
  * License:           GPL v2 or later
@@ -181,10 +181,39 @@ function ao_display_admin_page() {
         $plugin_name = __('Unknown', 'autoload-optimizer');
         $status_info = ['code' => 'unknown', 'text' => __('Unknown', 'autoload-optimizer'), 'class' => ''];
         $mapping_found = false;
+        
+        // NEW: Get both parent and child theme slugs for accurate context checking.
+        $active_theme = wp_get_theme();
+        $theme_slugs = [$active_theme->get_stylesheet()]; // Start with the child theme's slug
+        if ($active_theme->parent()) {
+            $theme_slugs[] = $active_theme->get_template(); // Add the parent theme's slug if it exists
+        }
 
         // 1. Precise & Pattern Match from config.json (Highest Priority)
         foreach ($config['plugin_mappings'] as $pattern => $mapping) {
             if (fnmatch($pattern, $option->option_name)) {
+
+                // Context Check (Now checks both parent and child themes)
+                if (isset($mapping['context'])) {
+                    $context_match = true;
+                    
+                    // Check for theme context
+                    if (isset($mapping['context']['theme'])) {
+                        // The context matches if the required theme is either the parent or the child.
+                        if (!in_array($mapping['context']['theme'], $theme_slugs, true)) {
+                            $context_match = false;
+                        }
+                    }
+
+                    // You can still add other context checks here in the future
+                    // if (isset($mapping['context']['plugin']) && ...) { ... }
+
+                    if (!$context_match) {
+                        continue; // This rule's context doesn't match, so skip to the next rule
+                    }
+                }
+                
+                // If we get here, the name and context (if any) matched
                 $plugin_name = $mapping['name'];
                 if ($mapping['file'] === 'core') $status_info = ['code' => 'core', 'text' => __('WordPress Core', 'autoload-optimizer'), 'class' => 'notice-info'];
                 elseif ($mapping['file'] === 'theme') $status_info = ['code' => 'theme', 'text' => __('Active Theme', 'autoload-optimizer'), 'class' => 'notice-info'];
