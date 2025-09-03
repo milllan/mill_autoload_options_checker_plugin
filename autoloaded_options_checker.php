@@ -3,7 +3,7 @@
  * Plugin Name:       Autoloaded Options Optimizer
  * Plugin URI:        https://github.com/milllan/mill_autoload_options_checker_plugin
  * Description:       A tool to analyze, view, and manage autoloaded options in the wp_options table, with a remotely managed configuration.
- * Version:           4.0.0
+ * Version:           4.1.0
  * Author:            Milan Petrović
  * Author URI:        https://wpspeedopt.net/
  * License:           GPL v2 or later
@@ -294,8 +294,6 @@ function ao_should_show_recommendation($group_data, $config, $plugin_name) {
 function ao_get_general_recommendations_html($large_options_size) {
     $total_size_kb = $large_options_size / 1024;
     $html = '';
-
-    // Recommendation about Over-Optimization
     $html .= '<p><strong>' . __('A Note on "Over-Optimizing":', 'autoload-optimizer') . '</strong> ';
     $html .= __('The goal is not to eliminate all large options, but to disable autoload for data that isn\'t needed on every page load (like admin notices, logs, or temporary caches). Options smaller than 1KB have a negligible impact and are not shown.', 'autoload-optimizer') . '</p>';
 
@@ -360,11 +358,12 @@ function ao_display_admin_page() {
                 <?php endif; ?>
             <?php endif; ?>
         </div>
+        
         <div class="notice notice-success is-dismissible">
             <p><strong><?php _e('Safe to Disable:', 'autoload-optimizer'); ?></strong> <?php _e('Options marked with a green checkmark are generally safe to disable. These are typically cache data, logs, or other non-critical data.', 'autoload-optimizer'); ?></p>
-            <p><button id="ao-disable-safe-options" class="button"><?php _e('Disable Autoload for All Safe Options', 'autoload-optimizer'); ?></button>
-            <span class="spinner" style="float: none; vertical-align: middle; margin-left: 5px;"></span></p>
+            <p><button id="ao-disable-safe-options" class="button"><?php _e('Disable Autoload for All Safe Options', 'autoload-optimizer'); ?></button></p>
         </div>
+
         <?php if ($inactive_plugin_option_count > 0) : ?>
             <div class="notice notice-success is-dismissible">
                 <p>
@@ -382,25 +381,24 @@ function ao_display_admin_page() {
                 </p>
             </div>
         <?php endif; ?>
+
         <div class="notice notice-error"><p><strong><?php _e('Warning:', 'autoload-optimizer'); ?></strong> <?php _e('Always have a backup before making changes. Only disable autoload for options that belong to inactive plugins/themes or are marked as safe.', 'autoload-optimizer'); ?></p></div>
+
         <div class="notice notice-info notice-alt" style="margin-top: 1rem;">
             <p><strong><?php _e('Configuration Status:', 'autoload-optimizer'); ?></strong> <?php echo esc_html($status_message); ?></p>
             <p><a href="<?php echo esc_url(wp_nonce_url(add_query_arg('ao_refresh_config', '1'), 'ao_refresh_config')); ?>" class="button"><?php _e('Force Refresh Configuration', 'autoload-optimizer'); ?></a></p>
         </div>
+        
         <div id="ao-dashboard-widgets-wrap" style="display: flex; gap: 20px; margin-top: 1rem;">
             <div class="card" style="flex: 1;">
                 <h2 class="title"><?php _e('Bulk Actions', 'autoload-optimizer'); ?></h2>
                 <p><?php _e('Select options from the table and disable their autoload status in one go.', 'autoload-optimizer'); ?></p>
                 <button id="ao-disable-selected" class="button button-primary"><?php _e('Disable Autoload for Selected', 'autoload-optimizer'); ?></button>
-                <span class="spinner" style="float: none; vertical-align: middle; margin-left: 5px;"></span>
             </div>
             <div class="card" style="flex: 1.5;">
                 <h2 class="title"><?php _e('Recommendations', 'autoload-optimizer'); ?></h2>
                 <div>
-                    <?php
-                    // --- UPDATED: Display general size-based recommendations ---
-                    echo ao_get_general_recommendations_html($large_options_size);
-                    ?>
+                    <?php echo ao_get_general_recommendations_html($large_options_size); ?>
                 </div>
                 <hr style="margin: 1rem 0;">
                 <div>
@@ -425,12 +423,10 @@ function ao_display_admin_page() {
             </div>
         </div>
 
-
         <?php if (empty($large_options)) : ?>
             <p><?php _e('No autoloaded options larger than 1KB found.', 'autoload-optimizer'); ?></p>
         <?php else : ?>
             <div id="ao-results-container" style="display:none; margin-top: 1rem;"></div>
-
             <h2><?php _e('Large Autoloaded Options (>1KB)', 'autoload-optimizer'); ?></h2>
             <table class="wp-list-table widefat fixed">
                 <thead>
@@ -483,7 +479,6 @@ function ao_display_admin_page() {
                                         <button class="button disable-single" data-option="<?php echo esc_attr($option['name']); ?>"><?php _e('Disable Autoload', 'autoload-optimizer'); ?></button>
                                     <?php elseif ($is_unknown) : ?>
                                         <button class="button find-in-files" data-option="<?php echo esc_attr($option['name']); ?>"><?php _e('Find Source', 'autoload-optimizer'); ?></button>
-                                        <span class="spinner" style="float: none; vertical-align: middle;"></span>
                                     <?php else : ?>
                                         <span title="<?php _e('Disabling autoload for core or active plugins/themes is not recommended.', 'autoload-optimizer'); ?>"><?php _e('N/A', 'autoload-optimizer'); ?></span>
                                     <?php endif; ?>
@@ -502,9 +497,9 @@ function ao_display_admin_page() {
             <form id="ao-manual-lookup-form" style="display: flex; gap: 10px; align-items: center;">
                 <input type="text" id="ao-manual-option-name" name="option_name" placeholder="<?php _e('e.g., active_plugins', 'autoload-optimizer'); ?>" style="width: 300px;" required>
                 <button type="submit" class="button button-secondary"><?php _e('View Option', 'autoload-optimizer'); ?></button>
-                <span class="spinner" style="float: none; vertical-align: middle;"></span>
             </form>
         </div>
+        
         <?php
         $ao_history   = get_option('ao_optimizer_history', []);
         $perf_history = get_option('perflab_aao_disabled_options', []);
@@ -535,7 +530,7 @@ function ao_display_admin_page() {
 function ao_admin_page_styles() {
     ?>
     <style>
-        .wp-list-table .column-option-name { width: 27%; } .wp-list-table .column-size, .wp-list-table .column-percentage { width: 8%; } .wp-list-table .column-plugin { width: 23%; } .wp-list-table .column-status { width: 12%; } .wp-list-table .column-action { width: 10%; } .wp-list-table tbody tr.group-color-a { background-color: #ffffff; } .wp-list-table tbody tr.group-color-b { background-color: #f6f7f7; } .wp-list-table tbody tr:hover { background-color: #f0f0f1 !important; } .wp-list-table tbody tr.ao-row-processed { opacity: 0.6; pointer-events: none; } .plugin-header th, .plugin-header td { font-weight: bold; background-color: #f0f0f1; border-bottom: 1px solid #ddd; } .view-option-content { cursor: pointer; } #ao-option-modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.7); z-index: 10001; justify-content: center; align-items: center; } #ao-option-modal-content { background: #fff; padding: 20px; border-radius: 4px; width: 80%; max-width: 900px; max-height: 80vh; overflow-y: auto; position: relative; } .close-modal { position: absolute; top: 5px; right: 15px; font-size: 28px; font-weight: bold; cursor: pointer; color: #555; } #ao-modal-body pre { background: #f1f1f1; padding: 15px; border: 1px solid #ddd; white-space: pre-wrap; word-wrap: break-word; }
+        .wp-list-table .column-option-name { width: 35%; } .wp-list-table .column-size, .wp-list-table .column-percentage { width: 8%; } .wp-list-table .column-plugin { width: 15%; } .wp-list-table .column-status { width: 12%; } .wp-list-table .column-action { width: 10%; } .wp-list-table tbody tr.group-color-a { background-color: #ffffff; } .wp-list-table tbody tr.group-color-b { background-color: #f6f7f7; } .wp-list-table tbody tr:hover { background-color: #f0f0f1 !important; } .wp-list-table tbody tr.ao-row-processed { opacity: 0.6; pointer-events: none; } .plugin-header th, .plugin-header td { font-weight: bold; background-color: #f0f0f1; border-bottom: 1px solid #ddd; } .view-option-content { cursor: pointer; } #ao-option-modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.7); z-index: 10001; justify-content: center; align-items: center; } #ao-option-modal-content { background: #fff; padding: 20px; border-radius: 4px; width: 80%; max-width: 900px; max-height: 80vh; overflow-y: auto; position: relative; } .close-modal { position: absolute; top: 5px; right: 15px; font-size: 28px; font-weight: bold; cursor: pointer; color: #555; } #ao-modal-body pre { background: #f1f1f1; padding: 15px; border: 1px solid #ddd; white-space: pre-wrap; word-wrap: break-word; }
     </style>
     <?php
 }
@@ -555,28 +550,22 @@ function ao_ajax_get_option_value() {
 function ao_ajax_disable_autoload_options() {
     check_ajax_referer('ao_disable_autoload_nonce', 'nonce');
     if (!current_user_can('manage_options')) wp_send_json_error(['message' => __('Permission denied.', 'autoload-optimizer')]);
-
     $options_to_disable = isset($_POST['option_names']) ? wp_unslash((array) $_POST['option_names']) : [];
     if (empty($options_to_disable)) wp_send_json_error(['message' => __('No options were selected.', 'autoload-optimizer')]);
-
     $ao_history = get_option('ao_optimizer_history', []);
     $perf_history = get_option('perflab_aao_disabled_options', []);
     if (!is_array($ao_history))   $ao_history = [];
     if (!is_array($perf_history)) $perf_history = [];
-
     $upload_dir = wp_upload_dir();
     $log_file = $upload_dir['basedir'] . '/autoload-options-debug.log';
     $log_content = "\n=== Autoload Disable Action - " . date('Y-m-d H:i:s') . " ===\n";
     $log_content .= "User: " . wp_get_current_user()->user_login . "\n";
-    
     global $wpdb;
     $success_count = $failure_count = $already_done = 0;
     $processed_options = [];
-
     foreach ($options_to_disable as $option_name) {
         $sane_option_name = sanitize_text_field($option_name);
         $result = wp_set_option_autoload($sane_option_name, false);
-        
         if ($result) {
             $success_count++;
             $log_content .= "[SUCCESS] '{$sane_option_name}' - Set autoload to 'no'.\n";
@@ -597,14 +586,11 @@ function ao_ajax_disable_autoload_options() {
             }
         }
     }
-    
     update_option('ao_optimizer_history', $ao_history, 'no');
     update_option('perflab_aao_disabled_options', $perf_history, 'no');
-
     file_put_contents($log_file, $log_content, FILE_APPEND);
     $message = sprintf(__('Processed %d options: %d disabled, %d failed, %d already off.', 'autoload-optimizer'), count($options_to_disable), $success_count, $failure_count, $already_done);
     $message .= ' ' . sprintf(__('Log saved to %s.', 'autoload-optimizer'), '<code>/wp-content/uploads/autoload-options-debug.log</code>');
-    
     wp_send_json_success(['message' => $message, 'disabled_options' => $processed_options]);
 }
 
@@ -632,11 +618,9 @@ function ao_ajax_find_option_in_files() {
 
     foreach ($search_paths as $type => $path) {
         if (!is_dir($path) || !is_readable($path)) continue;
-        
         $directory = new RecursiveDirectoryIterator($path, FilesystemIterator::SKIP_DOTS | FilesystemIterator::UNIX_PATHS);
         $iterator  = new RecursiveIteratorIterator($directory);
         $regex     = new RegexIterator($iterator, '/\.(php|js|inc)$/i');
-
         foreach ($regex as $file) {
             // Check if file is readable and not excessively large to avoid performance issues.
             if ($file->isReadable() && $file->getSize() > 0 && $file->getSize() < 500000) {
@@ -650,7 +634,6 @@ function ao_ajax_find_option_in_files() {
             }
         }
     }
-
     if (empty($results)) {
         $html = '<p>' . __('No occurrences found in plugin or theme files.', 'autoload-optimizer') . '</p>';
         $html .= '<p><small>' . __('Note: This search checks for the option name as a literal string. It may not find options that are created dynamically (e.g., from variables) or only referenced in a database.', 'autoload-optimizer') . '</small></p>';
@@ -664,6 +647,7 @@ function ao_ajax_find_option_in_files() {
     }
     wp_send_json_success(['html' => $html]);
 }
+
 
 add_action('admin_footer', 'ao_admin_page_scripts');
 function ao_admin_page_scripts() {
@@ -709,10 +693,8 @@ function ao_admin_page_scripts() {
 
         function disableOptions(optionNames, button) {
             if (!confirm(`<?php _e('Are you sure you want to disable autoload for the selected option(s)?', 'autoload-optimizer'); ?>`)) return;
-
-            const spinner = button ? button.nextElementSibling : null;
+            
             if (button) button.disabled = true;
-            if (spinner && spinner.classList.contains('spinner')) spinner.classList.add('is-active');
 
             const formData = new FormData();
             formData.append('action', 'ao_disable_autoload_options');
@@ -738,7 +720,6 @@ function ao_admin_page_scripts() {
                 .catch(() => showResult('<?php _e('Request failed. Please check the browser console for errors.', 'autoload-optimizer'); ?>', 'error'))
                 .finally(() => {
                     if (button) button.disabled = false;
-                    if (spinner && spinner.classList.contains('spinner')) spinner.classList.remove('is-active');
                 });
         }
 
@@ -752,10 +733,9 @@ function ao_admin_page_scripts() {
             modalOverlay.style.display = 'none';
         }
 
-        function viewOptionContent(optionName, spinner) {
+        function viewOptionContent(optionName) {
             showModal('<?php _e('Viewing:', 'autoload-optimizer'); ?> ' + optionName, '<?php _e('Loading...', 'autoload-optimizer'); ?>');
-            if (spinner) spinner.classList.add('is-active');
-
+            
             const formData = new FormData();
             formData.append('action', 'ao_get_option_value');
             formData.append('nonce', viewNonce);
@@ -768,16 +748,12 @@ function ao_admin_page_scripts() {
                 })
                 .catch(() => {
                     modalBody.innerHTML = `<p style="color:red;"><?php _e('An error occurred during the request.', 'autoload-optimizer'); ?></p>`;
-                })
-                .finally(() => {
-                    if (spinner) spinner.classList.remove('is-active');
                 });
         }
 
-        function findOptionSource(optionName, spinner) {
+        function findOptionSource(optionName) {
             showModal('<?php _e('Searching for source of:', 'autoload-optimizer'); ?> ' + optionName, '<?php _e('Searching plugin and theme files...', 'autoload-optimizer'); ?>');
-            if (spinner) spinner.classList.add('is-active');
-
+            
             const formData = new FormData();
             formData.append('action', 'ao_find_option_in_files');
             formData.append('nonce', findNonce);
@@ -790,9 +766,6 @@ function ao_admin_page_scripts() {
                 })
                 .catch(() => {
                     modalBody.innerHTML = `<p style="color:red;"><?php _e('An error occurred during the request.', 'autoload-optimizer'); ?></p>`;
-                })
-                .finally(() => {
-                    if (spinner) spinner.classList.remove('is-active');
                 });
         }
 
@@ -803,7 +776,7 @@ function ao_admin_page_scripts() {
             tableBody.addEventListener('click', function(e) {
                 if (e.target.classList.contains('view-option-content')) {
                     e.preventDefault();
-                    viewOptionContent(e.target.dataset.optionName, null);
+                    viewOptionContent(e.target.dataset.optionName);
                 }
                 if (e.target.classList.contains('disable-single')) {
                     e.preventDefault();
@@ -811,9 +784,7 @@ function ao_admin_page_scripts() {
                 }
                 if (e.target.classList.contains('find-in-files')) {
                     e.preventDefault();
-                    const optionName = e.target.dataset.option;
-                    const spinner = e.target.nextElementSibling;
-                    findOptionSource(optionName, spinner);
+                    findOptionSource(e.target.dataset.option);
                 }
             });
         }
@@ -823,11 +794,11 @@ function ao_admin_page_scripts() {
             manualLookupForm.addEventListener('submit', function(e) {
                 e.preventDefault();
                 const optionNameInput = document.getElementById('ao-manual-option-name');
-                const spinner = this.querySelector('.spinner');
                 const optionName = optionNameInput.value.trim();
-                if (optionName) viewOptionContent(optionName, spinner);
+                if (optionName) viewOptionContent(optionName);
             });
         }
+        
         const disableSelectedBtn = document.getElementById('ao-disable-selected');
         if (disableSelectedBtn) {
             disableSelectedBtn.addEventListener('click', e => {
@@ -841,7 +812,6 @@ function ao_admin_page_scripts() {
             });
         }
 
-        // Listener for the "Disable All Safe" button
         const disableSafeBtn = document.getElementById('ao-disable-safe-options');
         if (disableSafeBtn) {
             disableSafeBtn.addEventListener('click', e => {
@@ -854,6 +824,7 @@ function ao_admin_page_scripts() {
                 disableOptions(safeOptions, e.target);
             });
         }
+        
         if(mainCheckbox) {
             mainCheckbox.addEventListener('change', () => {
                 itemCheckboxes.forEach(cb => { 
@@ -863,9 +834,9 @@ function ao_admin_page_scripts() {
                 });
             });
         }
+
         modalOverlay.addEventListener('click', e => { if (e.target === modalOverlay) hideModal(); });
         modalContent.querySelector('.close-modal').addEventListener('click', hideModal);
-
     });
     </script>
     <?php
