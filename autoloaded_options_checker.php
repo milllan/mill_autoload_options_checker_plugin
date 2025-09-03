@@ -3,7 +3,7 @@
  * Plugin Name:       Autoloaded Options Optimizer
  * Plugin URI:        https://github.com/milllan/mill_autoload_options_checker_plugin
  * Description:       A tool to analyze, view, and manage autoloaded options in the wp_options table, with a remotely managed configuration.
- * Version:           3.5.3
+ * Version:           3.5.4
  * Author:            Milan Petrović
  * Author URI:        https://wpspeedopt.net/
  * License:           GPL v2 or later
@@ -438,6 +438,14 @@ function ao_ajax_disable_autoload_options() {
     $options_to_disable = isset($_POST['option_names']) ? (array) $_POST['option_names'] : [];
     if (empty($options_to_disable)) wp_send_json_error(['message' => __('No options were selected.', 'autoload-optimizer')]);
 
+    // --- START: NEW HISTORY LOGIC ---
+    // Get the existing history of disabled options.
+    $history = get_option('ao_optimizer_history', []);
+    if ( ! is_array($history) ) {
+        $history = [];
+    }
+    // --- END: NEW HISTORY LOGIC ---
+
     $upload_dir = wp_upload_dir();
     $log_file = $upload_dir['basedir'] . '/autoload-options-debug.log';
     $log_content = "\n=== Autoload Disable Action - " . date('Y-m-d H:i:s') . " ===\n";
@@ -449,16 +457,34 @@ function ao_ajax_disable_autoload_options() {
     foreach ($options_to_disable as $option_name) {
         $sane_option_name = sanitize_text_field($option_name);
         $current_autoload = $wpdb->get_var($wpdb->prepare("SELECT autoload FROM {$wpdb->options} WHERE option_name = %s", $sane_option_name));
+        
         if ('no' === $current_autoload) {
-            $already_done++; $log_content .= "[SKIPPED] '{$sane_option_name}' - Already 'no'.\n"; continue;
+            $already_done++;
+            $log_content .= "[SKIPPED] '{$sane_option_name}' - Already 'no'.\n";
+            // --- NEW: Also add to history if it's not there already ---
+            if ( ! in_array($sane_option_name, $history, true) ) {
+                $history[] = $sane_option_name;
+            }
+            continue;
         }
+
         $result = $wpdb->update($wpdb->options, ['autoload' => 'no'], ['option_name' => $sane_option_name]);
+        
         if (false === $result) {
             $failure_count++; $log_content .= "[FAILED]  '{$sane_option_name}' - DB error.\n";
         } else {
-            $success_count++; $log_content .= "[SUCCESS] '{$sane_option_name}' - Set to 'no'.\n";
+            $success_count++;
+            $log_content .= "[SUCCESS] '{$sane_option_name}' - Set to 'no'.\n";
+            // --- NEW: Add the successfully disabled option to our history array ---
+            if ( ! in_array($sane_option_name, $history, true) ) {
+                $history[] = $sane_option_name;
+            }
         }
     }
+    
+    // --- NEW: Save the updated history back to the database ---
+    update_option('ao_optimizer_history', $history, 'no'); // 'no' prevents the history option itself from being autoloaded!
+
 
     file_put_contents($log_file, $log_content, FILE_APPEND);
     $message = sprintf(__('Processed %d options: %d disabled, %d failed, %d already off.', 'autoload-optimizer'), count($options_to_disable), $success_count, $failure_count, $already_done);

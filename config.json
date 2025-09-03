@@ -1,6 +1,14 @@
 {
-    "version": "1.3.0",
+    "version": "1.3.1",
     "plugin_mappings": {
+        "a2opt-benchmarks-frontend": {
+            "name": "A2 Optimized",
+            "file": "a2-optimized-wp/A2_Optimized_WP.php"
+        },
+        "revslider-addons": {
+            "name": "Slider Revolution",
+            "file": "revslider/revslider.php"
+        },
         "blc_installation_log": {
             "name": "Broken Link Checker",
             "file": "broken-link-checker/broken-link-checker.php"
@@ -439,6 +447,8 @@
     "safe_literals": [
         "fs_accounts",
         "blc_installation_log",
+        "a2opt-benchmarks-frontend",
+        "revslider-addons",
         "elementskit-lite__banner_data",
         "elementskit-lite__stories_data",
         "addon_library_catalog",
@@ -610,7 +620,9 @@
         "Limit Login Attempts Reloaded": "<strong>Limit Login Attempts Reloaded:</strong> Security-related options should generally remain autoloaded for optimal protection.",
         "Wordfence Security (Scan Cache)": "<strong>Wordfence Security:</strong> Wordfence creates several large options for its scanner and issue caching. It is highly recommended and safe to disable autoload for these options like <code>wf_known_file_list</code>, <code>wf_scan_*</code>, and <code>_transient_wf-*</code>. <strong>Important:</strong> Do not disable autoload for core configuration options like <code>wfConfig</code>, or any options starting with <code>waf*</code> (firewall) and <code>wfls_*</code> (login security), as these are critical for the live protection of your site.",
         "Wordfence Security (Issues Cache)": "<strong>Wordfence Security:</strong> Wordfence creates several large options for its scanner and issue caching. It is highly recommended and safe to disable autoload for these options like <code>wf_known_file_list</code>, <code>wf_scan_*</code>, and <code>_transient_wf-*</code>. <strong>Important:</strong> Do not disable autoload for core configuration options like <code>wfConfig</code>, or any options starting with <code>waf*</code> (firewall) and <code>wfls_*</code> (login security), as these are critical for the live protection of your site.",
-        "Broken Link Checker": "<strong>Broken Link Checker:</strong> The <code>blc_installation_log</code> option is a one-time log created during the plugin's setup. It is very safe to disable its autoload status. In many cases, the entire option can be deleted from the database without any negative effects after the plugin has been installed."
+        "Broken Link Checker": "<strong>Broken Link Checker:</strong> The <code>blc_installation_log</code> option is a one-time log created during the plugin's setup. It is very safe to disable its autoload status. In many cases, the entire option can be deleted from the database without any negative effects after the plugin has been installed.",
+        "A2 Optimized": "<strong>A2 Optimized:</strong> The <code>a2opt-benchmarks-frontend</code> option stores performance test results and is very large. It is not needed for site operation and is highly recommended to disable autoload.",
+        "Slider Revolution": "<strong>Slider Revolution:</strong> The <code>revslider-addons</code> option is a cache of available add-ons for the admin dashboard. It is not used on the front end of your site and is safe to disable autoload."
     },
     "general_recommendations": [
         "<strong>Safe Options:</strong> Options marked with a green checkmark are generally safe to disable. These are typically cache data, logs, or other non-critical data.",
