@@ -3,7 +3,7 @@
  * Plugin Name:       Autoloaded Options Optimizer
  * Plugin URI:        https://github.com/milllan/mill_autoload_options_checker_plugin
  * Description:       A tool to analyze, view, and manage autoloaded options in the wp_options table, with a remotely managed configuration.
- * Version:           3.5.5
+ * Version:           3.5.6
  * Author:            Milan Petrović
  * Author URI:        https://wpspeedopt.net/
  * License:           GPL v2 or later
@@ -177,33 +177,38 @@ function ao_display_admin_page() {
             }
         }
         
+        // --- Option Identification Logic (Priority Order) ---
         $plugin_name = __('Unknown', 'autoload-optimizer');
         $status_info = ['code' => 'unknown', 'text' => __('Unknown', 'autoload-optimizer'), 'class' => ''];
+        $mapping_found = false;
 
-        // --- Option Identification Logic (Priority Order) ---
-        if (isset($config['plugin_mappings'][$option->option_name])) {
-            // 1. Precise Match from config.json (Highest Priority)
-            $mapping = $config['plugin_mappings'][$option->option_name];
-            $plugin_name = $mapping['name'];
-            
-            if ($mapping['file'] === 'core') $status_info = ['code' => 'core', 'text' => __('WordPress Core', 'autoload-optimizer'), 'class' => 'notice-info'];
-            elseif ($mapping['file'] === 'theme') $status_info = ['code' => 'theme', 'text' => __('Active Theme', 'autoload-optimizer'), 'class' => 'notice-info'];
-            elseif (in_array($mapping['file'], $active_plugin_paths)) $status_info = ['code' => 'plugin_active', 'text' => __('Active Plugin', 'autoload-optimizer'), 'class' => 'notice-success'];
-            else {
-                $status_info = ['code' => 'plugin_inactive', 'text' => __('Inactive Plugin', 'autoload-optimizer'), 'class' => 'notice-error'];
-                $inactive_plugin_option_count++;
+        // 1. Precise & Pattern Match from config.json (Highest Priority)
+        foreach ($config['plugin_mappings'] as $pattern => $mapping) {
+            if (fnmatch($pattern, $option->option_name)) {
+                $plugin_name = $mapping['name'];
+                if ($mapping['file'] === 'core') $status_info = ['code' => 'core', 'text' => __('WordPress Core', 'autoload-optimizer'), 'class' => 'notice-info'];
+                elseif ($mapping['file'] === 'theme') $status_info = ['code' => 'theme', 'text' => __('Active Theme', 'autoload-optimizer'), 'class' => 'notice-info'];
+                elseif (in_array($mapping['file'], $active_plugin_paths)) $status_info = ['code' => 'plugin_active', 'text' => __('Active Plugin', 'autoload-optimizer'), 'class' => 'notice-success'];
+                else {
+                    $status_info = ['code' => 'plugin_inactive', 'text' => __('Inactive Plugin', 'autoload-optimizer'), 'class' => 'notice-error'];
+                    $inactive_plugin_option_count++;
+                }
+                $mapping_found = true;
+                break; // Stop after the first match
             }
+        }
 
-        } elseif (strpos($option->option_name, '_transient_') === 0 || strpos($option->option_name, '_site_transient_') === 0) {
+        if (!$mapping_found) {
             // 2. Generic Core Transient Fallback (Accurate check)
-            $plugin_name = __('WordPress Core (Transient)', 'autoload-optimizer');
-            $status_info = ['code' => 'core', 'text' => __('WordPress Core', 'autoload-optimizer'), 'class' => 'notice-info'];
-
-        } else {
-            // 3. Guessing Logic based on prefixes (Lowest Priority)
-            if (strpos($option->option_name, 'elementor') === 0) $plugin_name = 'Elementor';
-            elseif (strpos($option->option_name, 'wpseo') === 0) $plugin_name = 'Yoast SEO';
-            elseif (strpos($option->option_name, 'rocket') === 0) $plugin_name = 'WP Rocket';
+            if (str_starts_with($option->option_name, '_transient_') || str_starts_with($option->option_name, '_site_transient_')) {
+                $plugin_name = __('WordPress Core (Transient)', 'autoload-optimizer');
+                $status_info = ['code' => 'core', 'text' => __('WordPress Core', 'autoload-optimizer'), 'class' => 'notice-info'];
+            } else {
+                // 3. Guessing Logic based on prefixes (Lowest Priority)
+                if (strpos($option->option_name, 'elementor') === 0) $plugin_name = 'Elementor';
+                elseif (strpos($option->option_name, 'wpseo') === 0) $plugin_name = 'Yoast SEO';
+                elseif (strpos($option->option_name, 'rocket') === 0) $plugin_name = 'WP Rocket';
+            }
         }
 
 
