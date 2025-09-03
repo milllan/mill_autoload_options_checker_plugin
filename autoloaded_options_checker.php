@@ -573,58 +573,35 @@ function ao_admin_page_scripts() {
 
 // --- GitHub Plugin Updater ---
 
-add_filter('pre_set_site_transient_update_plugins', 'ao_check_for_github_update');
+/**
+ * --------------------------------------------------------------------------
+ *  Initialize GitHub Updater (Safely)
+ * --------------------------------------------------------------------------
+ *
+ *  This code safely checks for and initializes the Plugin Update Checker
+ *  library. If the library is not found (e.g., when the code is run from
+ *  a snippet), it will not cause a fatal error.
+ */
+add_action('plugins_loaded', 'ao_initialize_updater');
 
-function ao_check_for_github_update($transient) {
-    // Check if the transient has a checked property, if not, bail.
-    if (empty($transient->checked)) {
-        return $transient;
-    }
+function ao_initialize_updater() {
+    // Define the path to the updater's bootstrap file.
+    $updater_bootstrap_file = dirname(__FILE__) . '/lib/plugin-update-checker/plugin-update-checker.php';
 
-    // Define plugin constants
-    $plugin_slug = 'mill_autoload_options_checker_plugin/autoloaded_options_checker.php'; // 'folder-name/plugin-main-file.php'
-    $github_repo = 'milllan/mill_autoload_options_checker_plugin'; // 'owner/repo'
-    $current_version = $transient->checked[$plugin_slug];
+    // Check if the file exists before trying to load it.
+    if (file_exists($updater_bootstrap_file)) {
+        require_once $updater_bootstrap_file;
 
-    // Check for a cached response
-    $cached_response = get_transient('ao_github_update_response');
-    if (false !== $cached_response) {
-        // If a cached response exists and the version is newer, add it and return
-        if (version_compare($cached_response->tag_name, $current_version, '>')) {
-            $transient->response[$plugin_slug] = (object) [
-                'slug'        => dirname($plugin_slug),
-                'new_version' => $cached_response->tag_name,
-                'url'         => "https://github.com/{$github_repo}",
-                'package'     => $cached_response->zipball_url,
-                'icons'       => ['default' => 'https://raw.githubusercontent.com/milllan/mill_autoload_options_checker_plugin/main/assets/icon-128x128.png']
-            ];
+        // The file exists, so we can safely use the library.
+        try {
+            $myUpdateChecker = YahnisElsts\PluginUpdateChecker\v5\PucFactory::buildUpdateChecker(
+                'https://github.com/milllan/mill_autoload_options_checker_plugin/', // GitHub repo URL
+                __FILE__, // Main plugin file (__FILE__ points to this plugin's main file)
+                'autoload-optimizer' // Plugin slug (use your text-domain for consistency)
+            );
+        } catch (Exception $e) {
+            // Optional: Log the error if the library fails to initialize for some reason.
+            // error_log('Plugin Update Checker failed to initialize: ' . $e->getMessage());
         }
-        return $transient;
     }
-
-    // No cache, so let's check GitHub
-    $response = wp_remote_get("https://api.github.com/repos/{$github_repo}/releases/latest");
-
-    if (is_wp_error($response) || 200 !== wp_remote_retrieve_response_code($response)) {
-        // GitHub API request failed, set a short cache to prevent repeated failures
-        set_transient('ao_github_update_response', 'error', HOUR_IN_SECONDS);
-        return $transient;
-    }
-
-    $release_data = json_decode(wp_remote_retrieve_body($response));
-    
-    // Cache the full response for 12 hours
-    set_transient('ao_github_update_response', $release_data, 12 * HOUR_IN_SECONDS);
-
-    if (version_compare($release_data->tag_name, $current_version, '>')) {
-        $transient->response[$plugin_slug] = (object) [
-            'slug'        => dirname($plugin_slug),
-            'new_version' => $release_data->tag_name,
-            'url'         => "https://github.com/{$github_repo}", // The plugin's homepage
-            'package'     => $release_data->zipball_url, // The download URL for the new version
-            'icons'       => ['default' => 'https://raw.githubusercontent.com/milllan/mill_autoload_options_checker_plugin/main/assets/icon-128x128.png'] // Optional icon
-        ];
-    }
-
-    return $transient;
 }
