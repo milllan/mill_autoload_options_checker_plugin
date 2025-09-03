@@ -1,5 +1,5 @@
 {
-    "version": "1.4.1",
+    "version": "1.4.2",
     "plugin_mappings": {
         "betheme": {
             "name": "Betheme",
@@ -31,6 +31,10 @@
             "file": "revslider/revslider.php"
         },
         "blc_installation_log": {
+            "name": "Broken Link Checker",
+            "file": "broken-link-checker/broken-link-checker.php"
+        },
+        "wsblc_options": {
             "name": "Broken Link Checker",
             "file": "broken-link-checker/broken-link-checker.php"
         },
