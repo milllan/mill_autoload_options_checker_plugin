@@ -3,7 +3,7 @@
  * Plugin Name:       Autoloaded Options Optimizer
  * Plugin URI:        https://github.com/milllan/mill_autoload_options_checker_plugin
  * Description:       A tool to analyze, view, and manage autoloaded options in the wp_options table, with a remotely managed configuration.
- * Version:           3.6.2
+ * Version:           3.7.0
  * Author:            Milan Petrović
  * Author URI:        https://wpspeedopt.net/
  * License:           GPL v2 or later
@@ -21,13 +21,15 @@ if (!defined('ABSPATH')) {
 
 add_action('admin_menu', 'ao_add_admin_page');
 function ao_add_admin_page() {
-    add_management_page(
+    $hook = add_management_page(
         __('Autoloaded Options Optimizer', 'autoload-optimizer'),
         __('Autoloaded Options Optimizer', 'autoload-optimizer'),
         'manage_options',
         'autoloaded-options',
         'ao_display_admin_page'
     );
+    // Hook the new update check to run only when our page is loading.
+    add_action('load-' . $hook, 'ao_check_for_config_updates');
 }
 
 add_action('admin_init', 'ao_register_ajax_handlers');
@@ -37,13 +39,51 @@ function ao_register_ajax_handlers() {
 }
 
 /**
+ * --- NEW: Smart Config Update Checker ---
+ * This function performs a lightweight check for a new config version.
+ */
+function ao_check_for_config_updates() {
+    // Check if we've recently checked for an update.
+    if (get_transient('_ao_config_version_check')) {
+        return;
+    }
+
+    // Set a short-lived transient to prevent repeated checks on rapid reloads.
+    set_transient('_ao_config_version_check', true, HOUR_IN_SECONDS);
+
+    // Get the currently cached config to check its version.
+    $cached_config = get_transient('ao_remote_config_cache');
+    $current_version = isset($cached_config['version']) ? $cached_config['version'] : '0.0.0';
+
+    // Fetch the remote version file.
+    $version_url = 'https://raw.githubusercontent.com/milllan/mill_autoload_options_checker_plugin/main/version.json';
+    $response = wp_remote_get($version_url, ['timeout' => 5]);
+
+    if (is_wp_error($response) || 200 !== wp_remote_retrieve_response_code($response)) {
+        return; // Could not fetch version, try again later.
+    }
+
+    $body = wp_remote_retrieve_body($response);
+    $remote_data = json_decode($body, true);
+
+    if (isset($remote_data['version'])) {
+        $remote_version = $remote_data['version'];
+        // If the remote version is newer, delete our main config cache.
+        if (version_compare($remote_version, $current_version, '>')) {
+            delete_transient('ao_remote_config_cache');
+        }
+    }
+}
+
+
+/**
  * Manages the remote configuration.
  */
 final class AO_Remote_Config_Manager {
     private static $instance;
     private const DEFAULT_REMOTE_URL = 'https://raw.githubusercontent.com/milllan/mill_autoload_options_checker_plugin/main/config.json';
     private const CACHE_KEY = 'ao_remote_config_cache';
-    private const CACHE_DURATION = 30 * DAY_IN_SECONDS;
+    private const CACHE_DURATION = 30 * DAY_IN_SECONDS; // The main cache is still long-lived.
     private $config_status = 'Not loaded yet.';
 
     private function __construct() {}
@@ -70,8 +110,9 @@ final class AO_Remote_Config_Manager {
                 set_transient(self::CACHE_KEY, $remote_config, self::CACHE_DURATION);
                 return $remote_config;
             } else {
-                $this->config_status = __('Error: Could not fetch remote config. No fallback available.', 'autoload-optimizer');
-                return $this->get_empty_config_structure();
+                // This now only runs if the remote fetch fails.
+                $this->config_status = __('Error: Could not fetch remote config. Using local fallback.', 'autoload-optimizer');
+                return $this->get_local_fallback();
             }
         }
 
@@ -82,12 +123,7 @@ final class AO_Remote_Config_Manager {
         return $config;
     }
 
-    /**
-     * Fetches the remote configuration with a local fallback.
-     * Logic has been simplified for better readability.
-     */
     private function fetch_remote_config() {
-        // 1. Attempt to fetch from remote
         $remote_url = apply_filters('ao_remote_config_url', self::DEFAULT_REMOTE_URL);
         $response = wp_remote_get($remote_url, ['timeout' => 10, 'headers' => ['Accept' => 'application/json']]);
     
@@ -95,24 +131,22 @@ final class AO_Remote_Config_Manager {
             $body = wp_remote_retrieve_body($response);
             $config = json_decode($body, true);
             if (json_last_error() === JSON_ERROR_NONE && $this->is_config_valid($config)) {
-                // Success! Return remote config.
                 return $config;
             }
         }
-    
-        // 2. If remote fails for any reason, try the local fallback
+        return false;
+    }
+
+    private function get_local_fallback() {
         $local_path = plugin_dir_path(__FILE__) . 'config.json';
         if (file_exists($local_path)) {
             $local_content = file_get_contents($local_path);
             $config = json_decode($local_content, true);
             if (json_last_error() === JSON_ERROR_NONE && $this->is_config_valid($config)) {
-                $this->config_status = __('Using Local Fallback Config', 'autoload-optimizer');
                 return $config;
             }
         }
-    
-        // 3. If all else fails
-        return false;
+        return $this->get_empty_config_structure();
     }
 
     private function is_config_valid($config) {
@@ -125,6 +159,7 @@ final class AO_Remote_Config_Manager {
     }
 
     private function get_empty_config_structure() {
+        $this->config_status = __('Error: Could not fetch config and no valid local fallback was found.', 'autoload-optimizer');
         return [
             'version' => '0.0.0 (Error)', 'plugin_mappings' => [], 'safe_literals' => [],
             'safe_patterns' => [], 'recommendations' => [], 'general_recommendations' => [],
@@ -136,11 +171,12 @@ final class AO_Remote_Config_Manager {
     }
 }
 
+
 function ao_get_config() {
     return AO_Remote_Config_Manager::get_instance()->get_config();
 }
 
-// --- Display & UI Logic ---
+// --- Display & UI Logic (No changes needed below this line) ---
 
 function ao_display_admin_page() {
     if (!current_user_can('manage_options')) return;
@@ -149,6 +185,7 @@ function ao_display_admin_page() {
     $config_manager = AO_Remote_Config_Manager::get_instance();
     if (isset($_GET['ao_refresh_config']) && check_admin_referer('ao_refresh_config')) {
         delete_transient('ao_remote_config_cache');
+        delete_transient('_ao_config_version_check'); // Also delete the version check
         wp_safe_redirect(remove_query_arg(['ao_refresh_config', '_wpnonce']));
         exit;
     }
@@ -207,27 +244,38 @@ function ao_display_admin_page() {
 
                 if ($context_match) {
                     $plugin_name = $mapping['name'];
-                    if ($mapping['file'] === 'core') $status_info = ['code' => 'core', 'text' => __('WordPress Core', 'autoload-optimizer'), 'class' => 'notice-info'];
-                    elseif ($mapping['file'] === 'theme') $status_info = ['code' => 'theme', 'text' => __('Active Theme', 'autoload-optimizer'), 'class' => 'notice-info'];
-                    elseif (in_array($mapping['file'], $active_plugin_paths)) $status_info = ['code' => 'plugin_active', 'text' => __('Active Plugin', 'autoload-optimizer'), 'class' => 'notice-success'];
-                    else {
+                    $file_info = $mapping['file'];
+
+                    if (substr($file_info, 0, 6) === 'theme:') {
+                        $theme_slug = substr($file_info, 6);
+                        if (in_array($theme_slug, $theme_slugs, true)) {
+                            $status_info = ['code' => 'theme_active', 'text' => __('Active Theme', 'autoload-optimizer'), 'class' => 'notice-info'];
+                        } else {
+                            $status_info = ['code' => 'theme_inactive', 'text' => __('Inactive Theme', 'autoload-optimizer'), 'class' => 'notice-error'];
+                            $inactive_plugin_option_count++;
+                        }
+                    } elseif ($file_info === 'core') {
+                        $status_info = ['code' => 'core', 'text' => __('WordPress Core', 'autoload-optimizer'), 'class' => 'notice-info'];
+                    } elseif ($file_info === 'theme') {
+                        $status_info = ['code' => 'theme_active', 'text' => __('Active Theme', 'autoload-optimizer'), 'class' => 'notice-info'];
+                    } elseif (in_array($file_info, $active_plugin_paths)) {
+                        $status_info = ['code' => 'plugin_active', 'text' => __('Active Plugin', 'autoload-optimizer'), 'class' => 'notice-success'];
+                    } else {
                         $status_info = ['code' => 'plugin_inactive', 'text' => __('Inactive Plugin', 'autoload-optimizer'), 'class' => 'notice-error'];
                         $inactive_plugin_option_count++;
                     }
+
                     $mapping_found = true;
                     break; 
                 }
             }
         }
 
-        // 2. Fallbacks (ONLY run if no mapping was found in the config)
         if (!$mapping_found) {
-            // Check for core transients (PHP 7 compatible)
             if (substr($option->option_name, 0, 10) === '_transient_' || substr($option->option_name, 0, 16) === '_site_transient_') {
                 $plugin_name = __('WordPress Core (Transient)', 'autoload-optimizer');
                 $status_info = ['code' => 'core', 'text' => __('WordPress Core', 'autoload-optimizer'), 'class' => 'notice-info'];
             } else {
-                // --- REFACTORED: Guessing Block ---
                 $known_plugin_prefixes = [
                     'elementor' => ['name' => 'Elementor', 'file' => 'elementor/elementor.php'],
                     'wpseo'     => ['name' => 'Yoast SEO', 'file' => 'wordpress-seo/wp-seo.php'],
@@ -242,24 +290,16 @@ function ao_display_admin_page() {
                             ? ['code' => 'plugin_active', 'text' => __('Active Plugin', 'autoload-optimizer'), 'class' => 'notice-success']
                             : ['code' => 'plugin_inactive', 'text' => __('Inactive Plugin', 'autoload-optimizer'), 'class' => 'notice-error'];
                         
-                        // FIXED: Increment count for inactive guessed plugins
-                        if (!$is_active) {
-                            $inactive_plugin_option_count++;
-                        }
-                        break; // Found our guess, exit the loop
+                        if (!$is_active) $inactive_plugin_option_count++;
+                        break;
                     }
                 }
-                // --- END REFACTORED: Guessing Block ---
             }
         }
 
-
         if (!isset($grouped_options[$plugin_name])) {
             $grouped_options[$plugin_name] = [
-                'total_size' => 0, 
-                'count' => 0, 
-                'options' => [],
-                'status' => $status_info
+                'total_size' => 0, 'count' => 0, 'options' => [], 'status' => $status_info
             ];
         }
 
@@ -268,7 +308,7 @@ function ao_display_admin_page() {
         $grouped_options[$plugin_name]['options'][] = ['name' => $option->option_name, 'length' => $option->option_length, 'is_safe' => $is_safe, 'status' => $status_info];
     }
     
-    uasort($grouped_options, fn($a, $b) => $b['total_size'] <=> $a['total_size']);
+    uasort($grouped_options, function($a, $b) { return $b['total_size'] <=> $a['total_size']; });
 
     ?>
     <div class="wrap">
@@ -307,8 +347,8 @@ function ao_display_admin_page() {
                     <?php 
                     printf(
                         _n(
-                            '<strong>Found %d option from an inactive plugin.</strong> Disabling autoload for these options can improve performance.',
-                            '<strong>Found %d options from inactive plugins.</strong> Disabling autoload for these options can improve performance.',
+                            '<strong>Found %d option from an inactive plugin or theme.</strong> Disabling autoload for these options can improve performance.',
+                            '<strong>Found %d options from inactive plugins or themes.</strong> Disabling autoload for these options can improve performance.',
                             $inactive_plugin_option_count,
                             'autoload-optimizer'
                         ),
@@ -319,7 +359,7 @@ function ao_display_admin_page() {
             </div>
         <?php endif; ?>
 
-        <div class="notice notice-error"><p><strong><?php _e('Warning:', 'autoload-optimizer'); ?></strong> <?php _e('Always have a backup before making changes. Only disable autoload for options that belong to inactive plugins or are marked as safe.', 'autoload-optimizer'); ?></p></div>
+        <div class="notice notice-error"><p><strong><?php _e('Warning:', 'autoload-optimizer'); ?></strong> <?php _e('Always have a backup before making changes. Only disable autoload for options that belong to inactive plugins/themes or are marked as safe.', 'autoload-optimizer'); ?></p></div>
 
         <div class="notice notice-info notice-alt" style="margin-top: 1rem;">
             <p><strong><?php _e('Configuration Status:', 'autoload-optimizer'); ?></strong> <?php echo esc_html($status_message); ?></p>
@@ -328,7 +368,6 @@ function ao_display_admin_page() {
         
         <div id="ao-dashboard-widgets-wrap" style="display: flex; gap: 20px; margin-top: 1rem;">
             <div class="card" style="flex: 1;">
-                <!-- Bulk actions card -->
                 <h2 class="title"><?php _e('Bulk Actions', 'autoload-optimizer'); ?></h2>
                 <p><?php _e('Select options from the table and disable their autoload status in one go.', 'autoload-optimizer'); ?></p>
                 <button id="ao-disable-selected" class="button button-primary"><?php _e('Disable Autoload for Selected', 'autoload-optimizer'); ?></button>
@@ -340,21 +379,16 @@ function ao_display_admin_page() {
                     <?php
                     $recommendation_found = false;
                     foreach ($grouped_options as $plugin_name => $data) {
-                        // Check if a recommendation exists for this plugin in the config
                         if (isset($config['recommendations'][$plugin_name])) {
-                            
-                            // *** THIS IS THE NEW LOGIC BLOCK ***
-                            // First, check if the group contains any options marked as safe
                             $has_safe_options = false;
                             foreach ($data['options'] as $option) {
                                 if ($option['is_safe']) {
                                     $has_safe_options = true;
-                                    break; // Optimization: stop checking once one is found
+                                    break;
                                 }
                             }
 
-                            // Only show the recommendation if the plugin is inactive OR it has safe options
-                            if ($data['status']['code'] === 'plugin_inactive' || $has_safe_options) {
+                            if (strpos($data['status']['code'], '_inactive') !== false || $has_safe_options) {
                                 $recommendation_found = true;
                                 $rec_text = $config['recommendations'][$plugin_name];
                                 $status_class = $data['status']['class'] ?? 'notice-info';
@@ -384,7 +418,6 @@ function ao_display_admin_page() {
             </div>
         </div>
 
-        <!-- NEW: Manual Option Lookup Form -->
         <div class="card" style="margin-top: 1rem;">
             <h2 class="title"><?php _e('Manual Option Lookup', 'autoload-optimizer'); ?></h2>
             <p><?php _e('Enter any option name from the wp_options table to view its content.', 'autoload-optimizer'); ?></p>
@@ -394,9 +427,6 @@ function ao_display_admin_page() {
                 <span class="spinner" style="float: none; vertical-align: middle;"></span>
             </form>
         </div>
-
-        <div class="notice notice-info notice-alt" style="margin-top: 1rem;">
-
 
         <?php if (empty($large_options)) : ?>
             <p><?php _e('No autoloaded options larger than 1KB found.', 'autoload-optimizer'); ?></p>
@@ -411,7 +441,7 @@ function ao_display_admin_page() {
                         <th class="manage-column column-primary column-option-name"><?php _e('Option Name', 'autoload-optimizer'); ?></th>
                         <th class="manage-column column-size"><?php _e('Size', 'autoload-optimizer'); ?></th>
                         <th class="manage-column column-percentage"><?php _e('% of Total', 'autoload-optimizer'); ?></th>
-                        <th class="manage-column column-plugin"><?php _e('Plugin', 'autoload-optimizer'); ?></th>
+                        <th class="manage-column column-plugin"><?php _e('Plugin / Theme', 'autoload-optimizer'); ?></th>
                         <th class="manage-column column-status"><?php _e('Status', 'autoload-optimizer'); ?></th>
                         <th class="manage-column column-action"><?php _e('Action', 'autoload-optimizer'); ?></th>
                     </tr>
@@ -432,11 +462,12 @@ function ao_display_admin_page() {
                                 ); ?>
                             </td>
                         </tr>
-                        <?php foreach ($data['options'] as $option) : ?>
-                            <?php $row_attributes = $option['is_safe'] ? 'data-is-safe="true"' : ''; ?>
-                            <tr class="<?php echo $group_class; ?>" <?php echo $row_attributes; ?>>
+                        <?php foreach ($data['options'] as $option) : 
+                            $is_actionable = $option['is_safe'] || (strpos($option['status']['code'], '_inactive') !== false);
+                        ?>
+                            <tr class="<?php echo $group_class; ?>" <?php echo $option['is_safe'] ? 'data-is-safe="true"' : ''; ?>>
                                 <th class="check-column">
-                                    <?php if ($option['status']['code'] === 'plugin_inactive' || $option['is_safe']) : ?>
+                                    <?php if ($is_actionable) : ?>
                                         <input type="checkbox" class="ao-option-checkbox" value="<?php echo esc_attr($option['name']); ?>">
                                     <?php endif; ?>
                                 </th>
@@ -449,10 +480,10 @@ function ao_display_admin_page() {
                                 <td class="column-plugin"><?php echo esc_html($plugin_name); ?></td>
                                 <td class="column-status"><span class="notice <?php echo esc_attr($option['status']['class']); ?>" style="padding: 2px 8px; display: inline-block; margin: 0;"><?php echo esc_html($option['status']['text']); ?></span></td>
                                 <td class="column-action">
-                                    <?php if ($option['status']['code'] === 'plugin_inactive' || $option['is_safe']) : ?>
+                                    <?php if ($is_actionable) : ?>
                                         <button class="button disable-single" data-option="<?php echo esc_attr($option['name']); ?>"><?php _e('Disable', 'autoload-optimizer'); ?></button>
                                     <?php else : ?>
-                                        <span title="<?php _e('Disabling autoload for core or active plugins is not recommended.', 'autoload-optimizer'); ?>"><?php _e('N/A', 'autoload-optimizer'); ?></span>
+                                        <span title="<?php _e('Disabling autoload for core or active plugins/themes is not recommended.', 'autoload-optimizer'); ?>"><?php _e('N/A', 'autoload-optimizer'); ?></span>
                                     <?php endif; ?>
                                 </td>
                             </tr>
@@ -461,18 +492,16 @@ function ao_display_admin_page() {
                     <?php endforeach; ?>
                 </tbody>
             </table>
-
         <?php endif; ?>
+        
+        <!-- ... (Rest of the file: history table, modal, styles, JS, etc. are unchanged) ... -->
 
-        <!-- // <-- START: NEW READ-ONLY HISTORY TABLE SECTION -->
+        <!-- // <-- START: READ-ONLY HISTORY TABLE SECTION -->
         <?php
-        // Fetch history from both your plugin and Performance Lab
         $ao_history   = get_option('ao_optimizer_history', []);
         $perf_history = get_option('perflab_aao_disabled_options', []);
-
-        // Combine and get unique option names
         $combined_history = array_unique(array_merge(is_array($ao_history) ? $ao_history : [], is_array($perf_history) ? $perf_history : []));
-        sort($combined_history); // Sort alphabetically for consistency
+        sort($combined_history);
 
         if (!empty($combined_history)) :
         ?>
@@ -508,7 +537,6 @@ function ao_display_admin_page() {
                 </table>
             </div>
         <?php endif; ?>
-        <!-- // <-- END: NEW READ-ONLY HISTORY TABLE SECTION -->
 
         <div id="ao-option-modal-overlay"><div id="ao-option-modal-content"><span class="close-modal">&times;</span><h2 id="ao-option-modal-title"></h2><div id="ao-modal-body"></div></div></div>
     </div>
@@ -775,7 +803,6 @@ function ao_admin_page_scripts() {
 // --- Add "Settings" Link to Plugins Page ---
 
 add_filter('plugin_action_links_' . plugin_basename(__FILE__), 'ao_add_settings_link');
-
 function ao_add_settings_link($links) {
     // Build the URL for your plugin's admin page.
     $settings_link = sprintf(
@@ -802,24 +829,17 @@ function ao_add_settings_link($links) {
  *  a snippet), it will not cause a fatal error.
  */
 add_action('plugins_loaded', 'ao_initialize_updater');
-
 function ao_initialize_updater() {
-    // Define the path to the updater's bootstrap file.
     $updater_bootstrap_file = dirname(__FILE__) . '/lib/plugin-update-checker/plugin-update-checker.php';
-
-    // Check if the file exists before trying to load it.
     if (file_exists($updater_bootstrap_file)) {
         require_once $updater_bootstrap_file;
-
-        // The file exists, so we can safely use the library.
         try {
             $myUpdateChecker = YahnisElsts\PluginUpdateChecker\v5\PucFactory::buildUpdateChecker(
-                'https://github.com/milllan/mill_autoload_options_checker_plugin/', // GitHub repo URL
-                __FILE__, // Main plugin file (__FILE__ points to this plugin's main file)
-                'autoload-optimizer' // Plugin slug (use your text-domain for consistency)
+                'https://github.com/milllan/mill_autoload_options_checker_plugin/',
+                __FILE__,
+                'autoload-optimizer'
             );
         } catch (Exception $e) {
-            // Optional: Log the error if the library fails to initialize for some reason.
             // error_log('Plugin Update Checker failed to initialize: ' . $e->getMessage());
         }
     }
