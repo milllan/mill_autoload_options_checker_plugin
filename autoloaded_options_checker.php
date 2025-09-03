@@ -3,7 +3,7 @@
  * Plugin Name:       Autoloaded Options Optimizer
  * Plugin URI:        https://github.com/milllan/mill_autoload_options_checker_plugin
  * Description:       A tool to analyze, view, and manage autoloaded options in the wp_options table, with a remotely managed configuration.
- * Version:           3.5.7
+ * Version:           3.5.8
  * Author:            Milan Petrović
  * Author URI:        https://wpspeedopt.net/
  * License:           GPL v2 or later
@@ -198,16 +198,20 @@ function ao_display_admin_page() {
             }
         }
 
+        // 2. Fallbacks (ONLY run if no mapping was found above)
         if (!$mapping_found) {
-            // 2. Generic Core Transient Fallback (Accurate check)
+            // Check for Generic Core Transients
             if (str_starts_with($option->option_name, '_transient_') || str_starts_with($option->option_name, '_site_transient_')) {
                 $plugin_name = __('WordPress Core (Transient)', 'autoload-optimizer');
                 $status_info = ['code' => 'core', 'text' => __('WordPress Core', 'autoload-optimizer'), 'class' => 'notice-info'];
-            } else {
-                // 3. Guessing Logic based on prefixes (Lowest Priority)
-                if (strpos($option->option_name, 'elementor') === 0) $plugin_name = 'Elementor';
-                elseif (strpos($option->option_name, 'wpseo') === 0) $plugin_name = 'Yoast SEO';
-                elseif (strpos($option->option_name, 'rocket') === 0) $plugin_name = 'WP Rocket';
+            } 
+            // Guessing Logic based on prefixes (Lowest Priority)
+            elseif (strpos($option->option_name, 'elementor') === 0) {
+                 $plugin_name = 'Elementor';
+            } elseif (strpos($option->option_name, 'wpseo') === 0) {
+                 $plugin_name = 'Yoast SEO';
+            } elseif (strpos($option->option_name, 'rocket') === 0) {
+                 $plugin_name = 'WP Rocket';
             }
         }
 
@@ -434,7 +438,7 @@ function ao_display_admin_page() {
 
         if (!empty($combined_history)) :
         ?>
-            <div class="card" style="margin-top: 2rem;">
+            <div class="card" style="margin-top: 2rem;max-width:unset">
                 <h2 class="title"><?php _e('History: Options with Autoload Disabled', 'autoload-optimizer'); ?></h2>
                 <p><?php _e('This is a combined list of options where autoload has been disabled by this plugin or by the Performance Lab plugin.', 'autoload-optimizer'); ?></p>
                 
