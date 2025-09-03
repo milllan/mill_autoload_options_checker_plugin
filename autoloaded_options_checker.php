@@ -3,12 +3,13 @@
  * Plugin Name:       Autoloaded Options Optimizer
  * Plugin URI:        https://github.com/milllan/mill_autoload_options_checker_plugin
  * Description:       A tool to analyze, view, and manage autoloaded options in the wp_options table, with a remotely managed configuration.
- * Version:           3.5.1
- * Author:            Milan
+ * Version:           3.5.2
+ * Author:            Milan Petrović
  * Author URI:        https://wpspeedopt.net/
  * License:           GPL v2 or later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:       autoload-optimizer
+ * Update URI:        https://github.com/milllan/mill_autoload_options_checker_plugin
  */
 
 // Prevent direct access
@@ -568,4 +569,62 @@ function ao_admin_page_scripts() {
     });
     </script>
     <?php
+}
+
+// --- GitHub Plugin Updater ---
+
+add_filter('pre_set_site_transient_update_plugins', 'ao_check_for_github_update');
+
+function ao_check_for_github_update($transient) {
+    // Check if the transient has a checked property, if not, bail.
+    if (empty($transient->checked)) {
+        return $transient;
+    }
+
+    // Define plugin constants
+    $plugin_slug = 'mill_autoload_options_checker_plugin/autoloaded_options_checker.php'; // 'folder-name/plugin-main-file.php'
+    $github_repo = 'milllan/mill_autoload_options_checker_plugin'; // 'owner/repo'
+    $current_version = $transient->checked[$plugin_slug];
+
+    // Check for a cached response
+    $cached_response = get_transient('ao_github_update_response');
+    if (false !== $cached_response) {
+        // If a cached response exists and the version is newer, add it and return
+        if (version_compare($cached_response->tag_name, $current_version, '>')) {
+            $transient->response[$plugin_slug] = (object) [
+                'slug'        => dirname($plugin_slug),
+                'new_version' => $cached_response->tag_name,
+                'url'         => "https://github.com/{$github_repo}",
+                'package'     => $cached_response->zipball_url,
+                'icons'       => ['default' => 'https://raw.githubusercontent.com/milllan/mill_autoload_options_checker_plugin/main/assets/icon-128x128.png']
+            ];
+        }
+        return $transient;
+    }
+
+    // No cache, so let's check GitHub
+    $response = wp_remote_get("https://api.github.com/repos/{$github_repo}/releases/latest");
+
+    if (is_wp_error($response) || 200 !== wp_remote_retrieve_response_code($response)) {
+        // GitHub API request failed, set a short cache to prevent repeated failures
+        set_transient('ao_github_update_response', 'error', HOUR_IN_SECONDS);
+        return $transient;
+    }
+
+    $release_data = json_decode(wp_remote_retrieve_body($response));
+    
+    // Cache the full response for 12 hours
+    set_transient('ao_github_update_response', $release_data, 12 * HOUR_IN_SECONDS);
+
+    if (version_compare($release_data->tag_name, $current_version, '>')) {
+        $transient->response[$plugin_slug] = (object) [
+            'slug'        => dirname($plugin_slug),
+            'new_version' => $release_data->tag_name,
+            'url'         => "https://github.com/{$github_repo}", // The plugin's homepage
+            'package'     => $release_data->zipball_url, // The download URL for the new version
+            'icons'       => ['default' => 'https://raw.githubusercontent.com/milllan/mill_autoload_options_checker_plugin/main/assets/icon-128x128.png'] // Optional icon
+        ];
+    }
+
+    return $transient;
 }
