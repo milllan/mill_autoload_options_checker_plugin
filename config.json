@@ -1,5 +1,5 @@
 {
-    "version": "1.4.0",
+    "version": "1.4.1",
     "plugin_mappings": {
         "betheme": {
             "name": "Betheme",
@@ -26,7 +26,7 @@
             "name": "A2 Optimized",
             "file": "a2-optimized-wp/A2_Optimized_WP.php"
         },
-        "revslider-addons": {
+        "revslider*": {
             "name": "Slider Revolution",
             "file": "revslider/revslider.php"
         },
@@ -470,6 +470,8 @@
         "blc_installation_log",
         "a2opt-benchmarks-frontend",
         "revslider-addons",
+        "revslider_update_info",
+        "revslider-notices",
         "elementskit-lite__banner_data",
         "elementskit-lite__stories_data",
         "addon_library_catalog",

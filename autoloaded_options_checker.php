@@ -3,7 +3,7 @@
  * Plugin Name:       Autoloaded Options Optimizer
  * Plugin URI:        https://github.com/milllan/mill_autoload_options_checker_plugin
  * Description:       A tool to analyze, view, and manage autoloaded options in the wp_options table, with a remotely managed configuration.
- * Version:           3.7.2
+ * Version:           3.7.4
  * Author:            Milan Petrović
  * Author URI:        https://wpspeedopt.net/
  * License:           GPL v2 or later
@@ -272,6 +272,20 @@ function ao_get_analysis_data() {
 
 // --- Display & UI Logic ---
 
+function ao_should_show_recommendation($group_data, $config, $plugin_name) {
+    if (!isset($config['recommendations'][$plugin_name])) {
+        return false;
+    }
+    $has_safe_options = false;
+    foreach ($group_data['options'] as $option) {
+        if ($option['is_safe']) {
+            $has_safe_options = true;
+            break;
+        }
+    }
+    return strpos($group_data['status']['code'], '_inactive') !== false || $has_safe_options;
+}
+
 function ao_display_admin_page() {
     if (!current_user_can('manage_options')) return;
 
@@ -360,18 +374,14 @@ function ao_display_admin_page() {
                     <?php
                     $recommendation_found = false;
                     foreach ($grouped_options as $plugin_name => $rec_data) {
-                        if (isset($config['recommendations'][$plugin_name])) {
-                            $has_safe_options = false;
-                            foreach ($rec_data['options'] as $option) { if ($option['is_safe']) { $has_safe_options = true; break; }}
-                            if (strpos($rec_data['status']['code'], '_inactive') !== false || $has_safe_options) {
-                                $recommendation_found = true;
-                                $rec_text = $config['recommendations'][$plugin_name];
-                                $status_class = $rec_data['status']['class'] ?? 'notice-info';
-                                $styled_rec_text = preg_replace_callback('/<strong>(.*?:)<\/strong>/', function($matches) use ($status_class) {
-                                        return sprintf('<span class="notice %s" style="padding: 2px 8px; display: inline-block; margin: 0; font-weight: bold;">%s</span>', esc_attr($status_class), esc_html($matches[1]));
-                                    }, $rec_text, 1);
-                                echo '<span>' . wp_kses_post($styled_rec_text) . '</span><br><br>';
-                            }
+                        if (ao_should_show_recommendation($rec_data, $config, $plugin_name)) {
+                            $recommendation_found = true;
+                            $rec_text = $config['recommendations'][$plugin_name];
+                            $status_class = $rec_data['status']['class'] ?? 'notice-info';
+                            $styled_rec_text = preg_replace_callback('/<strong>(.*?:)<\/strong>/', function($matches) use ($status_class) {
+                                    return sprintf('<span class="notice %s" style="padding: 2px 8px; display: inline-block; margin: 0; font-weight: bold;">%s</span>', esc_attr($status_class), esc_html($matches[1]));
+                                }, $rec_text, 1);
+                            echo '<span>' . wp_kses_post($styled_rec_text) . '</span><br><br>';
                         }
                     }
                     if (!$recommendation_found) { echo '<em>' . __('No specific recommendations for the large options found on your site.', 'autoload-optimizer') . '</em>'; }
