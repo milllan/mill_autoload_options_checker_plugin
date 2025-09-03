@@ -3,7 +3,7 @@
  * Plugin Name:       Autoloaded Options Optimizer
  * Plugin URI:        https://github.com/milllan/mill_autoload_options_checker_plugin
  * Description:       A tool to analyze, view, and manage autoloaded options in the wp_options table, with a remotely managed configuration.
- * Version:           3.7.0
+ * Version:           3.7.1
  * Author:            Milan Petrović
  * Author URI:        https://wpspeedopt.net/
  * License:           GPL v2 or later
@@ -281,10 +281,14 @@ function ao_display_admin_page() {
         wp_safe_redirect(remove_query_arg(['ao_refresh_config', '_wpnonce']));
         exit;
     }
+    
+    // --- FIX: These two lines have been swapped ---
+    // 1. Run the analysis first, which triggers the config load.
+    $data = ao_get_analysis_data(); 
+    // 2. NOW get the status, which has been updated by the line above.
     $status_message = $config_manager->get_config_status();
+    // --- END FIX ---
 
-    // --- REFACTOR: Call the data processing function ---
-    $data = ao_get_analysis_data();
     extract($data); // Extracts variables like $grouped_options, $large_options_size, etc.
     
     ?>
