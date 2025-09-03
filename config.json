@@ -658,8 +658,8 @@
         "Visual Composer (Hub Cache)": "<strong>Visual Composer:</strong> Options starting with <code>vcv-hubTeaser</code> are cached data from the Visual Composer Hub (their cloud library of elements and templates). This data is only used in the admin editor and is not needed on the live site. It is highly recommended and 100% safe to disable autoload for all of these options."
     },
     "general_recommendations": [
-        "<strong>Safe Options:</strong> Options marked with a green checkmark are generally safe to disable. These are typically cache data, logs, or other non-critical data.",
-        "<strong>WordPress Core:</strong> Core options should not be disabled.",
-        "<strong>Always backup:</strong> Always backup your database before making changes."
+        "<strong>Safe Options:</strong> Options marked with a green checkmark are generally safe to disable autoload for. These are typically cache entries, logs, or other non-critical data.",
+        "<strong>Focus on Impact:</strong> Don't obsess over every small option. Prioritize the largest ones (marked with 🟠 and 🔴) as they offer the most significant performance gains. The goal is a healthy total size, not zero large options.",
+        "<strong>Always Backup:</strong> Always have a recent database backup before making changes."
     ]
 }

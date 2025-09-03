@@ -3,7 +3,7 @@
  * Plugin Name:       Autoloaded Options Optimizer
  * Plugin URI:        https://github.com/milllan/mill_autoload_options_checker_plugin
  * Description:       A tool to analyze, view, and manage autoloaded options in the wp_options table, with a remotely managed configuration.
- * Version:           3.9.0
+ * Version:           4.0.0
  * Author:            Milan Petrović
  * Author URI:        https://wpspeedopt.net/
  * License:           GPL v2 or later
@@ -34,7 +34,6 @@ add_action('admin_init', 'ao_register_ajax_handlers');
 function ao_register_ajax_handlers() {
     add_action('wp_ajax_ao_disable_autoload_options', 'ao_ajax_disable_autoload_options');
     add_action('wp_ajax_ao_get_option_value', 'ao_ajax_get_option_value');
-    // --- NEW: Register the Find Source AJAX handler ---
     add_action('wp_ajax_ao_find_option_in_files', 'ao_ajax_find_option_in_files');
 }
 
@@ -270,7 +269,6 @@ function ao_get_analysis_data() {
     ];
 }
 
-
 // --- Display & UI Logic ---
 
 function ao_should_show_recommendation($group_data, $config, $plugin_name) {
@@ -287,6 +285,37 @@ function ao_should_show_recommendation($group_data, $config, $plugin_name) {
     return strpos($group_data['status']['code'], '_inactive') !== false || $has_safe_options;
 }
 
+/**
+ * --- NEW: Generates general recommendations based on autoloaded option sizes. ---
+ *
+ * @param int $large_options_size The total size of options > 1KB.
+ * @return string HTML formatted recommendations.
+ */
+function ao_get_general_recommendations_html($large_options_size) {
+    $total_size_kb = $large_options_size / 1024;
+    $html = '';
+
+    // Recommendation about Over-Optimization
+    $html .= '<p><strong>' . __('A Note on "Over-Optimizing":', 'autoload-optimizer') . '</strong> ';
+    $html .= __('The goal is not to eliminate all large options, but to disable autoload for data that isn\'t needed on every page load (like admin notices, logs, or temporary caches). Options smaller than 1KB have a negligible impact and are not shown.', 'autoload-optimizer') . '</p>';
+
+    // Tiered recommendations based on total size of large options
+    $html .= '<p><strong>' . __('General Health:', 'autoload-optimizer') . '</strong> ';
+    if ($total_size_kb < 800) {
+        $html .= '<span class="notice notice-success" style="padding: 2px 8px; display: inline-block; margin: 0;">' . __('Good', 'autoload-optimizer') . '</span> ';
+        $html .= __('Your total autoload size is in a healthy range. Review the table for any clear outliers from inactive plugins or known "safe" options.', 'autoload-optimizer');
+    } elseif ($total_size_kb < 2048) {
+        $html .= '<span class="notice notice-warning" style="padding: 2px 8px; display: inline-block; margin: 0;">' . __('Needs Attention', 'autoload-optimizer') . '</span> ';
+        $html .= __('Your total autoload size is high. Prioritize options larger than 10KB and those from inactive plugins to see the most improvement.', 'autoload-optimizer');
+    } else {
+        $html .= '<span class="notice notice-error" style="padding: 2px 8px; display: inline-block; margin: 0;">' . __('Critical', 'autoload-optimizer') . '</span> ';
+        $html .= __('Your total autoload size is very large and likely impacting performance. Focus on the largest options first, especially any over 100KB, as they are often the result of a plugin bug or misconfiguration.', 'autoload-optimizer');
+    }
+    $html .= '</p>';
+
+    return $html;
+}
+
 function ao_display_admin_page() {
     if (!current_user_can('manage_options')) return;
 
@@ -297,12 +326,10 @@ function ao_display_admin_page() {
         exit;
     }
     
-    // 1. Run the analysis first, which triggers the config load.
     $data = ao_get_analysis_data(); 
-    // 2. NOW get the status, which has been updated by the line above.
     $status_message = $config_manager->get_config_status();
 
-    extract($data); // Extracts variables like $grouped_options, $large_options_size, etc.
+    extract($data);
     
     ?>
     <div class="wrap" id="ao-plugin-wrapper" 
@@ -369,7 +396,14 @@ function ao_display_admin_page() {
             </div>
             <div class="card" style="flex: 1.5;">
                 <h2 class="title"><?php _e('Recommendations', 'autoload-optimizer'); ?></h2>
-                <p>
+                <div>
+                    <?php
+                    // --- UPDATED: Display general size-based recommendations ---
+                    echo ao_get_general_recommendations_html($large_options_size);
+                    ?>
+                </div>
+                <hr style="margin: 1rem 0;">
+                <div>
                     <?php
                     $recommendation_found = false;
                     foreach ($grouped_options as $plugin_name => $rec_data) {
@@ -380,12 +414,14 @@ function ao_display_admin_page() {
                             $styled_rec_text = preg_replace_callback('/<strong>(.*?:)<\/strong>/', function($matches) use ($status_class) {
                                     return sprintf('<span class="notice %s" style="padding: 2px 8px; display: inline-block; margin: 0; font-weight: bold;">%s</span>', esc_attr($status_class), $matches[1]);
                                 }, $rec_text, 1);
-                            echo '<span>' . wp_kses_post($styled_rec_text) . '</span><br><br>';
+                            echo '<div style="margin-bottom: 0.75rem;">' . wp_kses_post($styled_rec_text) . '</div>';
                         }
                     }
-                    if (!$recommendation_found) { echo '<em>' . __('No specific recommendations for the large options found on your site.', 'autoload-optimizer') . '</em>'; }
+                    if (!$recommendation_found) { 
+                        echo '<em>' . __('No plugin-specific recommendations for the large options found on your site.', 'autoload-optimizer') . '</em>'; 
+                    }
                     ?>
-                </p>
+                </div>
             </div>
         </div>
 
@@ -445,7 +481,7 @@ function ao_display_admin_page() {
                                 <td class="column-action">
                                     <?php if ($is_actionable) : ?>
                                         <button class="button disable-single" data-option="<?php echo esc_attr($option['name']); ?>"><?php _e('Disable Autoload', 'autoload-optimizer'); ?></button>
-                                    <?php elseif ($is_unknown) : // --- NEW: Add Find Source button for Unknown options --- ?>
+                                    <?php elseif ($is_unknown) : ?>
                                         <button class="button find-in-files" data-option="<?php echo esc_attr($option['name']); ?>"><?php _e('Find Source', 'autoload-optimizer'); ?></button>
                                         <span class="spinner" style="float: none; vertical-align: middle;"></span>
                                     <?php else : ?>
@@ -499,7 +535,7 @@ function ao_display_admin_page() {
 function ao_admin_page_styles() {
     ?>
     <style>
-        .wp-list-table .column-option-name { width: 35%; } .wp-list-table .column-size, .wp-list-table .column-percentage { width: 8%; } .wp-list-table .column-plugin { width: 15%; } .wp-list-table .column-status { width: 12%; } .wp-list-table .column-action { width: 10%; } .wp-list-table tbody tr.group-color-a { background-color: #ffffff; } .wp-list-table tbody tr.group-color-b { background-color: #f6f7f7; } .wp-list-table tbody tr:hover { background-color: #f0f0f1 !important; } .wp-list-table tbody tr.ao-row-processed { opacity: 0.6; pointer-events: none; } .plugin-header th, .plugin-header td { font-weight: bold; background-color: #f0f0f1; border-bottom: 1px solid #ddd; } .view-option-content { cursor: pointer; } #ao-option-modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.7); z-index: 10001; justify-content: center; align-items: center; } #ao-option-modal-content { background: #fff; padding: 20px; border-radius: 4px; width: 80%; max-width: 900px; max-height: 80vh; overflow-y: auto; position: relative; } .close-modal { position: absolute; top: 5px; right: 15px; font-size: 28px; font-weight: bold; cursor: pointer; color: #555; } #ao-modal-body pre { background: #f1f1f1; padding: 15px; border: 1px solid #ddd; white-space: pre-wrap; word-wrap: break-word; }
+        .wp-list-table .column-option-name { width: 27%; } .wp-list-table .column-size, .wp-list-table .column-percentage { width: 8%; } .wp-list-table .column-plugin { width: 23%; } .wp-list-table .column-status { width: 12%; } .wp-list-table .column-action { width: 10%; } .wp-list-table tbody tr.group-color-a { background-color: #ffffff; } .wp-list-table tbody tr.group-color-b { background-color: #f6f7f7; } .wp-list-table tbody tr:hover { background-color: #f0f0f1 !important; } .wp-list-table tbody tr.ao-row-processed { opacity: 0.6; pointer-events: none; } .plugin-header th, .plugin-header td { font-weight: bold; background-color: #f0f0f1; border-bottom: 1px solid #ddd; } .view-option-content { cursor: pointer; } #ao-option-modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.7); z-index: 10001; justify-content: center; align-items: center; } #ao-option-modal-content { background: #fff; padding: 20px; border-radius: 4px; width: 80%; max-width: 900px; max-height: 80vh; overflow-y: auto; position: relative; } .close-modal { position: absolute; top: 5px; right: 15px; font-size: 28px; font-weight: bold; cursor: pointer; color: #555; } #ao-modal-body pre { background: #f1f1f1; padding: 15px; border: 1px solid #ddd; white-space: pre-wrap; word-wrap: break-word; }
     </style>
     <?php
 }
@@ -572,7 +608,6 @@ function ao_ajax_disable_autoload_options() {
     wp_send_json_success(['message' => $message, 'disabled_options' => $processed_options]);
 }
 
-// --- NEW: AJAX handler for finding option source in files ---
 function ao_ajax_find_option_in_files() {
     check_ajax_referer('ao_find_source_nonce', 'nonce');
     if (!current_user_can('manage_options')) {
@@ -630,7 +665,6 @@ function ao_ajax_find_option_in_files() {
     wp_send_json_success(['html' => $html]);
 }
 
-
 add_action('admin_footer', 'ao_admin_page_scripts');
 function ao_admin_page_scripts() {
     $screen = get_current_screen();
@@ -651,7 +685,7 @@ function ao_admin_page_scripts() {
         const ajaxurl = wrapper.dataset.ajaxUrl;
         const disableNonce = wrapper.dataset.disableNonce;
         const viewNonce = wrapper.dataset.viewNonce;
-        const findNonce = wrapper.dataset.findNonce; // --- NEW: Get find source nonce
+        const findNonce = wrapper.dataset.findNonce;
 
         // --- Core Functions ---
         
@@ -694,7 +728,6 @@ function ao_admin_page_scripts() {
                         data.data.disabled_options.forEach(optionName => {
                             const row = document.querySelector(`tr[data-option-name="${optionName}"]`);
                             if (row) {
-                                // --- CHANGE: Simply remove the row entirely ---
                                 row.remove();
                             }
                         });
@@ -741,7 +774,6 @@ function ao_admin_page_scripts() {
                 });
         }
 
-        // --- NEW: Function to find the source of an option ---
         function findOptionSource(optionName, spinner) {
             showModal('<?php _e('Searching for source of:', 'autoload-optimizer'); ?> ' + optionName, '<?php _e('Searching plugin and theme files...', 'autoload-optimizer'); ?>');
             if (spinner) spinner.classList.add('is-active');
@@ -777,7 +809,6 @@ function ao_admin_page_scripts() {
                     e.preventDefault();
                     disableOptions([e.target.dataset.option], e.target);
                 }
-                // --- NEW: Listener for the Find Source button ---
                 if (e.target.classList.contains('find-in-files')) {
                     e.preventDefault();
                     const optionName = e.target.dataset.option;
@@ -787,7 +818,6 @@ function ao_admin_page_scripts() {
             });
         }
         
-        // ... (Other event listeners are unchanged)
         const manualLookupForm = document.getElementById('ao-manual-lookup-form');
         if (manualLookupForm) {
             manualLookupForm.addEventListener('submit', function(e) {
@@ -798,8 +828,6 @@ function ao_admin_page_scripts() {
                 if (optionName) viewOptionContent(optionName, spinner);
             });
         }
-        
-        // Listener for the Bulk Disable button
         const disableSelectedBtn = document.getElementById('ao-disable-selected');
         if (disableSelectedBtn) {
             disableSelectedBtn.addEventListener('click', e => {
@@ -826,7 +854,6 @@ function ao_admin_page_scripts() {
                 disableOptions(safeOptions, e.target);
             });
         }
-        
         if(mainCheckbox) {
             mainCheckbox.addEventListener('change', () => {
                 itemCheckboxes.forEach(cb => { 
@@ -859,17 +886,9 @@ function ao_add_settings_link($links) {
 
 // --- GitHub Plugin Updater ---
 
-/**
- * --------------------------------------------------------------------------
- *  Initialize GitHub Updater (Safely)
- * --------------------------------------------------------------------------
- *
- *  This code safely checks for and initializes the Plugin Update Checker
- *  library. If the library is not found (e.g., when the code is run from
- *  a snippet), it will not cause a fatal error.
- */
 add_action('plugins_loaded', 'ao_initialize_updater');
 function ao_initialize_updater() {
+    // ... (This function is unchanged)
     $updater_bootstrap_file = dirname(__FILE__) . '/lib/plugin-update-checker/plugin-update-checker.php';
     if (file_exists($updater_bootstrap_file)) {
         require_once $updater_bootstrap_file;
