@@ -3,7 +3,7 @@
  * Plugin Name:       Autoloaded Options Optimizer
  * Plugin URI:        https://github.com/milllan/mill_autoload_options_checker_plugin
  * Description:       A tool to analyze, view, and manage autoloaded options in the wp_options table, with a remotely managed configuration.
- * Version:           3.6.1
+ * Version:           3.6.2
  * Author:            Milan Petrović
  * Author URI:        https://wpspeedopt.net/
  * License:           GPL v2 or later
@@ -82,31 +82,37 @@ final class AO_Remote_Config_Manager {
         return $config;
     }
 
+    /**
+     * Fetches the remote configuration with a local fallback.
+     * Logic has been simplified for better readability.
+     */
     private function fetch_remote_config() {
+        // 1. Attempt to fetch from remote
         $remote_url = apply_filters('ao_remote_config_url', self::DEFAULT_REMOTE_URL);
         $response = wp_remote_get($remote_url, ['timeout' => 10, 'headers' => ['Accept' => 'application/json']]);
-
-        if (is_wp_error($response) || 200 !== wp_remote_retrieve_response_code($response)) {
-            $local_path = plugin_dir_path(__FILE__) . 'config.json';
-            if (file_exists($local_path)) {
-                $local_content = file_get_contents($local_path);
-                $config = json_decode($local_content, true);
-                if (json_last_error() === JSON_ERROR_NONE && $this->is_config_valid($config)) {
-                    $this->config_status = __('Using Local Fallback Config', 'autoload-optimizer');
-                    return $config;
-                }
+    
+        if (!is_wp_error($response) && 200 === wp_remote_retrieve_response_code($response)) {
+            $body = wp_remote_retrieve_body($response);
+            $config = json_decode($body, true);
+            if (json_last_error() === JSON_ERROR_NONE && $this->is_config_valid($config)) {
+                // Success! Return remote config.
+                return $config;
             }
-            return false;
         }
-
-        $body = wp_remote_retrieve_body($response);
-        $config = json_decode($body, true);
-
-        if (json_last_error() !== JSON_ERROR_NONE || !$this->is_config_valid($config)) {
-            return false;
+    
+        // 2. If remote fails for any reason, try the local fallback
+        $local_path = plugin_dir_path(__FILE__) . 'config.json';
+        if (file_exists($local_path)) {
+            $local_content = file_get_contents($local_path);
+            $config = json_decode($local_content, true);
+            if (json_last_error() === JSON_ERROR_NONE && $this->is_config_valid($config)) {
+                $this->config_status = __('Using Local Fallback Config', 'autoload-optimizer');
+                return $config;
+            }
         }
-        
-        return $config;
+    
+        // 3. If all else fails
+        return false;
     }
 
     private function is_config_valid($config) {
@@ -176,17 +182,6 @@ function ao_display_admin_page() {
                 if (fnmatch($pattern, $option->option_name)) { $is_safe = true; break; }
             }
         }
-        
-        // --- Option Identification Logic (Priority Order) ---
-        $plugin_name = __('Unknown', 'autoload-optimizer');
-        $status_info = ['code' => 'unknown', 'text' => __('Unknown', 'autoload-optimizer'), 'class' => ''];
-        $mapping_found = false;
-        
-        $active_theme = wp_get_theme();
-        $theme_slugs = [$active_theme->get_stylesheet()];
-        if ($active_theme->parent()) {
-            $theme_slugs[] = $active_theme->get_template();
-        }
 
         // 1. Precise & Pattern Match from config.json (Highest Priority)
         $plugin_name = __('Unknown', 'autoload-optimizer');
@@ -198,6 +193,7 @@ function ao_display_admin_page() {
         if ($active_theme->parent()) {
             $theme_slugs[] = $active_theme->get_template();
         }
+        $theme_slugs = array_map('strtolower', $theme_slugs);
 
         // 1. Check config.json mappings first (Highest Priority)
         foreach ($config['plugin_mappings'] as $pattern => $mapping) {
@@ -226,26 +222,34 @@ function ao_display_admin_page() {
 
         // 2. Fallbacks (ONLY run if no mapping was found in the config)
         if (!$mapping_found) {
-            if (str_starts_with($option->option_name, '_transient_') || str_starts_with($option->option_name, '_site_transient_')) {
+            // Check for core transients (PHP 7 compatible)
+            if (substr($option->option_name, 0, 10) === '_transient_' || substr($option->option_name, 0, 16) === '_site_transient_') {
                 $plugin_name = __('WordPress Core (Transient)', 'autoload-optimizer');
                 $status_info = ['code' => 'core', 'text' => __('WordPress Core', 'autoload-optimizer'), 'class' => 'notice-info'];
-            } 
-            // NOTE: Add status checks for guessed plugins
-            elseif (str_starts_with($option->option_name, 'elementor')) {
-                 $plugin_name = 'Elementor';
-                 $status_info = in_array('elementor/elementor.php', $active_plugin_paths) 
-                    ? ['code' => 'plugin_active', 'text' => __('Active Plugin', 'autoload-optimizer'), 'class' => 'notice-success']
-                    : ['code' => 'plugin_inactive', 'text' => __('Inactive Plugin', 'autoload-optimizer'), 'class' => 'notice-error'];
-            } elseif (str_starts_with($option->option_name, 'wpseo')) {
-                 $plugin_name = 'Yoast SEO';
-                 $status_info = in_array('wordpress-seo/wp-seo.php', $active_plugin_paths)
-                    ? ['code' => 'plugin_active', 'text' => __('Active Plugin', 'autoload-optimizer'), 'class' => 'notice-success']
-                    : ['code' => 'plugin_inactive', 'text' => __('Inactive Plugin', 'autoload-optimizer'), 'class' => 'notice-error'];
-            } elseif (str_starts_with($option->option_name, 'rocket')) {
-                 $plugin_name = 'WP Rocket';
-                 $status_info = in_array('wp-rocket/wp-rocket.php', $active_plugin_paths)
-                    ? ['code' => 'plugin_active', 'text' => __('Active Plugin', 'autoload-optimizer'), 'class' => 'notice-success']
-                    : ['code' => 'plugin_inactive', 'text' => __('Inactive Plugin', 'autoload-optimizer'), 'class' => 'notice-error'];
+            } else {
+                // --- REFACTORED: Guessing Block ---
+                $known_plugin_prefixes = [
+                    'elementor' => ['name' => 'Elementor', 'file' => 'elementor/elementor.php'],
+                    'wpseo'     => ['name' => 'Yoast SEO', 'file' => 'wordpress-seo/wp-seo.php'],
+                    'rocket'    => ['name' => 'WP Rocket', 'file' => 'wp-rocket/wp-rocket.php'],
+                ];
+    
+                foreach ($known_plugin_prefixes as $prefix => $data) {
+                    if (substr($option->option_name, 0, strlen($prefix)) === $prefix) {
+                        $plugin_name = $data['name'];
+                        $is_active = in_array($data['file'], $active_plugin_paths);
+                        $status_info = $is_active
+                            ? ['code' => 'plugin_active', 'text' => __('Active Plugin', 'autoload-optimizer'), 'class' => 'notice-success']
+                            : ['code' => 'plugin_inactive', 'text' => __('Inactive Plugin', 'autoload-optimizer'), 'class' => 'notice-error'];
+                        
+                        // FIXED: Increment count for inactive guessed plugins
+                        if (!$is_active) {
+                            $inactive_plugin_option_count++;
+                        }
+                        break; // Found our guess, exit the loop
+                    }
+                }
+                // --- END REFACTORED: Guessing Block ---
             }
         }
 
