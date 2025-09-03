@@ -3,7 +3,7 @@
  * Plugin Name:       Autoloaded Options Optimizer
  * Plugin URI:        https://github.com/milllan/mill_autoload_options_checker_plugin
  * Description:       A tool to analyze, view, and manage autoloaded options in the wp_options table, with a remotely managed configuration.
- * Version:           3.7.5
+ * Version:           3.8.0
  * Author:            Milan Petrović
  * Author URI:        https://wpspeedopt.net/
  * License:           GPL v2 or later
@@ -35,6 +35,9 @@ function ao_register_ajax_handlers() {
     add_action('wp_ajax_ao_disable_autoload_options', 'ao_ajax_disable_autoload_options');
     add_action('wp_ajax_ao_get_option_value', 'ao_ajax_get_option_value');
 }
+
+// --- REFACTOR: Hook for dedicated admin styles ---
+add_action('admin_head-tools_page_autoloaded-options', 'ao_admin_page_styles');
 
 /**
  * Manages the remote configuration.
@@ -135,7 +138,6 @@ function ao_get_config() {
     return AO_Remote_Config_Manager::get_instance()->get_config();
 }
 
-// --- REFACTOR: Data processing is now in its own function ---
 /**
  * Gathers and processes all data for the analysis page.
  *
@@ -296,17 +298,18 @@ function ao_display_admin_page() {
         exit;
     }
     
-    // --- FIX: These two lines have been swapped ---
     // 1. Run the analysis first, which triggers the config load.
     $data = ao_get_analysis_data(); 
     // 2. NOW get the status, which has been updated by the line above.
     $status_message = $config_manager->get_config_status();
-    // --- END FIX ---
 
     extract($data); // Extracts variables like $grouped_options, $large_options_size, etc.
     
     ?>
-    <div class="wrap">
+    <div class="wrap" id="ao-plugin-wrapper" 
+        data-ajax-url="<?php echo esc_url(admin_url('admin-ajax.php')); ?>"
+        data-disable-nonce="<?php echo esc_attr(wp_create_nonce('ao_disable_autoload_nonce')); ?>"
+        data-view-nonce="<?php echo esc_attr(wp_create_nonce('ao_view_option_nonce')); ?>">
         <h1><?php _e('Autoloaded Options Optimizer', 'autoload-optimizer'); ?></h1>
 
         <div class="notice notice-warning notice-alt" style="margin-top: 1rem;">
@@ -490,11 +493,18 @@ function ao_display_admin_page() {
 
         <div id="ao-option-modal-overlay"><div id="ao-option-modal-content"><span class="close-modal">&times;</span><h2 id="ao-option-modal-title"></h2><div id="ao-modal-body"></div></div></div>
     </div>
+    <?php
+}
+
+// --- REFACTOR: Styles moved to their own function and hook ---
+function ao_admin_page_styles() {
+    ?>
     <style>
         .wp-list-table .column-option-name { width: 35%; } .wp-list-table .column-size, .wp-list-table .column-percentage { width: 8%; } .wp-list-table .column-plugin { width: 15%; } .wp-list-table .column-status { width: 12%; } .wp-list-table .column-action { width: 10%; } .wp-list-table tbody tr.group-color-a { background-color: #ffffff; } .wp-list-table tbody tr.group-color-b { background-color: #f6f7f7; } .wp-list-table tbody tr:hover { background-color: #f0f0f1 !important; } .wp-list-table tbody tr.ao-row-processed { opacity: 0.6; pointer-events: none; } .plugin-header th, .plugin-header td { font-weight: bold; background-color: #f0f0f1; border-bottom: 1px solid #ddd; } .view-option-content { cursor: pointer; } #ao-option-modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.7); z-index: 10001; justify-content: center; align-items: center; } #ao-option-modal-content { background: #fff; padding: 20px; border-radius: 4px; width: 80%; max-width: 900px; max-height: 80vh; overflow-y: auto; position: relative; } .close-modal { position: absolute; top: 5px; right: 15px; font-size: 28px; font-weight: bold; cursor: pointer; color: #555; } #ao-modal-body pre { background: #f1f1f1; padding: 15px; border: 1px solid #ddd; white-space: pre-wrap; word-wrap: break-word; }
     </style>
     <?php
 }
+
 
 // --- AJAX Handlers & JavaScript ---
 
@@ -511,7 +521,6 @@ function ao_ajax_disable_autoload_options() {
     check_ajax_referer('ao_disable_autoload_nonce', 'nonce');
     if (!current_user_can('manage_options')) wp_send_json_error(['message' => __('Permission denied.', 'autoload-optimizer')]);
 
-    // --- REFACTOR: Add wp_unslash for robust input handling ---
     $options_to_disable = isset($_POST['option_names']) ? wp_unslash((array) $_POST['option_names']) : [];
     if (empty($options_to_disable)) wp_send_json_error(['message' => __('No options were selected.', 'autoload-optimizer')]);
 
@@ -527,7 +536,7 @@ function ao_ajax_disable_autoload_options() {
     
     global $wpdb;
     $success_count = $failure_count = $already_done = 0;
-    $processed_options = []; // --- REFACTOR: For JS no-reload UX ---
+    $processed_options = [];
 
     foreach ($options_to_disable as $option_name) {
         $sane_option_name = sanitize_text_field($option_name);
@@ -561,7 +570,6 @@ function ao_ajax_disable_autoload_options() {
     $message = sprintf(__('Processed %d options: %d disabled, %d failed, %d already off.', 'autoload-optimizer'), count($options_to_disable), $success_count, $failure_count, $already_done);
     $message .= ' ' . sprintf(__('Log saved to %s.', 'autoload-optimizer'), '<code>/wp-content/uploads/autoload-options-debug.log</code>');
     
-    // --- REFACTOR: Send back the list of processed options for the UI update ---
     wp_send_json_success(['message' => $message, 'disabled_options' => $processed_options]);
 }
 
@@ -573,14 +581,19 @@ function ao_admin_page_scripts() {
     <script type="text/javascript">
     document.addEventListener('DOMContentLoaded', function() {
         // --- Element Selectors ---
+        const wrapper = document.getElementById('ao-plugin-wrapper');
         const modalOverlay = document.getElementById('ao-option-modal-overlay');
         const modalContent = document.getElementById('ao-option-modal-content');
         const modalTitle = document.getElementById('ao-option-modal-title');
         const modalBody = document.getElementById('ao-modal-body');
         const resultsContainer = document.getElementById('ao-results-container');
-        const ajaxurl = '<?php echo admin_url('admin-ajax.php'); ?>';
         const mainCheckbox = document.querySelector('.wp-list-table #cb input[type="checkbox"]');
         const itemCheckboxes = document.querySelectorAll('.wp-list-table .ao-option-checkbox');
+
+        // --- REFACTOR: Centralized data from PHP ---
+        const ajaxurl = wrapper.dataset.ajaxUrl;
+        const disableNonce = wrapper.dataset.disableNonce;
+        const viewNonce = wrapper.dataset.viewNonce;
 
         // --- Core Functions ---
         
@@ -606,7 +619,6 @@ function ao_admin_page_scripts() {
             });
         }
 
-        // --- REFACTOR: Updated function to REMOVE rows on success ---
         function disableOptions(optionNames, button) {
             if (!confirm(`<?php _e('Are you sure you want to disable autoload for the selected option(s)?', 'autoload-optimizer'); ?>`)) return;
 
@@ -616,7 +628,7 @@ function ao_admin_page_scripts() {
 
             const formData = new FormData();
             formData.append('action', 'ao_disable_autoload_options');
-            formData.append('nonce', '<?php echo wp_create_nonce('ao_disable_autoload_nonce'); ?>');
+            formData.append('nonce', disableNonce); // --- REFACTOR: Use JS variable
             optionNames.forEach(name => formData.append('option_names[]', name));
 
             fetch(ajaxurl, { method: 'POST', body: formData })
@@ -632,11 +644,7 @@ function ao_admin_page_scripts() {
                                 row.remove();
                             }
                         });
-
-                        // --- NEW: Clean up any group headers that are now empty ---
                         cleanupEmptyGroups();
-                        
-                        // After bulk actions, uncheck the main checkbox
                         if (mainCheckbox) mainCheckbox.checked = false;
                     }
                 })
@@ -663,7 +671,7 @@ function ao_admin_page_scripts() {
 
             const formData = new FormData();
             formData.append('action', 'ao_get_option_value');
-            formData.append('nonce', '<?php echo wp_create_nonce('ao_view_option_nonce'); ?>');
+            formData.append('nonce', viewNonce); // --- REFACTOR: Use JS variable
             formData.append('option_name', optionName);
             
             fetch(ajaxurl, { method: 'POST', body: formData })
@@ -757,16 +765,12 @@ function ao_admin_page_scripts() {
 
 add_filter('plugin_action_links_' . plugin_basename(__FILE__), 'ao_add_settings_link');
 function ao_add_settings_link($links) {
-    // Build the URL for your plugin's admin page.
     $settings_link = sprintf(
         '<a href="%s">%s</a>',
         esc_url(admin_url('tools.php?page=autoloaded-options')),
         __('Settings', 'autoload-optimizer')
     );
-
-    // Add the "Settings" link to the beginning of the links array.
     array_unshift($links, $settings_link);
-
     return $links;
 }
 
