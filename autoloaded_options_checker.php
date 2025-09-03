@@ -3,7 +3,7 @@
  * Plugin Name:       Autoloaded Options Optimizer
  * Plugin URI:        https://github.com/milllan/mill_autoload_options_checker_plugin
  * Description:       A tool to analyze, view, and manage autoloaded options in the wp_options table, with a remotely managed configuration.
- * Version:           3.6.4
+ * Version:           3.6.5
  * Author:            Milan Petrović
  * Author URI:        https://wpspeedopt.net/
  * License:           GPL v2 or later
@@ -384,16 +384,6 @@ function ao_display_admin_page() {
             </div>
         </div>
 
-        <div class="card" style="margin-top: 1rem;">
-            <h2 class="title"><?php _e('Manual Option Lookup', 'autoload-optimizer'); ?></h2>
-            <p><?php _e('Enter any option name from the wp_options table to view its content.', 'autoload-optimizer'); ?></p>
-            <form id="ao-manual-lookup-form" style="display: flex; gap: 10px; align-items: center;">
-                <input type="text" id="ao-manual-option-name" name="option_name" placeholder="<?php _e('e.g., active_plugins', 'autoload-optimizer'); ?>" style="width: 300px;" required>
-                <button type="submit" class="button button-secondary"><?php _e('View Option', 'autoload-optimizer'); ?></button>
-                <span class="spinner" style="float: none; vertical-align: middle;"></span>
-            </form>
-        </div>
-
         <?php if (empty($large_options)) : ?>
             <p><?php _e('No autoloaded options larger than 1KB found.', 'autoload-optimizer'); ?></p>
         <?php else : ?>
@@ -459,6 +449,16 @@ function ao_display_admin_page() {
                 </tbody>
             </table>
         <?php endif; ?>
+
+        <div class="card" style="margin-top: 1rem;">
+            <h2 class="title"><?php _e('Manual Option Lookup', 'autoload-optimizer'); ?></h2>
+            <p><?php _e('Enter any option name from the wp_options table to view its content.', 'autoload-optimizer'); ?></p>
+            <form id="ao-manual-lookup-form" style="display: flex; gap: 10px; align-items: center;">
+                <input type="text" id="ao-manual-option-name" name="option_name" placeholder="<?php _e('e.g., active_plugins', 'autoload-optimizer'); ?>" style="width: 300px;" required>
+                <button type="submit" class="button button-secondary"><?php _e('View Option', 'autoload-optimizer'); ?></button>
+                <span class="spinner" style="float: none; vertical-align: middle;"></span>
+            </form>
+        </div>
         
         <!-- // <-- START: READ-ONLY HISTORY TABLE SECTION -->
         <?php
