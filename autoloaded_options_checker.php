@@ -3,7 +3,7 @@
  * Plugin Name:       Autoloaded Options Optimizer
  * Plugin URI:        https://github.com/milllan/mill_autoload_options_checker_plugin
  * Description:       A tool to analyze, view, and manage autoloaded options in the wp_options table, with a remotely managed configuration.
- * Version:           3.7.4
+ * Version:           3.7.5
  * Author:            Milan Petrović
  * Author URI:        https://wpspeedopt.net/
  * License:           GPL v2 or later
@@ -379,7 +379,7 @@ function ao_display_admin_page() {
                             $rec_text = $config['recommendations'][$plugin_name];
                             $status_class = $rec_data['status']['class'] ?? 'notice-info';
                             $styled_rec_text = preg_replace_callback('/<strong>(.*?:)<\/strong>/', function($matches) use ($status_class) {
-                                    return sprintf('<span class="notice %s" style="padding: 2px 8px; display: inline-block; margin: 0; font-weight: bold;">%s</span>', esc_attr($status_class), esc_html($matches[1]));
+                                    return sprintf('<span class="notice %s" style="padding: 2px 8px; display: inline-block; margin: 0; font-weight: bold;">%s</span>', esc_attr($status_class), $matches[1]);
                                 }, $rec_text, 1);
                             echo '<span>' . wp_kses_post($styled_rec_text) . '</span><br><br>';
                         }
