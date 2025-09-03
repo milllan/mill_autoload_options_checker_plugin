@@ -3,7 +3,7 @@
  * Plugin Name:       Autoloaded Options Optimizer
  * Plugin URI:        https://github.com/milllan/mill_autoload_options_checker_plugin
  * Description:       A tool to analyze, view, and manage autoloaded options in the wp_options table, with a remotely managed configuration.
- * Version:           3.7.0
+ * Version:           3.6.4
  * Author:            Milan Petrović
  * Author URI:        https://wpspeedopt.net/
  * License:           GPL v2 or later
@@ -21,15 +21,13 @@ if (!defined('ABSPATH')) {
 
 add_action('admin_menu', 'ao_add_admin_page');
 function ao_add_admin_page() {
-    $hook = add_management_page(
+    add_management_page(
         __('Autoloaded Options Optimizer', 'autoload-optimizer'),
         __('Autoloaded Options Optimizer', 'autoload-optimizer'),
         'manage_options',
         'autoloaded-options',
         'ao_display_admin_page'
     );
-    // Hook the new update check to run only when our page is loading.
-    add_action('load-' . $hook, 'ao_check_for_config_updates');
 }
 
 add_action('admin_init', 'ao_register_ajax_handlers');
@@ -39,51 +37,13 @@ function ao_register_ajax_handlers() {
 }
 
 /**
- * --- NEW: Smart Config Update Checker ---
- * This function performs a lightweight check for a new config version.
- */
-function ao_check_for_config_updates() {
-    // Check if we've recently checked for an update.
-    if (get_transient('_ao_config_version_check')) {
-        return;
-    }
-
-    // Set a short-lived transient to prevent repeated checks on rapid reloads.
-    set_transient('_ao_config_version_check', true, HOUR_IN_SECONDS);
-
-    // Get the currently cached config to check its version.
-    $cached_config = get_transient('ao_remote_config_cache');
-    $current_version = isset($cached_config['version']) ? $cached_config['version'] : '0.0.0';
-
-    // Fetch the remote version file.
-    $version_url = 'https://raw.githubusercontent.com/milllan/mill_autoload_options_checker_plugin/main/version.json';
-    $response = wp_remote_get($version_url, ['timeout' => 5]);
-
-    if (is_wp_error($response) || 200 !== wp_remote_retrieve_response_code($response)) {
-        return; // Could not fetch version, try again later.
-    }
-
-    $body = wp_remote_retrieve_body($response);
-    $remote_data = json_decode($body, true);
-
-    if (isset($remote_data['version'])) {
-        $remote_version = $remote_data['version'];
-        // If the remote version is newer, delete our main config cache.
-        if (version_compare($remote_version, $current_version, '>')) {
-            delete_transient('ao_remote_config_cache');
-        }
-    }
-}
-
-
-/**
  * Manages the remote configuration.
  */
 final class AO_Remote_Config_Manager {
     private static $instance;
     private const DEFAULT_REMOTE_URL = 'https://raw.githubusercontent.com/milllan/mill_autoload_options_checker_plugin/main/config.json';
     private const CACHE_KEY = 'ao_remote_config_cache';
-    private const CACHE_DURATION = 30 * DAY_IN_SECONDS; // The main cache is still long-lived.
+    private const CACHE_DURATION = 7 * DAY_IN_SECONDS;
     private $config_status = 'Not loaded yet.';
 
     private function __construct() {}
@@ -110,7 +70,6 @@ final class AO_Remote_Config_Manager {
                 set_transient(self::CACHE_KEY, $remote_config, self::CACHE_DURATION);
                 return $remote_config;
             } else {
-                // This now only runs if the remote fetch fails.
                 $this->config_status = __('Error: Could not fetch remote config. Using local fallback.', 'autoload-optimizer');
                 return $this->get_local_fallback();
             }
@@ -176,7 +135,7 @@ function ao_get_config() {
     return AO_Remote_Config_Manager::get_instance()->get_config();
 }
 
-// --- Display & UI Logic (No changes needed below this line) ---
+// --- Display & UI Logic ---
 
 function ao_display_admin_page() {
     if (!current_user_can('manage_options')) return;
@@ -185,7 +144,6 @@ function ao_display_admin_page() {
     $config_manager = AO_Remote_Config_Manager::get_instance();
     if (isset($_GET['ao_refresh_config']) && check_admin_referer('ao_refresh_config')) {
         delete_transient('ao_remote_config_cache');
-        delete_transient('_ao_config_version_check'); // Also delete the version check
         wp_safe_redirect(remove_query_arg(['ao_refresh_config', '_wpnonce']));
         exit;
     }
@@ -220,7 +178,6 @@ function ao_display_admin_page() {
             }
         }
 
-        // 1. Precise & Pattern Match from config.json (Highest Priority)
         $plugin_name = __('Unknown', 'autoload-optimizer');
         $status_info = ['code' => 'unknown', 'text' => __('Unknown', 'autoload-optimizer'), 'class' => ''];
         $mapping_found = false;
@@ -246,17 +203,18 @@ function ao_display_admin_page() {
                     $plugin_name = $mapping['name'];
                     $file_info = $mapping['file'];
 
+                    // --- START: IMPROVED THEME & PLUGIN LOGIC ---
                     if (substr($file_info, 0, 6) === 'theme:') {
                         $theme_slug = substr($file_info, 6);
                         if (in_array($theme_slug, $theme_slugs, true)) {
                             $status_info = ['code' => 'theme_active', 'text' => __('Active Theme', 'autoload-optimizer'), 'class' => 'notice-info'];
                         } else {
                             $status_info = ['code' => 'theme_inactive', 'text' => __('Inactive Theme', 'autoload-optimizer'), 'class' => 'notice-error'];
-                            $inactive_plugin_option_count++;
+                            $inactive_plugin_option_count++; // Count inactive themes as well
                         }
                     } elseif ($file_info === 'core') {
                         $status_info = ['code' => 'core', 'text' => __('WordPress Core', 'autoload-optimizer'), 'class' => 'notice-info'];
-                    } elseif ($file_info === 'theme') {
+                    } elseif ($file_info === 'theme') { // Legacy support for simple "theme"
                         $status_info = ['code' => 'theme_active', 'text' => __('Active Theme', 'autoload-optimizer'), 'class' => 'notice-info'];
                     } elseif (in_array($file_info, $active_plugin_paths)) {
                         $status_info = ['code' => 'plugin_active', 'text' => __('Active Plugin', 'autoload-optimizer'), 'class' => 'notice-success'];
@@ -264,6 +222,7 @@ function ao_display_admin_page() {
                         $status_info = ['code' => 'plugin_inactive', 'text' => __('Inactive Plugin', 'autoload-optimizer'), 'class' => 'notice-error'];
                         $inactive_plugin_option_count++;
                     }
+                    // --- END: IMPROVED THEME & PLUGIN LOGIC ---
 
                     $mapping_found = true;
                     break; 
@@ -271,6 +230,7 @@ function ao_display_admin_page() {
             }
         }
 
+        // 2. Fallbacks (ONLY run if no mapping was found in the config)
         if (!$mapping_found) {
             if (substr($option->option_name, 0, 10) === '_transient_' || substr($option->option_name, 0, 16) === '_site_transient_') {
                 $plugin_name = __('WordPress Core (Transient)', 'autoload-optimizer');
@@ -290,16 +250,22 @@ function ao_display_admin_page() {
                             ? ['code' => 'plugin_active', 'text' => __('Active Plugin', 'autoload-optimizer'), 'class' => 'notice-success']
                             : ['code' => 'plugin_inactive', 'text' => __('Inactive Plugin', 'autoload-optimizer'), 'class' => 'notice-error'];
                         
-                        if (!$is_active) $inactive_plugin_option_count++;
+                        if (!$is_active) {
+                            $inactive_plugin_option_count++;
+                        }
                         break;
                     }
                 }
             }
         }
 
+
         if (!isset($grouped_options[$plugin_name])) {
             $grouped_options[$plugin_name] = [
-                'total_size' => 0, 'count' => 0, 'options' => [], 'status' => $status_info
+                'total_size' => 0, 
+                'count' => 0, 
+                'options' => [],
+                'status' => $status_info
             ];
         }
 
@@ -494,8 +460,6 @@ function ao_display_admin_page() {
             </table>
         <?php endif; ?>
         
-        <!-- ... (Rest of the file: history table, modal, styles, JS, etc. are unchanged) ... -->
-
         <!-- // <-- START: READ-ONLY HISTORY TABLE SECTION -->
         <?php
         $ao_history   = get_option('ao_optimizer_history', []);
