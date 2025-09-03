@@ -1,8 +1,32 @@
 {
-    "version": "1.2.1",
+    "version": "1.3.0",
     "plugin_mappings": {
         "wf_known_file_list": {
-            "name": "Wordfence Security",
+            "name": "Wordfence Security (Scan Cache)",
+            "file": "wordfence/wordfence.php"
+        },
+        "wf_scan_result": {
+            "name": "Wordfence Security (Scan Cache)",
+            "file": "wordfence/wordfence.php"
+        },
+        "wf_scan_last_complete": {
+            "name": "Wordfence Security (Scan Cache)",
+            "file": "wordfence/wordfence.php"
+        },
+        "wf_scan_lock": {
+            "name": "Wordfence Security (Scan Cache)",
+            "file": "wordfence/wordfence.php"
+        },
+        "wfIssues": {
+            "name": "Wordfence Security (Issues Cache)",
+            "file": "wordfence/wordfence.php"
+        },
+        "wfIssuesCounts": {
+            "name": "Wordfence Security (Issues Cache)",
+            "file": "wordfence/wordfence.php"
+        },
+        "wfsd_engine": {
+            "name": "Wordfence Security (Scan Cache)",
             "file": "wordfence/wordfence.php"
         },
         "frm_options": {
@@ -408,7 +432,6 @@
         }
     },
     "safe_literals": [
-        "wf_known_file_list",
         "fs_accounts",
         "elementskit-lite__banner_data",
         "elementskit-lite__stories_data",
@@ -492,6 +515,13 @@
         "wp_schema_pro_optimized_structured_data",
         "ws_menu_editor_pro",
         "wcml_trbl_products_needs_fix_postmeta",
+        "wf_known_file_list",
+        "wf_scan_result",
+        "wf_scan_last_complete",
+        "wf_scan_lock",
+        "wfIssues",
+        "wfIssuesCounts",
+        "wfsd_engine",
         "woocommerce_ultimate_tabs_options",
         "woocommerce_tracker_ua",
         "woolementor-docs-json",
@@ -515,6 +545,9 @@
         "_transient_*",
         "_site_transient_*",
 
+        "_transient_wf-*",
+        "wf_scan_*",
+        "wfAdminNotice*",
         "_wpallexport_session_*",
         "*mytheme*",
         "ai1wm*",
@@ -568,7 +601,9 @@
         "WP Customer Reviews": "<strong>WP Customer Reviews:</strong> If you no longer use this plugin, consider disabling autoload for its options.",
         "Custom Post Type UI": "<strong>Custom Post Type UI:</strong> If you no longer use this plugin, consider disabling autoload for its options.",
         "Yoast SEO": "<strong>Yoast SEO:</strong> If you no longer use this plugin, consider disabling autoload for its options.",
-        "Limit Login Attempts Reloaded": "<strong>Limit Login Attempts Reloaded:</strong> Security-related options should generally remain autoloaded for optimal protection."
+        "Limit Login Attempts Reloaded": "<strong>Limit Login Attempts Reloaded:</strong> Security-related options should generally remain autoloaded for optimal protection.",
+        "Wordfence Security (Scan Cache)": "<strong>Wordfence Security:</strong> Wordfence creates several large options for its scanner and issue caching. It is highly recommended and safe to disable autoload for these options like <code>wf_known_file_list</code>, <code>wf_scan_*</code>, and <code>_transient_wf-*</code>. <strong>Important:</strong> Do not disable autoload for core configuration options like <code>wfConfig</code>, or any options starting with <code>waf*</code> (firewall) and <code>wfls_*</code> (login security), as these are critical for the live protection of your site.",
+        "Wordfence Security (Issues Cache)": "<strong>Wordfence Security:</strong> Wordfence creates several large options for its scanner and issue caching. It is highly recommended and safe to disable autoload for these options like <code>wf_known_file_list</code>, <code>wf_scan_*</code>, and <code>_transient_wf-*</code>. <strong>Important:</strong> Do not disable autoload for core configuration options like <code>wfConfig</code>, or any options starting with <code>waf*</code> (firewall) and <code>wfls_*</code> (login security), as these are critical for the live protection of your site."
     },
     "general_recommendations": [
         "<strong>Safe Options:</strong> Options marked with a green checkmark are generally safe to disable. These are typically cache data, logs, or other non-critical data.",
