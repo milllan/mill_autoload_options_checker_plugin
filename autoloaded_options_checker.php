@@ -579,7 +579,24 @@ function ao_admin_page_scripts() {
             resultsContainer.style.display = 'block'; 
         }
 
-        // --- REFACTOR: Updated function to handle UI changes without reloading the page ---
+        /**
+         * Cleans up empty plugin/theme group headers from the table.
+         */
+        function cleanupEmptyGroups() {
+            const tableBody = document.querySelector('.wp-list-table tbody');
+            if (!tableBody) return;
+
+            const headers = tableBody.querySelectorAll('tr.plugin-header');
+            headers.forEach(header => {
+                const nextRow = header.nextElementSibling;
+                // A group is empty if the next row doesn't exist or is another header.
+                if (!nextRow || nextRow.classList.contains('plugin-header')) {
+                    header.remove();
+                }
+            });
+        }
+
+        // --- REFACTOR: Updated function to REMOVE rows on success ---
         function disableOptions(optionNames, button) {
             if (!confirm(`<?php _e('Are you sure you want to disable autoload for the selected option(s)?', 'autoload-optimizer'); ?>`)) return;
 
@@ -597,27 +614,21 @@ function ao_admin_page_scripts() {
                 .then(data => {
                     showResult(data.data.message, data.success ? 'success' : 'error');
                     
-                    // --- START: NEW UI UPDATE LOGIC ---
                     if (data.success && data.data.disabled_options) {
                         data.data.disabled_options.forEach(optionName => {
                             const row = document.querySelector(`tr[data-option-name="${optionName}"]`);
                             if (row) {
-                                row.classList.add('ao-row-processed');
-                                
-                                const checkbox = row.querySelector('.ao-option-checkbox');
-                                if(checkbox) checkbox.remove();
-
-                                const actionBtn = row.querySelector('.disable-single');
-                                if(actionBtn) {
-                                    actionBtn.textContent = '<?php _e('Disabled', 'autoload-optimizer'); ?>';
-                                    actionBtn.disabled = true;
-                                }
+                                // --- CHANGE: Simply remove the row entirely ---
+                                row.remove();
                             }
                         });
+
+                        // --- NEW: Clean up any group headers that are now empty ---
+                        cleanupEmptyGroups();
+                        
                         // After bulk actions, uncheck the main checkbox
                         if (mainCheckbox) mainCheckbox.checked = false;
                     }
-                    // --- END: NEW UI UPDATE LOGIC ---
                 })
                 .catch(() => showResult('<?php _e('Request failed. Please check the browser console for errors.', 'autoload-optimizer'); ?>', 'error'))
                 .finally(() => {
