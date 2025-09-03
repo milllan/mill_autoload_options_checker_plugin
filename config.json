@@ -206,10 +206,6 @@
             "name": "WP Customer Reviews",
             "file": "wp-customer-reviews/wp-customer-reviews-3.php"
         },
-        "wpcr3_options": {
-            "name": "WP Customer Reviews",
-            "file": "wp-customer-reviews/wp-customer-reviews.php"
-        },
         "cptui_post_types": {
             "name": "Custom Post Type UI",
             "file": "custom-post-type-ui/custom-post-type-ui.php"

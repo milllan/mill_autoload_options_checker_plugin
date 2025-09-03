@@ -3,7 +3,7 @@
  * Plugin Name:       Autoloaded Options Optimizer
  * Plugin URI:        https://github.com/milllan/mill_autoload_options_checker_plugin
  * Description:       A tool to analyze, view, and manage autoloaded options in the wp_options table, with a remotely managed configuration.
- * Version:           3.6.5
+ * Version:           3.7.0
  * Author:            Milan Petrović
  * Author URI:        https://wpspeedopt.net/
  * License:           GPL v2 or later
@@ -135,20 +135,15 @@ function ao_get_config() {
     return AO_Remote_Config_Manager::get_instance()->get_config();
 }
 
-// --- Display & UI Logic ---
-
-function ao_display_admin_page() {
-    if (!current_user_can('manage_options')) return;
-
+// --- REFACTOR: Data processing is now in its own function ---
+/**
+ * Gathers and processes all data for the analysis page.
+ *
+ * @return array Processed data for display.
+ */
+function ao_get_analysis_data() {
     global $wpdb;
-    $config_manager = AO_Remote_Config_Manager::get_instance();
-    if (isset($_GET['ao_refresh_config']) && check_admin_referer('ao_refresh_config')) {
-        delete_transient('ao_remote_config_cache');
-        wp_safe_redirect(remove_query_arg(['ao_refresh_config', '_wpnonce']));
-        exit;
-    }
-    $config = $config_manager->get_config();
-    $status_message = $config_manager->get_config_status();
+    $config = ao_get_config();
 
     $total_autoload_stats = $wpdb->get_row(
         "SELECT COUNT(option_name) as count, SUM(LENGTH(option_value)) as size
@@ -167,8 +162,10 @@ function ao_display_admin_page() {
     $grouped_options = [];
     $large_options_size = 0;
     $inactive_plugin_option_count = 0;
-    
-    foreach($large_options as $option) { $large_options_size += $option->option_length; }
+
+    foreach ($large_options as $option) {
+        $large_options_size += $option->option_length;
+    }
 
     foreach ($large_options as $option) {
         $is_safe = in_array($option->option_name, $config['safe_literals']);
@@ -189,32 +186,25 @@ function ao_display_admin_page() {
         }
         $theme_slugs = array_map('strtolower', $theme_slugs);
 
-        // 1. Check config.json mappings first (Highest Priority)
         foreach ($config['plugin_mappings'] as $pattern => $mapping) {
             if (fnmatch($pattern, $option->option_name)) {
-                $context_match = true;
-                if (isset($mapping['context'])) {
-                    if (isset($mapping['context']['theme']) && !in_array($mapping['context']['theme'], $theme_slugs, true)) {
-                        $context_match = false;
-                    }
-                }
+                $context_match = !isset($mapping['context']['theme']) || in_array($mapping['context']['theme'], $theme_slugs, true);
 
                 if ($context_match) {
                     $plugin_name = $mapping['name'];
                     $file_info = $mapping['file'];
 
-                    // --- START: IMPROVED THEME & PLUGIN LOGIC ---
-                    if (substr($file_info, 0, 6) === 'theme:') {
+                    if (strpos($file_info, 'theme:') === 0) {
                         $theme_slug = substr($file_info, 6);
                         if (in_array($theme_slug, $theme_slugs, true)) {
                             $status_info = ['code' => 'theme_active', 'text' => __('Active Theme', 'autoload-optimizer'), 'class' => 'notice-info'];
                         } else {
                             $status_info = ['code' => 'theme_inactive', 'text' => __('Inactive Theme', 'autoload-optimizer'), 'class' => 'notice-error'];
-                            $inactive_plugin_option_count++; // Count inactive themes as well
+                            $inactive_plugin_option_count++;
                         }
                     } elseif ($file_info === 'core') {
                         $status_info = ['code' => 'core', 'text' => __('WordPress Core', 'autoload-optimizer'), 'class' => 'notice-info'];
-                    } elseif ($file_info === 'theme') { // Legacy support for simple "theme"
+                    } elseif ($file_info === 'theme') {
                         $status_info = ['code' => 'theme_active', 'text' => __('Active Theme', 'autoload-optimizer'), 'class' => 'notice-info'];
                     } elseif (in_array($file_info, $active_plugin_paths)) {
                         $status_info = ['code' => 'plugin_active', 'text' => __('Active Plugin', 'autoload-optimizer'), 'class' => 'notice-success'];
@@ -222,17 +212,14 @@ function ao_display_admin_page() {
                         $status_info = ['code' => 'plugin_inactive', 'text' => __('Inactive Plugin', 'autoload-optimizer'), 'class' => 'notice-error'];
                         $inactive_plugin_option_count++;
                     }
-                    // --- END: IMPROVED THEME & PLUGIN LOGIC ---
-
                     $mapping_found = true;
                     break; 
                 }
             }
         }
 
-        // 2. Fallbacks (ONLY run if no mapping was found in the config)
         if (!$mapping_found) {
-            if (substr($option->option_name, 0, 10) === '_transient_' || substr($option->option_name, 0, 16) === '_site_transient_') {
+            if (strpos($option->option_name, '_transient_') === 0 || strpos($option->option_name, '_site_transient_') === 0) {
                 $plugin_name = __('WordPress Core (Transient)', 'autoload-optimizer');
                 $status_info = ['code' => 'core', 'text' => __('WordPress Core', 'autoload-optimizer'), 'class' => 'notice-info'];
             } else {
@@ -243,22 +230,18 @@ function ao_display_admin_page() {
                 ];
     
                 foreach ($known_plugin_prefixes as $prefix => $data) {
-                    if (substr($option->option_name, 0, strlen($prefix)) === $prefix) {
+                    if (strpos($option->option_name, $prefix) === 0) {
                         $plugin_name = $data['name'];
                         $is_active = in_array($data['file'], $active_plugin_paths);
                         $status_info = $is_active
                             ? ['code' => 'plugin_active', 'text' => __('Active Plugin', 'autoload-optimizer'), 'class' => 'notice-success']
                             : ['code' => 'plugin_inactive', 'text' => __('Inactive Plugin', 'autoload-optimizer'), 'class' => 'notice-error'];
-                        
-                        if (!$is_active) {
-                            $inactive_plugin_option_count++;
-                        }
+                        if (!$is_active) $inactive_plugin_option_count++;
                         break;
                     }
                 }
             }
         }
-
 
         if (!isset($grouped_options[$plugin_name])) {
             $grouped_options[$plugin_name] = [
@@ -276,6 +259,34 @@ function ao_display_admin_page() {
     
     uasort($grouped_options, function($a, $b) { return $b['total_size'] <=> $a['total_size']; });
 
+    return [
+        'total_autoload_stats' => $total_autoload_stats,
+        'large_options' => $large_options,
+        'grouped_options' => $grouped_options,
+        'large_options_size' => $large_options_size,
+        'inactive_plugin_option_count' => $inactive_plugin_option_count,
+        'config' => $config,
+    ];
+}
+
+
+// --- Display & UI Logic ---
+
+function ao_display_admin_page() {
+    if (!current_user_can('manage_options')) return;
+
+    $config_manager = AO_Remote_Config_Manager::get_instance();
+    if (isset($_GET['ao_refresh_config']) && check_admin_referer('ao_refresh_config')) {
+        delete_transient('ao_remote_config_cache');
+        wp_safe_redirect(remove_query_arg(['ao_refresh_config', '_wpnonce']));
+        exit;
+    }
+    $status_message = $config_manager->get_config_status();
+
+    // --- REFACTOR: Call the data processing function ---
+    $data = ao_get_analysis_data();
+    extract($data); // Extracts variables like $grouped_options, $large_options_size, etc.
+    
     ?>
     <div class="wrap">
         <h1><?php _e('Autoloaded Options Optimizer', 'autoload-optimizer'); ?></h1>
@@ -344,41 +355,22 @@ function ao_display_admin_page() {
                 <p>
                     <?php
                     $recommendation_found = false;
-                    foreach ($grouped_options as $plugin_name => $data) {
+                    foreach ($grouped_options as $plugin_name => $rec_data) {
                         if (isset($config['recommendations'][$plugin_name])) {
                             $has_safe_options = false;
-                            foreach ($data['options'] as $option) {
-                                if ($option['is_safe']) {
-                                    $has_safe_options = true;
-                                    break;
-                                }
-                            }
-
-                            if (strpos($data['status']['code'], '_inactive') !== false || $has_safe_options) {
+                            foreach ($rec_data['options'] as $option) { if ($option['is_safe']) { $has_safe_options = true; break; }}
+                            if (strpos($rec_data['status']['code'], '_inactive') !== false || $has_safe_options) {
                                 $recommendation_found = true;
                                 $rec_text = $config['recommendations'][$plugin_name];
-                                $status_class = $data['status']['class'] ?? 'notice-info';
-                                
-                                $styled_rec_text = preg_replace_callback(
-                                    '/<strong>(.*?:)<\/strong>/',
-                                    function($matches) use ($status_class) {
-                                        return sprintf(
-                                            '<span class="notice %s" style="padding: 2px 8px; display: inline-block; margin: 0; font-weight: bold;">%s</span>',
-                                            esc_attr($status_class),
-                                            esc_html($matches[1])
-                                        );
-                                    },
-                                    $rec_text,
-                                    1
-                                );
-
+                                $status_class = $rec_data['status']['class'] ?? 'notice-info';
+                                $styled_rec_text = preg_replace_callback('/<strong>(.*?:)<\/strong>/', function($matches) use ($status_class) {
+                                        return sprintf('<span class="notice %s" style="padding: 2px 8px; display: inline-block; margin: 0; font-weight: bold;">%s</span>', esc_attr($status_class), esc_html($matches[1]));
+                                    }, $rec_text, 1);
                                 echo '<span>' . wp_kses_post($styled_rec_text) . '</span><br><br>';
                             }
                         }
                     }
-                    if (!$recommendation_found) {
-                        echo '<em>' . __('No specific recommendations for the large options found on your site.', 'autoload-optimizer') . '</em>';
-                    }
+                    if (!$recommendation_found) { echo '<em>' . __('No specific recommendations for the large options found on your site.', 'autoload-optimizer') . '</em>'; }
                     ?>
                 </p>
             </div>
@@ -404,7 +396,7 @@ function ao_display_admin_page() {
                 </thead>
                 <tbody>
                     <?php $group_index = 0; ?>
-                    <?php foreach ($grouped_options as $plugin_name => $data) : ?>
+                    <?php foreach ($grouped_options as $plugin_name => $group_data) : ?>
                         <?php $group_class = ($group_index % 2 == 0) ? 'group-color-a' : 'group-color-b'; ?>
                         <tr class="plugin-header">
                             <th class="check-column"></th>
@@ -412,16 +404,16 @@ function ao_display_admin_page() {
                                 <strong><?php echo esc_html($plugin_name); ?></strong> - 
                                 <?php printf(
                                     __('%s total, %d options, %s of total large options', 'autoload-optimizer'),
-                                    size_format($data['total_size']),
-                                    $data['count'],
-                                    $large_options_size > 0 ? number_format(($data['total_size'] / $large_options_size) * 100, 2) . '%' : '0%'
+                                    size_format($group_data['total_size']),
+                                    $group_data['count'],
+                                    $large_options_size > 0 ? number_format(($group_data['total_size'] / $large_options_size) * 100, 2) . '%' : '0%'
                                 ); ?>
                             </td>
                         </tr>
-                        <?php foreach ($data['options'] as $option) : 
+                        <?php foreach ($group_data['options'] as $option) : 
                             $is_actionable = $option['is_safe'] || (strpos($option['status']['code'], '_inactive') !== false);
                         ?>
-                            <tr class="<?php echo $group_class; ?>" <?php echo $option['is_safe'] ? 'data-is-safe="true"' : ''; ?>>
+                            <tr class="<?php echo $group_class; ?>" <?php echo $option['is_safe'] ? 'data-is-safe="true"' : ''; ?> data-option-name="<?php echo esc_attr($option['name']); ?>">
                                 <th class="check-column">
                                     <?php if ($is_actionable) : ?>
                                         <input type="checkbox" class="ao-option-checkbox" value="<?php echo esc_attr($option['name']); ?>">
@@ -437,7 +429,7 @@ function ao_display_admin_page() {
                                 <td class="column-status"><span class="notice <?php echo esc_attr($option['status']['class']); ?>" style="padding: 2px 8px; display: inline-block; margin: 0;"><?php echo esc_html($option['status']['text']); ?></span></td>
                                 <td class="column-action">
                                     <?php if ($is_actionable) : ?>
-                                        <button class="button disable-single" data-option="<?php echo esc_attr($option['name']); ?>"><?php _e('Disable', 'autoload-optimizer'); ?></button>
+                                        <button class="button disable-single" data-option="<?php echo esc_attr($option['name']); ?>"><?php _e('Disable Autoload', 'autoload-optimizer'); ?></button>
                                     <?php else : ?>
                                         <span title="<?php _e('Disabling autoload for core or active plugins/themes is not recommended.', 'autoload-optimizer'); ?>"><?php _e('N/A', 'autoload-optimizer'); ?></span>
                                     <?php endif; ?>
@@ -460,7 +452,6 @@ function ao_display_admin_page() {
             </form>
         </div>
         
-        <!-- // <-- START: READ-ONLY HISTORY TABLE SECTION -->
         <?php
         $ao_history   = get_option('ao_optimizer_history', []);
         $perf_history = get_option('perflab_aao_disabled_options', []);
@@ -472,30 +463,11 @@ function ao_display_admin_page() {
             <div class="card" style="margin-top: 2rem;max-width:unset">
                 <h2 class="title"><?php _e('History: Options with Autoload Disabled', 'autoload-optimizer'); ?></h2>
                 <p><?php _e('This is a combined list of options where autoload has been disabled by this plugin or by the Performance Lab plugin.', 'autoload-optimizer'); ?></p>
-                
                 <table class="wp-list-table widefat striped">
-                    <thead>
-                        <tr>
-                            <th class="manage-column"><?php _e('Option Name', 'autoload-optimizer'); ?></th>
-                            <th class="manage-column" style="width: 25%;"><?php _e('Source of Change', 'autoload-optimizer'); ?></th>
-                        </tr>
-                    </thead>
+                    <thead><tr><th class="manage-column"><?php _e('Option Name', 'autoload-optimizer'); ?></th><th class="manage-column" style="width: 25%;"><?php _e('Source of Change', 'autoload-optimizer'); ?></th></tr></thead>
                     <tbody>
-                        <?php foreach ($combined_history as $option_name) : 
-                            if (!is_string($option_name)) continue;
-                            
-                            $sources = [];
-                            if (in_array($option_name, $ao_history, true)) {
-                                $sources[] = __('This Plugin', 'autoload-optimizer');
-                            }
-                            if (in_array($option_name, $perf_history, true)) {
-                                $sources[] = __('Performance Lab', 'autoload-optimizer');
-                            }
-                        ?>
-                        <tr>
-                            <td><strong><?php echo esc_html($option_name); ?></strong></td>
-                            <td><?php echo esc_html(implode(' & ', $sources)); ?></td>
-                        </tr>
+                        <?php foreach ($combined_history as $option_name) : if (!is_string($option_name)) continue; $sources = []; if (in_array($option_name, $ao_history, true)) $sources[] = __('This Plugin', 'autoload-optimizer'); if (in_array($option_name, $perf_history, true)) $sources[] = __('Performance Lab', 'autoload-optimizer'); ?>
+                        <tr><td><strong><?php echo esc_html($option_name); ?></strong></td><td><?php echo esc_html(implode(' & ', $sources)); ?></td></tr>
                         <?php endforeach; ?>
                     </tbody>
                 </table>
@@ -505,16 +477,7 @@ function ao_display_admin_page() {
         <div id="ao-option-modal-overlay"><div id="ao-option-modal-content"><span class="close-modal">&times;</span><h2 id="ao-option-modal-title"></h2><div id="ao-modal-body"></div></div></div>
     </div>
     <style>
-        .wp-list-table .column-option-name { width: 35%; }
-        .wp-list-table .column-size, .wp-list-table .column-percentage { width: 8%; }
-        .wp-list-table .column-plugin { width: 15%; }
-        .wp-list-table .column-status { width: 12%; }
-        .wp-list-table .column-action { width: 10%; }
-        .wp-list-table tbody tr.group-color-a { background-color: #ffffff; }
-        .wp-list-table tbody tr.group-color-b { background-color: #f6f7f7; }
-        .wp-list-table tbody tr:hover { background-color: #f0f0f1 !important; }
-        .plugin-header th, .plugin-header td { font-weight: bold; background-color: #f0f0f1; border-bottom: 1px solid #ddd; }
-        .view-option-content { cursor: pointer; } #ao-option-modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.7); z-index: 10001; justify-content: center; align-items: center; } #ao-option-modal-content { background: #fff; padding: 20px; border-radius: 4px; width: 80%; max-width: 900px; max-height: 80vh; overflow-y: auto; position: relative; } .close-modal { position: absolute; top: 5px; right: 15px; font-size: 28px; font-weight: bold; cursor: pointer; color: #555; } #ao-modal-body pre { background: #f1f1f1; padding: 15px; border: 1px solid #ddd; white-space: pre-wrap; word-wrap: break-word; }
+        .wp-list-table .column-option-name { width: 35%; } .wp-list-table .column-size, .wp-list-table .column-percentage { width: 8%; } .wp-list-table .column-plugin { width: 15%; } .wp-list-table .column-status { width: 12%; } .wp-list-table .column-action { width: 10%; } .wp-list-table tbody tr.group-color-a { background-color: #ffffff; } .wp-list-table tbody tr.group-color-b { background-color: #f6f7f7; } .wp-list-table tbody tr:hover { background-color: #f0f0f1 !important; } .wp-list-table tbody tr.ao-row-processed { opacity: 0.6; pointer-events: none; } .plugin-header th, .plugin-header td { font-weight: bold; background-color: #f0f0f1; border-bottom: 1px solid #ddd; } .view-option-content { cursor: pointer; } #ao-option-modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.7); z-index: 10001; justify-content: center; align-items: center; } #ao-option-modal-content { background: #fff; padding: 20px; border-radius: 4px; width: 80%; max-width: 900px; max-height: 80vh; overflow-y: auto; position: relative; } .close-modal { position: absolute; top: 5px; right: 15px; font-size: 28px; font-weight: bold; cursor: pointer; color: #555; } #ao-modal-body pre { background: #f1f1f1; padding: 15px; border: 1px solid #ddd; white-space: pre-wrap; word-wrap: break-word; }
     </style>
     <?php
 }
@@ -534,18 +497,14 @@ function ao_ajax_disable_autoload_options() {
     check_ajax_referer('ao_disable_autoload_nonce', 'nonce');
     if (!current_user_can('manage_options')) wp_send_json_error(['message' => __('Permission denied.', 'autoload-optimizer')]);
 
-    $options_to_disable = isset($_POST['option_names']) ? (array) $_POST['option_names'] : [];
+    // --- REFACTOR: Add wp_unslash for robust input handling ---
+    $options_to_disable = isset($_POST['option_names']) ? wp_unslash((array) $_POST['option_names']) : [];
     if (empty($options_to_disable)) wp_send_json_error(['message' => __('No options were selected.', 'autoload-optimizer')]);
 
-    // --- START: UPDATED HISTORY LOGIC ---
-    // Get both history lists
     $ao_history = get_option('ao_optimizer_history', []);
     $perf_history = get_option('perflab_aao_disabled_options', []);
-
-    // Ensure they are arrays
     if (!is_array($ao_history))   $ao_history = [];
     if (!is_array($perf_history)) $perf_history = [];
-    // --- END: UPDATED HISTORY LOGIC ---
 
     $upload_dir = wp_upload_dir();
     $log_file = $upload_dir['basedir'] . '/autoload-options-debug.log';
@@ -554,38 +513,26 @@ function ao_ajax_disable_autoload_options() {
     
     global $wpdb;
     $success_count = $failure_count = $already_done = 0;
+    $processed_options = []; // --- REFACTOR: For JS no-reload UX ---
 
     foreach ($options_to_disable as $option_name) {
         $sane_option_name = sanitize_text_field($option_name);
-        
-        // Use wp_set_option_autoload for consistency with Core/Perf Lab
         $result = wp_set_option_autoload($sane_option_name, false);
         
         if ($result) {
             $success_count++;
             $log_content .= "[SUCCESS] '{$sane_option_name}' - Set autoload to 'no'.\n";
-
-            // Add the successfully disabled option to both history arrays if not already present
-            if (!in_array($sane_option_name, $ao_history, true)) {
-                $ao_history[] = $sane_option_name;
-            }
-            if (!in_array($sane_option_name, $perf_history, true)) {
-                $perf_history[] = $sane_option_name;
-            }
+            $processed_options[] = $sane_option_name;
+            if (!in_array($sane_option_name, $ao_history, true)) $ao_history[] = $sane_option_name;
+            if (!in_array($sane_option_name, $perf_history, true)) $perf_history[] = $sane_option_name;
         } else {
-            // Check if it failed because it was already 'no'
             $current_autoload = $wpdb->get_var($wpdb->prepare("SELECT autoload FROM {$wpdb->options} WHERE option_name = %s", $sane_option_name));
             if ('no' === $current_autoload) {
                 $already_done++;
                 $log_content .= "[SKIPPED] '{$sane_option_name}' - Already 'no'.\n";
-
-                // Ensure it's in the history lists even if it was already done
-                if (!in_array($sane_option_name, $ao_history, true)) {
-                    $ao_history[] = $sane_option_name;
-                }
-                if (!in_array($sane_option_name, $perf_history, true)) {
-                    $perf_history[] = $sane_option_name;
-                }
+                $processed_options[] = $sane_option_name;
+                if (!in_array($sane_option_name, $ao_history, true)) $ao_history[] = $sane_option_name;
+                if (!in_array($sane_option_name, $perf_history, true)) $perf_history[] = $sane_option_name;
             } else {
                 $failure_count++;
                 $log_content .= "[FAILED]  '{$sane_option_name}' - DB error.\n";
@@ -593,14 +540,15 @@ function ao_ajax_disable_autoload_options() {
         }
     }
     
-    // Save both updated history lists back to the database
     update_option('ao_optimizer_history', $ao_history, 'no');
     update_option('perflab_aao_disabled_options', $perf_history, 'no');
 
     file_put_contents($log_file, $log_content, FILE_APPEND);
     $message = sprintf(__('Processed %d options: %d disabled, %d failed, %d already off.', 'autoload-optimizer'), count($options_to_disable), $success_count, $failure_count, $already_done);
     $message .= ' ' . sprintf(__('Log saved to %s.', 'autoload-optimizer'), '<code>/wp-content/uploads/autoload-options-debug.log</code>');
-    wp_send_json_success(['message' => $message]);
+    
+    // --- REFACTOR: Send back the list of processed options for the UI update ---
+    wp_send_json_success(['message' => $message, 'disabled_options' => $processed_options]);
 }
 
 add_action('admin_footer', 'ao_admin_page_scripts');
@@ -627,11 +575,11 @@ function ao_admin_page_scripts() {
             resultsContainer.style.display = 'block'; 
         }
 
+        // --- REFACTOR: Updated function to handle UI changes without reloading the page ---
         function disableOptions(optionNames, button) {
             if (!confirm(`<?php _e('Are you sure you want to disable autoload for the selected option(s)?', 'autoload-optimizer'); ?>`)) return;
 
             const spinner = button ? button.nextElementSibling : null;
-            
             if (button) button.disabled = true;
             if (spinner && spinner.classList.contains('spinner')) spinner.classList.add('is-active');
 
@@ -644,7 +592,28 @@ function ao_admin_page_scripts() {
                 .then(response => response.json())
                 .then(data => {
                     showResult(data.data.message, data.success ? 'success' : 'error');
-                    if (data.success) setTimeout(() => location.reload(), 3000);
+                    
+                    // --- START: NEW UI UPDATE LOGIC ---
+                    if (data.success && data.data.disabled_options) {
+                        data.data.disabled_options.forEach(optionName => {
+                            const row = document.querySelector(`tr[data-option-name="${optionName}"]`);
+                            if (row) {
+                                row.classList.add('ao-row-processed');
+                                
+                                const checkbox = row.querySelector('.ao-option-checkbox');
+                                if(checkbox) checkbox.remove();
+
+                                const actionBtn = row.querySelector('.disable-single');
+                                if(actionBtn) {
+                                    actionBtn.textContent = '<?php _e('Disabled', 'autoload-optimizer'); ?>';
+                                    actionBtn.disabled = true;
+                                }
+                            }
+                        });
+                        // After bulk actions, uncheck the main checkbox
+                        if (mainCheckbox) mainCheckbox.checked = false;
+                    }
+                    // --- END: NEW UI UPDATE LOGIC ---
                 })
                 .catch(() => showResult('<?php _e('Request failed. Please check the browser console for errors.', 'autoload-optimizer'); ?>', 'error'))
                 .finally(() => {
@@ -710,10 +679,7 @@ function ao_admin_page_scripts() {
                 const optionNameInput = document.getElementById('ao-manual-option-name');
                 const spinner = this.querySelector('.spinner');
                 const optionName = optionNameInput.value.trim();
-
-                if (optionName) {
-                    viewOptionContent(optionName, spinner);
-                }
+                if (optionName) viewOptionContent(optionName, spinner);
             });
         }
         
@@ -745,7 +711,6 @@ function ao_admin_page_scripts() {
             });
         }
         
-        // Listener for the main "select all" checkbox
         if(mainCheckbox) {
             mainCheckbox.addEventListener('change', () => {
                 itemCheckboxes.forEach(cb => { 
@@ -756,7 +721,6 @@ function ao_admin_page_scripts() {
             });
         }
 
-        // Listeners for closing the modal
         modalOverlay.addEventListener('click', e => { if (e.target === modalOverlay) hideModal(); });
         modalContent.querySelector('.close-modal').addEventListener('click', hideModal);
     });
@@ -798,13 +762,11 @@ function ao_initialize_updater() {
     if (file_exists($updater_bootstrap_file)) {
         require_once $updater_bootstrap_file;
         try {
-            $myUpdateChecker = YahnisElsts\PluginUpdateChecker\v5\PucFactory::buildUpdateChecker(
+            YahnisElsts\PluginUpdateChecker\v5\PucFactory::buildUpdateChecker(
                 'https://github.com/milllan/mill_autoload_options_checker_plugin/',
                 __FILE__,
                 'autoload-optimizer'
             );
-        } catch (Exception $e) {
-            // error_log('Plugin Update Checker failed to initialize: ' . $e->getMessage());
-        }
+        } catch (Exception $e) { /* Do nothing */ }
     }
 }
