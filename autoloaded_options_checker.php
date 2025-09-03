@@ -3,7 +3,7 @@
  * Plugin Name:       Autoloaded Options Optimizer
  * Plugin URI:        https://github.com/milllan/mill_autoload_options_checker_plugin
  * Description:       A tool to analyze, view, and manage autoloaded options in the wp_options table, with a remotely managed configuration.
- * Version:           3.5.4
+ * Version:           3.5.5
  * Author:            Milan Petrović
  * Author URI:        https://wpspeedopt.net/
  * License:           GPL v2 or later
@@ -403,6 +403,52 @@ function ao_display_admin_page() {
 
         <?php endif; ?>
 
+        <!-- // <-- START: NEW READ-ONLY HISTORY TABLE SECTION -->
+        <?php
+        // Fetch history from both your plugin and Performance Lab
+        $ao_history   = get_option('ao_optimizer_history', []);
+        $perf_history = get_option('perflab_aao_disabled_options', []);
+
+        // Combine and get unique option names
+        $combined_history = array_unique(array_merge(is_array($ao_history) ? $ao_history : [], is_array($perf_history) ? $perf_history : []));
+        sort($combined_history); // Sort alphabetically for consistency
+
+        if (!empty($combined_history)) :
+        ?>
+            <div class="card" style="margin-top: 2rem;">
+                <h2 class="title"><?php _e('History: Options with Autoload Disabled', 'autoload-optimizer'); ?></h2>
+                <p><?php _e('This is a combined list of options where autoload has been disabled by this plugin or by the Performance Lab plugin.', 'autoload-optimizer'); ?></p>
+                
+                <table class="wp-list-table widefat striped">
+                    <thead>
+                        <tr>
+                            <th class="manage-column"><?php _e('Option Name', 'autoload-optimizer'); ?></th>
+                            <th class="manage-column" style="width: 25%;"><?php _e('Source of Change', 'autoload-optimizer'); ?></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($combined_history as $option_name) : 
+                            if (!is_string($option_name)) continue;
+                            
+                            $sources = [];
+                            if (in_array($option_name, $ao_history, true)) {
+                                $sources[] = __('This Plugin', 'autoload-optimizer');
+                            }
+                            if (in_array($option_name, $perf_history, true)) {
+                                $sources[] = __('Performance Lab', 'autoload-optimizer');
+                            }
+                        ?>
+                        <tr>
+                            <td><strong><?php echo esc_html($option_name); ?></strong></td>
+                            <td><?php echo esc_html(implode(' & ', $sources)); ?></td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        <?php endif; ?>
+        <!-- // <-- END: NEW READ-ONLY HISTORY TABLE SECTION -->
+
         <div id="ao-option-modal-overlay"><div id="ao-option-modal-content"><span class="close-modal">&times;</span><h2 id="ao-option-modal-title"></h2><div id="ao-modal-body"></div></div></div>
     </div>
     <style>
@@ -438,13 +484,15 @@ function ao_ajax_disable_autoload_options() {
     $options_to_disable = isset($_POST['option_names']) ? (array) $_POST['option_names'] : [];
     if (empty($options_to_disable)) wp_send_json_error(['message' => __('No options were selected.', 'autoload-optimizer')]);
 
-    // --- START: NEW HISTORY LOGIC ---
-    // Get the existing history of disabled options.
-    $history = get_option('ao_optimizer_history', []);
-    if ( ! is_array($history) ) {
-        $history = [];
-    }
-    // --- END: NEW HISTORY LOGIC ---
+    // --- START: UPDATED HISTORY LOGIC ---
+    // Get both history lists
+    $ao_history = get_option('ao_optimizer_history', []);
+    $perf_history = get_option('perflab_aao_disabled_options', []);
+
+    // Ensure they are arrays
+    if (!is_array($ao_history))   $ao_history = [];
+    if (!is_array($perf_history)) $perf_history = [];
+    // --- END: UPDATED HISTORY LOGIC ---
 
     $upload_dir = wp_upload_dir();
     $log_file = $upload_dir['basedir'] . '/autoload-options-debug.log';
@@ -456,35 +504,45 @@ function ao_ajax_disable_autoload_options() {
 
     foreach ($options_to_disable as $option_name) {
         $sane_option_name = sanitize_text_field($option_name);
-        $current_autoload = $wpdb->get_var($wpdb->prepare("SELECT autoload FROM {$wpdb->options} WHERE option_name = %s", $sane_option_name));
         
-        if ('no' === $current_autoload) {
-            $already_done++;
-            $log_content .= "[SKIPPED] '{$sane_option_name}' - Already 'no'.\n";
-            // --- NEW: Also add to history if it's not there already ---
-            if ( ! in_array($sane_option_name, $history, true) ) {
-                $history[] = $sane_option_name;
-            }
-            continue;
-        }
-
-        $result = $wpdb->update($wpdb->options, ['autoload' => 'no'], ['option_name' => $sane_option_name]);
+        // Use wp_set_option_autoload for consistency with Core/Perf Lab
+        $result = wp_set_option_autoload($sane_option_name, false);
         
-        if (false === $result) {
-            $failure_count++; $log_content .= "[FAILED]  '{$sane_option_name}' - DB error.\n";
-        } else {
+        if ($result) {
             $success_count++;
-            $log_content .= "[SUCCESS] '{$sane_option_name}' - Set to 'no'.\n";
-            // --- NEW: Add the successfully disabled option to our history array ---
-            if ( ! in_array($sane_option_name, $history, true) ) {
-                $history[] = $sane_option_name;
+            $log_content .= "[SUCCESS] '{$sane_option_name}' - Set autoload to 'no'.\n";
+
+            // Add the successfully disabled option to both history arrays if not already present
+            if (!in_array($sane_option_name, $ao_history, true)) {
+                $ao_history[] = $sane_option_name;
+            }
+            if (!in_array($sane_option_name, $perf_history, true)) {
+                $perf_history[] = $sane_option_name;
+            }
+        } else {
+            // Check if it failed because it was already 'no'
+            $current_autoload = $wpdb->get_var($wpdb->prepare("SELECT autoload FROM {$wpdb->options} WHERE option_name = %s", $sane_option_name));
+            if ('no' === $current_autoload) {
+                $already_done++;
+                $log_content .= "[SKIPPED] '{$sane_option_name}' - Already 'no'.\n";
+
+                // Ensure it's in the history lists even if it was already done
+                if (!in_array($sane_option_name, $ao_history, true)) {
+                    $ao_history[] = $sane_option_name;
+                }
+                if (!in_array($sane_option_name, $perf_history, true)) {
+                    $perf_history[] = $sane_option_name;
+                }
+            } else {
+                $failure_count++;
+                $log_content .= "[FAILED]  '{$sane_option_name}' - DB error.\n";
             }
         }
     }
     
-    // --- NEW: Save the updated history back to the database ---
-    update_option('ao_optimizer_history', $history, 'no'); // 'no' prevents the history option itself from being autoloaded!
-
+    // Save both updated history lists back to the database
+    update_option('ao_optimizer_history', $ao_history, 'no');
+    update_option('perflab_aao_disabled_options', $perf_history, 'no');
 
     file_put_contents($log_file, $log_content, FILE_APPEND);
     $message = sprintf(__('Processed %d options: %d disabled, %d failed, %d already off.', 'autoload-optimizer'), count($options_to_disable), $success_count, $failure_count, $already_done);
