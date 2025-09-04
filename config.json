@@ -1,5 +1,5 @@
 {
-    "version": "1.4.4",
+    "version": "1.4.5",
     "plugin_mappings": {
         "ast-block-templates-blocks-*": {
             "name": "Astra Theme (Block Template Cache)",
@@ -25,7 +25,6 @@
             "name": "RSS Feed Widget (Ad/Content Cache)",
             "file": "some-rss-widget/plugin-file.php"
         },
-
         "vcv-hubTeaser*": {
             "name": "Visual Composer (Hub Cache)",
             "file": "visualcomposer/visualcomposer.php"
@@ -95,6 +94,10 @@
             "file": "elementskit-lite/elementskit-lite.php"
         },
         "addon_library_catalog": {
+            "name": "Unlimited Elements for Elementor",
+            "file": "unlimited-elements-for-elementor/unlimited-elements-for-elementor.php"
+        },
+        "unlimited_elements_options": {
             "name": "Unlimited Elements for Elementor",
             "file": "unlimited-elements-for-elementor/unlimited-elements-for-elementor.php"
         },
@@ -466,14 +469,9 @@
             "name": "Freemius SDK (Shared by Multiple Plugins)",
             "file": "freemius_sdk"
         },
-
         "aelia_currency_switcher_options": {
             "name": "Aelia Currency Switcher",
             "file": "woocommerce-aelia-currencyswitcher/woocommerce-aelia-currencyswitcher.php"
-        },
-        "unlimited_elements_options": {
-            "name": "Unlimited Elements for Elementor",
-            "file": "unlimited-elements-for-elementor/unlimited-elements-for-elementor.php"
         }
     },
     "safe_to_delete_literals": ["blc_installation_log"],
@@ -593,18 +591,14 @@
         "_transient_bawmrp*",
         "_transient_fusion*",
         "_transient_google*",
-
         "_transient_*",
         "_site_transient_*",
-
         "_transient_RCWFeed_Ms_*",
         "_transient_wf-*",
         "wf_scan_*",
         "wfAdminNotice*",
-
         "ast-block-templates-blocks-*",
         "vcv-hubTeaser*",
-
         "_wpallexport_session_*",
         "*mytheme*",
         "ai1wm*",
