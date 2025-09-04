@@ -3,7 +3,7 @@
  * Plugin Name:       Autoloaded Options Optimizer
  * Plugin URI:        https://github.com/milllan/mill_autoload_options_checker_plugin
  * Description:       A tool to analyze, view, and manage autoloaded options in the wp_options table, with a remotely managed configuration.
- * Version:           4.1.0
+ * Version:           4.1.1
  * Author:            Milan Petrović
  * Author URI:        https://wpspeedopt.net/
  * License:           GPL v2 or later
@@ -205,7 +205,8 @@ function ao_get_analysis_data() {
                     } elseif ($file_info === 'core') {
                         $status_info = ['code' => 'core', 'text' => __('WordPress Core', 'autoload-optimizer'), 'class' => 'notice-info'];
                     } elseif ($file_info === 'theme') {
-                        $status_info = ['code' => 'theme_active', 'text' => __('Active Theme', 'autoload-optimizer'), 'class' => 'notice-info'];
+                        // --- FIX: Use a generic status for non-specific theme rules ---
+                        $status_info = ['code' => 'theme_generic', 'text' => __('Theme', 'autoload-optimizer'), 'class' => 'notice-info'];
                     } elseif (in_array($file_info, $active_plugin_paths)) {
                         $status_info = ['code' => 'plugin_active', 'text' => __('Active Plugin', 'autoload-optimizer'), 'class' => 'notice-success'];
                     } else {
