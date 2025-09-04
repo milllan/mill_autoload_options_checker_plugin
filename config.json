@@ -1,6 +1,10 @@
 {
-    "version": "1.4.2",
+    "version": "1.4.3",
     "plugin_mappings": {
+        "ast-block-templates-blocks-*": {
+            "name": "Astra Theme (Block Template Cache)",
+            "file": "theme:astra"
+        },
         "betheme": {
             "name": "Betheme",
             "file": "theme:betheme"
@@ -593,6 +597,7 @@
         "wf_scan_*",
         "wfAdminNotice*",
 
+        "ast-block-templates-blocks-*",
         "vcv-hubTeaser*",
 
         "_wpallexport_session_*",
