@@ -1,9 +1,13 @@
 {
-    "version": "1.4.3",
+    "version": "1.4.4",
     "plugin_mappings": {
         "ast-block-templates-blocks-*": {
             "name": "Astra Theme (Block Template Cache)",
             "file": "theme:astra"
+        },
+        "cherry_customiser_*": {
+            "name": "Cherry Framework (Theme Options)",
+            "file": "theme"
         },
         "betheme": {
             "name": "Betheme",
@@ -503,6 +507,7 @@
         "ced_etsy_chunk_products",
         "channel_statics",
         "cherry_customiser_fonts_google",
+        "cherry_customiser_fonts_standard",
         "count_per_day_search",
         "cron_projects",
         "cp_modal_preset_templates",
