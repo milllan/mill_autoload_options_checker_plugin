@@ -1,5 +1,5 @@
 {
-    "version": "1.4.9",
+    "version": "1.4.10",
     "plugin_mappings": {
         "ast-block-templates-blocks-*": {
             "name": "Astra Theme (Block Template Cache)",

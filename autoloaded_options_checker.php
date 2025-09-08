@@ -3,7 +3,7 @@
  * Plugin Name:       Autoloaded Options Optimizer
  * Plugin URI:        https://github.com/milllan/mill_autoload_options_checker_plugin
  * Description:       A tool to analyze, view, and manage autoloaded options in the wp_options table, with a remotely managed configuration.
- * Version:           4.1.13
+ * Version:           4.1.14
  * Author:            Milan Petrović
  * Author URI:        https://wpspeedopt.net/
  * License:           GPL v2 or later
@@ -15,7 +15,7 @@
 /**
  * Define AO_PLUGIN_VERSION for telemetry
  */
-define('AO_PLUGIN_VERSION', '4.1.13');
+define('AO_PLUGIN_VERSION', '4.1.14');
 define('AO_PLUGIN_FILE', __FILE__);
 
 // Prevent direct access
@@ -150,12 +150,41 @@ function ao_get_config() {
 }
 
 /**
+ * Validates telemetry data quality before sending
+ */
+function ao_validate_telemetry_data($telemetry_data) {
+    // Ensure we have minimum required data
+    if (empty($telemetry_data['site_hash']) || empty($telemetry_data['site_url'])) {
+        return false;
+    }
+
+    // Check if data is too old (prevent sending stale data)
+    $data_age = current_time('timestamp') - $telemetry_data['timestamp'];
+    if ($data_age > 86400) { // 24 hours
+        return false;
+    }
+
+    // Ensure we have meaningful data to send
+    $has_data = !empty($telemetry_data['unknown_options']) ||
+                !empty($telemetry_data['known_plugins']) ||
+                !empty($telemetry_data['known_themes']);
+
+    return $has_data;
+}
+
+/**
  * Collects telemetry data for unknown options and site information
  */
 function ao_collect_telemetry_data($grouped_options, $config) {
     // Check if telemetry is disabled
     if (get_option('ao_telemetry_disabled') === '1') {
         return;
+    }
+
+    // Prevent sending telemetry too frequently (max once per day)
+    $last_telemetry = get_transient('ao_last_telemetry_send');
+    if ($last_telemetry && (current_time('timestamp') - $last_telemetry) < 86400) {
+        return; // Skip if sent within last 24 hours
     }
 
     $unknown_options = [];
@@ -203,10 +232,11 @@ function ao_collect_telemetry_data($grouped_options, $config) {
         'stylesheet' => $active_theme->get_stylesheet()
     ];
 
-    // Always send telemetry data (simplified logic)
+    // Enhanced telemetry data with better deduplication support
     $telemetry_data = [
         'site_hash' => $site_hash,
-        'site_url' => get_site_url(), // Include site URL for deduplication
+        'site_url' => get_site_url(), // Primary deduplication key
+        'site_domain' => parse_url(get_site_url(), PHP_URL_HOST), // Additional deduplication key
         'unknown_options' => $unknown_options,
         'known_plugins' => $known_plugins,
         'known_themes' => $known_themes,
@@ -214,8 +244,19 @@ function ao_collect_telemetry_data($grouped_options, $config) {
         'php_version' => PHP_VERSION,
         'plugin_count' => count(get_option('active_plugins', [])),
         'config_version' => $config['version'] ?? 'unknown',
-        'timestamp' => current_time('timestamp')
+        'timestamp' => current_time('timestamp'),
+        'plugin_version' => AO_PLUGIN_VERSION,
+        'data_version' => '2.0', // Version of telemetry data format
+        'submission_type' => 'full_scan' // Type of telemetry submission
     ];
+
+    // Validate data quality before sending
+    if (!ao_validate_telemetry_data($telemetry_data)) {
+        return; // Skip sending if data is invalid or empty
+    }
+
+    // Set transient to track last send time
+    set_transient('ao_last_telemetry_send', current_time('timestamp'), 86400); // 24 hours
 
     // Send telemetry asynchronously
     wp_schedule_single_event(time() + 30, 'ao_send_telemetry_event', [$telemetry_data]);
