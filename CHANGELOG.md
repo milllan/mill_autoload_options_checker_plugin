@@ -2,11 +2,17 @@
 
 ## [4.1.14] - 2025-09-08
 
+### Added
+- Telemetry backend with deduplication logic
+- Dashboard for viewing telemetry data with proper unique site handling
+
 ### Changed
 - Improve telemetry data quality and deduplication
+- Revert autoloaded_options_checker.php to commit 4c765f6
 
 ### Fixed
 - Fix deprecated set-output commands in GitHub Actions
+- Ensure stats account for latest submission per unique site only
 
 
 
