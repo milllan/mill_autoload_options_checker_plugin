@@ -1,7 +1,19 @@
 #!/bin/bash
 
 # Release script for Autoloaded Options Optimizer Plugin
-# Usage: ./release.sh [patch|minor|major]
+# Usage: ./release.sh [patch|minor|major|custom_version]
+#
+# This script automates the release process:
+# 1. Updates version in plugin file
+# 2. Commits version change
+# 3. Waits for changelog update
+# 4. Creates and pushes git tag
+# 5. Triggers automated GitHub release
+#
+# Requirements:
+# - Git repository with remote configured
+# - No uncommitted changes
+# - GitHub Actions workflows set up
 
 set -e
 

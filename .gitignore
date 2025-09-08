@@ -4,3 +4,6 @@
 /repomix-output.xml
 /prompt.md
 telemetry-backend/
+
+# Development scripts are tracked in git for consistency
+# release.sh and changelog.sh are development tools that should be shared
