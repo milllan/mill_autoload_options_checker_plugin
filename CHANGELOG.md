@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.1.15] - 2025-09-08
+
+### Added
+- Add telemetry data management features
+
+
+
 ## [4.1.14] - 2025-09-08
 
 ### Added
