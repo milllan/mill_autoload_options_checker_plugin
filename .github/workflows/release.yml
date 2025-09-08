@@ -95,7 +95,14 @@ jobs:
         NOTES="${NOTES//$'\r'/'%0D'}"
         echo "notes=$NOTES" >> $GITHUB_OUTPUT
 
+    - name: Create plugin zip
+      run: |
+        # Create a clean zip of the plugin (excluding .git and other unnecessary files)
+        zip -r autoload-options-optimizer-${{ steps.get_version.outputs.version }}.zip . \
+          -x "*.git*" ".github/*" "*.md" "composer.json" "config.json" ".gitignore" "lib/plugin-update-checker/vendor/*"
+
     - name: Create GitHub Release
+      id: create_release
       uses: actions/create-release@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -114,3 +121,13 @@ jobs:
           **${{ steps.get_version.outputs.version }}**
         draft: false
         prerelease: false
+
+    - name: Upload release asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./autoload-options-optimizer-${{ steps.get_version.outputs.version }}.zip
+        asset_name: autoload-options-optimizer-${{ steps.get_version.outputs.version }}.zip
+        asset_content_type: application/zip
