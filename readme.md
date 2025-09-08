@@ -54,12 +54,47 @@ The brain of this plugin is the `config.json` file hosted in this repository. Th
 -   `safe_literals` & `safe_patterns`: These arrays contain option names and patterns that are known to be safe for disabling autoload, even if their parent plugin is active. These are typically cache entries, logs, or admin-only data.
 -   `recommendations`: Provides user-facing advice and warnings for specific plugins or options, which are displayed in the "Recommendations" card on the admin page.
 
+## Telemetry & Data Collection
+
+The plugin includes an optional telemetry feature to help improve coverage for new plugins and themes.
+
+### What Data is Collected
+When enabled, the plugin sends anonymous usage data including:
+- Names and sizes of unknown autoloaded options (>10KB only)
+- WordPress and PHP version numbers
+- Count of active plugins and themes (no names)
+- Configuration version
+
+**What is NOT collected:**
+- Option values or sensitive data
+- Site URLs, emails, or personal information
+- Names of known plugins/themes
+- Database contents or file system data
+
+### How to Enable
+1. Go to **Tools → Autoloaded Options Optimizer**
+2. Check the "Help Improve the Plugin" option
+3. Click "Save Settings"
+
+### Manual Data Submission
+You can also manually send telemetry data:
+1. Enable telemetry in settings
+2. Click "Send Telemetry Data Now" button
+3. Data is sent securely via HTTPS
+
+### Privacy & Data Handling
+- Telemetry is completely opt-in
+- Data is sent securely via HTTPS
+- You can disable telemetry at any time
+- Data helps identify popular plugins/themes to add support for
+
 ## Contributing
 
 While this is primarily a personal tool, feedback and contributions that align with the core philosophy are welcome.
 
 -   **Bug Reports & Suggestions:** Please open an [Issue](https://github.com/milllan/mill_autoload_options_checker_plugin/issues) with a clear description of the problem or feature request.
 -   **Improving `config.json`:** If you identify an "Unknown" option and successfully trace its source, please submit a Pull Request to add it to the `config.json`. This is the easiest and most valuable way to contribute!
+-   **Telemetry Data:** The plugin collects anonymous usage data to help identify new plugins/themes. Enable this in settings to contribute to improving the plugin.
 
 ## License
 

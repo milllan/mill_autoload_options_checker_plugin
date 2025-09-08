@@ -3,3 +3,4 @@
 # XML output files from repomix tool
 /repomix-output.xml
 /prompt.md
+telemetry-backend/

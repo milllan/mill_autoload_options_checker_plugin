@@ -3,7 +3,10 @@
  * Plugin Name:       Autoloaded Options Optimizer
  * Plugin URI:        https://github.com/milllan/mill_autoload_options_checker_plugin
  * Description:       A tool to analyze, view, and manage autoloaded options in the wp_options table, with a remotely managed configuration.
- * Version:           4.1.1
+ * Version:           4.1.2
+ * Define AO_PLUGIN_VERSION for telemetry
+ */
+define('AO_PLUGIN_VERSION', '4.1.2');
  * Author:            Milan Petrović
  * Author URI:        https://wpspeedopt.net/
  * License:           GPL v2 or later
@@ -35,6 +38,12 @@ function ao_register_ajax_handlers() {
     add_action('wp_ajax_ao_disable_autoload_options', 'ao_ajax_disable_autoload_options');
     add_action('wp_ajax_ao_get_option_value', 'ao_ajax_get_option_value');
     add_action('wp_ajax_ao_find_option_in_files', 'ao_ajax_find_option_in_files');
+    add_action('wp_ajax_ao_send_telemetry', 'ao_ajax_send_telemetry');
+}
+
+add_action('admin_init', 'ao_register_settings');
+function ao_register_settings() {
+    register_setting('ao_settings', 'ao_telemetry_disabled');
 }
 
 add_action('admin_head-tools_page_autoloaded-options', 'ao_admin_page_styles');
@@ -135,6 +144,113 @@ final class AO_Remote_Config_Manager {
 
 function ao_get_config() {
     return AO_Remote_Config_Manager::get_instance()->get_config();
+}
+
+/**
+ * Collects telemetry data for unknown options and site information
+ */
+function ao_collect_telemetry_data($grouped_options, $config) {
+    // Check if telemetry is disabled
+    if (get_option('ao_telemetry_disabled') === '1') {
+        return;
+    }
+
+    $unknown_options = [];
+    $known_plugins = [];
+    $known_themes = [];
+    $site_hash = hash('sha256', get_site_url());
+
+    // Collect unknown options
+    foreach ($grouped_options as $plugin_name => $group_data) {
+        if ($plugin_name === __('Unknown', 'autoload-optimizer')) {
+            foreach ($group_data['options'] as $option) {
+                // Collect all unknown options > 1KB
+                if ($option['length'] >= 1024) {
+                    $unknown_options[] = [
+                        'name' => $option['name'],
+                        'size' => $option['length'],
+                        'size_kb' => round($option['length'] / 1024, 2)
+                    ];
+                }
+            }
+        } else {
+            // Collect known plugins/themes
+            $total_size = 0;
+            foreach ($group_data['options'] as $option) {
+                $total_size += $option['length'];
+            }
+
+            if ($plugin_name !== __('WordPress Core', 'autoload-optimizer') &&
+                $plugin_name !== __('WordPress Core (Transient)', 'autoload-optimizer')) {
+                $known_plugins[] = [
+                    'name' => $plugin_name,
+                    'option_count' => $group_data['count'],
+                    'total_size' => $total_size,
+                    'total_size_kb' => round($total_size / 1024, 2)
+                ];
+            }
+        }
+    }
+
+    // Get active theme info
+    $active_theme = wp_get_theme();
+    $known_themes[] = [
+        'name' => $active_theme->get('Name'),
+        'version' => $active_theme->get('Version'),
+        'stylesheet' => $active_theme->get_stylesheet()
+    ];
+
+    // Always send telemetry data (simplified logic)
+    $telemetry_data = [
+        'site_hash' => $site_hash,
+        'site_url' => get_site_url(), // Include site URL for deduplication
+        'unknown_options' => $unknown_options,
+        'known_plugins' => $known_plugins,
+        'known_themes' => $known_themes,
+        'wp_version' => get_bloginfo('version'),
+        'php_version' => PHP_VERSION,
+        'plugin_count' => count(get_option('active_plugins', [])),
+        'config_version' => $config['version'] ?? 'unknown',
+        'timestamp' => current_time('timestamp')
+    ];
+
+    // Send telemetry asynchronously
+    wp_schedule_single_event(time() + 30, 'ao_send_telemetry_event', [$telemetry_data]);
+}
+
+/**
+ * Scheduled event to send telemetry data
+ */
+add_action('ao_send_telemetry_event', 'ao_send_telemetry_event_handler');
+function ao_send_telemetry_event_handler($telemetry_data) {
+    ao_send_telemetry_data($telemetry_data);
+}
+
+/**
+ * Sends telemetry data to the collection endpoint
+ */
+function ao_send_telemetry_data($telemetry_data) {
+    $endpoint = apply_filters('ao_telemetry_endpoint', 'https://wpspeedopt.net/telemetry-backend/telemetry-collector.php');
+
+    $response = wp_remote_post($endpoint, [
+        'method' => 'POST',
+        'timeout' => 15,
+        'headers' => [
+            'Content-Type' => 'application/json',
+            'User-Agent' => 'AutoloadedOptionsOptimizer/' . AO_PLUGIN_VERSION
+        ],
+        'body' => wp_json_encode($telemetry_data)
+    ]);
+
+    // Log success/failure for debugging (optional)
+    if (is_wp_error($response)) {
+        error_log('AO Telemetry Error: ' . $response->get_error_message());
+    } else {
+        $response_code = wp_remote_retrieve_response_code($response);
+        if ($response_code !== 200) {
+            error_log('AO Telemetry HTTP Error: ' . $response_code . ' - ' . wp_remote_retrieve_body($response));
+        }
+    }
 }
 
 /**
@@ -259,6 +375,11 @@ function ao_get_analysis_data() {
     }
     
     uasort($grouped_options, function($a, $b) { return $b['total_size'] <=> $a['total_size']; });
+
+    // Collect telemetry data for unknown options if enabled
+    if (get_option('ao_telemetry_enabled') === '1') {
+        ao_collect_telemetry_data($grouped_options, $config);
+    }
 
     return [
         'total_autoload_stats' => $total_autoload_stats,
@@ -388,6 +509,40 @@ function ao_display_admin_page() {
         <div class="notice notice-info notice-alt" style="margin-top: 1rem;">
             <p><strong><?php _e('Configuration Status:', 'autoload-optimizer'); ?></strong> <?php echo esc_html($status_message); ?></p>
             <p><a href="<?php echo esc_url(wp_nonce_url(add_query_arg('ao_refresh_config', '1'), 'ao_refresh_config')); ?>" class="button"><?php _e('Force Refresh Configuration', 'autoload-optimizer'); ?></a></p>
+        </div>
+
+        <div class="card" style="margin-top: 1rem;">
+            <h2 class="title"><?php _e('Telemetry Settings', 'autoload-optimizer'); ?></h2>
+            <form method="post" action="options.php">
+                <?php settings_fields('ao_settings'); ?>
+                <table class="form-table">
+                    <tr>
+                        <th scope="row"><?php _e('Usage Data Collection', 'autoload-optimizer'); ?></th>
+                        <td>
+                            <label for="ao_telemetry_disabled">
+                                <input type="checkbox" id="ao_telemetry_disabled" name="ao_telemetry_disabled" value="1" <?php checked(get_option('ao_telemetry_disabled'), '1'); ?> />
+                                <?php _e('Disable anonymous usage data collection', 'autoload-optimizer'); ?>
+                            </label>
+                            <p class="description">
+                                <?php _e('By default, the plugin sends anonymous usage data to help improve plugin coverage and identify popular plugins/themes. This includes option names, sizes, and site information but no sensitive data. Uncheck to disable.', 'autoload-optimizer'); ?>
+                                <a href="#" id="ao-privacy-details"><?php _e('Learn more about what data is collected', 'autoload-optimizer'); ?></a>
+                            </p>
+                            <p class="description">
+                                <strong><?php _e('Note:', 'autoload-optimizer'); ?></strong> <?php _e('To collect telemetry data, you need to set up the telemetry collector endpoint. Use the filter', 'autoload-optimizer'); ?> <code>ao_telemetry_endpoint</code> <?php _e('or modify the endpoint URL in the plugin code.', 'autoload-optimizer'); ?>
+                            </p>
+                            <?php if (get_option('ao_telemetry_disabled') !== '1') : ?>
+                            <p>
+                                <button type="button" id="ao-send-telemetry" class="button button-secondary">
+                                    <?php _e('Send Telemetry Data Now', 'autoload-optimizer'); ?>
+                                </button>
+                                <span id="ao-telemetry-status"></span>
+                            </p>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                </table>
+                <?php submit_button(__('Save Settings', 'autoload-optimizer')); ?>
+            </form>
         </div>
         
         <div id="ao-dashboard-widgets-wrap" style="display: flex; gap: 20px; margin-top: 1rem;">
@@ -524,6 +679,27 @@ function ao_display_admin_page() {
         <?php endif; ?>
 
         <div id="ao-option-modal-overlay"><div id="ao-option-modal-content"><span class="close-modal">&times;</span><h2 id="ao-option-modal-title"></h2><div id="ao-modal-body"></div></div></div>
+        <div id="ao-privacy-modal-overlay"><div id="ao-privacy-modal-content"><span class="close-modal">&times;</span><h2><?php _e('Telemetry Data Collection', 'autoload-optimizer'); ?></h2><div id="ao-privacy-body">
+            <p><strong><?php _e('What data is collected:', 'autoload-optimizer'); ?></strong></p>
+            <ul>
+                <li><?php _e('Site URL (hashed for privacy, used for deduplication)', 'autoload-optimizer'); ?></li>
+                <li><?php _e('Names and sizes of unknown autoloaded options (no values)', 'autoload-optimizer'); ?></li>
+                <li><?php _e('Names and usage statistics of known plugins/themes', 'autoload-optimizer'); ?></li>
+                <li><?php _e('WordPress and PHP version numbers', 'autoload-optimizer'); ?></li>
+                <li><?php _e('Total count of active plugins and themes', 'autoload-optimizer'); ?></li>
+            </ul>
+            <p><strong><?php _e('What is NOT collected:', 'autoload-optimizer'); ?></strong></p>
+            <ul>
+                <li><?php _e('Option values or sensitive data', 'autoload-optimizer'); ?></li>
+                <li><?php _e('Admin email, passwords, or personal information', 'autoload-optimizer'); ?></li>
+                <li><?php _e('Database contents or file system data', 'autoload-optimizer'); ?></li>
+                <li><?php _e('User-generated content or media files', 'autoload-optimizer'); ?></li>
+            </ul>
+            <p><strong><?php _e('How the data helps:', 'autoload-optimizer'); ?></strong></p>
+            <p><?php _e('This data helps identify popular plugins/themes and track usage patterns across different websites. The site URL hash prevents duplicate submissions while allowing us to see how sites change over time. This improves plugin coverage and helps prioritize development efforts.', 'autoload-optimizer'); ?></p>
+            <p><strong><?php _e('Data handling:', 'autoload-optimizer'); ?></strong></p>
+            <p><?php _e('Data is sent securely via HTTPS and stored temporarily for analysis. Site URLs are hashed before storage. You can disable telemetry at any time in the settings above.', 'autoload-optimizer'); ?></p>
+        </div></div></div>
     </div>
     <?php
 }
@@ -531,7 +707,7 @@ function ao_display_admin_page() {
 function ao_admin_page_styles() {
     ?>
     <style>
-        .wp-list-table .column-option-name { width: 35%; } .wp-list-table .column-size, .wp-list-table .column-percentage { width: 8%; } .wp-list-table .column-plugin { width: 15%; } .wp-list-table .column-status { width: 12%; } .wp-list-table .column-action { width: 10%; } .wp-list-table tbody tr.group-color-a { background-color: #ffffff; } .wp-list-table tbody tr.group-color-b { background-color: #f6f7f7; } .wp-list-table tbody tr:hover { background-color: #f0f0f1 !important; } .wp-list-table tbody tr.ao-row-processed { opacity: 0.6; pointer-events: none; } .plugin-header th, .plugin-header td { font-weight: bold; background-color: #f0f0f1; border-bottom: 1px solid #ddd; } .view-option-content { cursor: pointer; } #ao-option-modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.7); z-index: 10001; justify-content: center; align-items: center; } #ao-option-modal-content { background: #fff; padding: 20px; border-radius: 4px; width: 80%; max-width: 900px; max-height: 80vh; overflow-y: auto; position: relative; } .close-modal { position: absolute; top: 5px; right: 15px; font-size: 28px; font-weight: bold; cursor: pointer; color: #555; } #ao-modal-body pre { background: #f1f1f1; padding: 15px; border: 1px solid #ddd; white-space: pre-wrap; word-wrap: break-word; }
+        .wp-list-table .column-option-name { width: 35%; } .wp-list-table .column-size, .wp-list-table .column-percentage { width: 8%; } .wp-list-table .column-plugin { width: 15%; } .wp-list-table .column-status { width: 12%; } .wp-list-table .column-action { width: 10%; } .wp-list-table tbody tr.group-color-a { background-color: #ffffff; } .wp-list-table tbody tr.group-color-b { background-color: #f6f7f7; } .wp-list-table tbody tr:hover { background-color: #f0f0f1 !important; } .wp-list-table tbody tr.ao-row-processed { opacity: 0.6; pointer-events: none; } .plugin-header th, .plugin-header td { font-weight: bold; background-color: #f0f0f1; border-bottom: 1px solid #ddd; } .view-option-content { cursor: pointer; }         #ao-option-modal-overlay, #ao-privacy-modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.7); z-index: 10001; justify-content: center; align-items: center; } #ao-option-modal-content, #ao-privacy-modal-content { background: #fff; padding: 20px; border-radius: 4px; width: 80%; max-width: 900px; max-height: 80vh; overflow-y: auto; position: relative; } .close-modal { position: absolute; top: 5px; right: 15px; font-size: 28px; font-weight: bold; cursor: pointer; color: #555; } #ao-modal-body pre, #ao-privacy-body { background: #f1f1f1; padding: 15px; border: 1px solid #ddd; white-space: pre-wrap; word-wrap: break-word; }
     </style>
     <?php
 }
@@ -647,6 +823,85 @@ function ao_ajax_find_option_in_files() {
         $html .= '</ul>';
     }
     wp_send_json_success(['html' => $html]);
+}
+
+/**
+ * AJAX handler for sending telemetry data
+ */
+function ao_ajax_send_telemetry() {
+    check_ajax_referer('ao_telemetry_nonce', 'nonce');
+
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error(['message' => __('Permission denied.', 'autoload-optimizer')]);
+    }
+
+    if (get_option('ao_telemetry_disabled') === '1') {
+        wp_send_json_error(['message' => __('Telemetry is disabled.', 'autoload-optimizer')]);
+    }
+
+    $data = ao_get_analysis_data();
+    $config = $data['config'];
+
+    // Collect all data using the same logic as automatic collection
+    $unknown_options = [];
+    $known_plugins = [];
+    $site_hash = hash('sha256', get_site_url());
+
+    // Collect unknown options
+    foreach ($data['grouped_options'] as $plugin_name => $group_data) {
+        if ($plugin_name === __('Unknown', 'autoload-optimizer')) {
+            foreach ($group_data['options'] as $option) {
+                if ($option['length'] >= 1024) {
+                    $unknown_options[] = [
+                        'name' => $option['name'],
+                        'size' => $option['length'],
+                        'size_kb' => round($option['length'] / 1024, 2)
+                    ];
+                }
+            }
+        } else {
+            // Collect known plugins/themes
+            $total_size = 0;
+            foreach ($group_data['options'] as $option) {
+                $total_size += $option['length'];
+            }
+
+            if ($plugin_name !== __('WordPress Core', 'autoload-optimizer') &&
+                $plugin_name !== __('WordPress Core (Transient)', 'autoload-optimizer')) {
+                $known_plugins[] = [
+                    'name' => $plugin_name,
+                    'option_count' => $group_data['count'],
+                    'total_size' => $total_size,
+                    'total_size_kb' => round($total_size / 1024, 2)
+                ];
+            }
+        }
+    }
+
+    // Get active theme info
+    $active_theme = wp_get_theme();
+    $known_themes = [[
+        'name' => $active_theme->get('Name'),
+        'version' => $active_theme->get('Version'),
+        'stylesheet' => $active_theme->get_stylesheet()
+    ]];
+
+    $telemetry_data = [
+        'site_hash' => $site_hash,
+        'site_url' => get_site_url(),
+        'unknown_options' => $unknown_options,
+        'known_plugins' => $known_plugins,
+        'known_themes' => $known_themes,
+        'wp_version' => get_bloginfo('version'),
+        'php_version' => PHP_VERSION,
+        'plugin_count' => count(get_option('active_plugins', [])),
+        'config_version' => $config['version'] ?? 'unknown',
+        'timestamp' => current_time('timestamp'),
+        'manual_send' => true
+    ];
+
+    ao_send_telemetry_data($telemetry_data);
+    wp_send_json_success(['message' => __('Telemetry data sent successfully. Thank you for helping improve the plugin!', 'autoload-optimizer')]);
 }
 
 
@@ -838,6 +1093,65 @@ function ao_admin_page_scripts() {
 
         modalOverlay.addEventListener('click', e => { if (e.target === modalOverlay) hideModal(); });
         modalContent.querySelector('.close-modal').addEventListener('click', hideModal);
+
+        // Privacy modal handling
+        const privacyOverlay = document.getElementById('ao-privacy-modal-overlay');
+        const privacyModal = document.getElementById('ao-privacy-modal-content');
+        const privacyLink = document.getElementById('ao-privacy-details');
+
+        function showPrivacyModal() {
+            privacyOverlay.style.display = 'flex';
+        }
+
+        function hidePrivacyModal() {
+            privacyOverlay.style.display = 'none';
+        }
+
+        if (privacyLink) {
+            privacyLink.addEventListener('click', e => {
+                e.preventDefault();
+                showPrivacyModal();
+            });
+        }
+
+        if (privacyOverlay) {
+            privacyOverlay.addEventListener('click', e => { if (e.target === privacyOverlay) hidePrivacyModal(); });
+            privacyModal.querySelector('.close-modal').addEventListener('click', hidePrivacyModal);
+        }
+
+        // Manual telemetry send
+        const sendTelemetryBtn = document.getElementById('ao-send-telemetry');
+        const telemetryStatus = document.getElementById('ao-telemetry-status');
+
+        if (sendTelemetryBtn) {
+            sendTelemetryBtn.addEventListener('click', e => {
+                e.preventDefault();
+                sendTelemetryBtn.disabled = true;
+                telemetryStatus.textContent = '<?php _e('Sending...', 'autoload-optimizer'); ?>';
+
+                const formData = new FormData();
+                formData.append('action', 'ao_send_telemetry');
+                formData.append('nonce', '<?php echo wp_create_nonce('ao_telemetry_nonce'); ?>');
+
+                fetch(ajaxurl, { method: 'POST', body: formData })
+                    .then(response => response.json())
+                    .then(data => {
+                        telemetryStatus.textContent = data.success
+                            ? '<?php _e('✓ Sent successfully!', 'autoload-optimizer'); ?>'
+                            : '<?php _e('✗ Failed to send', 'autoload-optimizer'); ?>';
+                        if (!data.success) {
+                            console.error('Telemetry error:', data.data.message);
+                        }
+                    })
+                    .catch(() => {
+                        telemetryStatus.textContent = '<?php _e('✗ Network error', 'autoload-optimizer'); ?>';
+                    })
+                    .finally(() => {
+                        sendTelemetryBtn.disabled = false;
+                        setTimeout(() => { telemetryStatus.textContent = ''; }, 5000);
+                    });
+            });
+        }
     });
     </script>
     <?php
