@@ -481,10 +481,6 @@
             "name": "Limit Login Attempts Reloaded",
             "file": "limit-login-attempts-reloaded/limit-login-attempts-reloaded.php"
         },
-        "mainwp_child_*": {
-            "name": "MainWP Child",
-            "file": "mainwp-child/mainwp-child.php"
-        },
         "fs_accounts": {
             "name": "Freemius SDK (Shared by Multiple Plugins)",
             "file": "freemius_sdk"
