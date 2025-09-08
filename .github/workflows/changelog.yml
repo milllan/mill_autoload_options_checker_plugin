@@ -26,7 +26,7 @@ jobs:
               id: current_version
               run: |
                   VERSION=$(grep "Version:" autoloaded_options_checker.php | head -1 | sed 's/.*Version:\s*//')
-                  echo "version=$VERSION" >> $GITHUB_OUTPUT
+                  echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
             - name: Check if version changed
               id: version_check
@@ -36,11 +36,11 @@ jobs:
                   CURRENT_VERSION=$(grep "Version:" autoloaded_options_checker.php | head -1 | sed 's/.*Version:\s*//')
 
                   if [ "$PREV_VERSION" != "$CURRENT_VERSION" ]; then
-                    echo "changed=true" >> $GITHUB_OUTPUT
-                    echo "prev_version=$PREV_VERSION" >> $GITHUB_OUTPUT
-                    echo "new_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+                    echo "changed=true" >> "$GITHUB_OUTPUT"
+                    echo "prev_version=$PREV_VERSION" >> "$GITHUB_OUTPUT"
+                    echo "new_version=$CURRENT_VERSION" >> "$GITHUB_OUTPUT"
                   else
-                    echo "changed=false" >> $GITHUB_OUTPUT
+                    echo "changed=false" >> "$GITHUB_OUTPUT"
                   fi
 
             - name: Generate changelog entry
