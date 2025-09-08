@@ -3,7 +3,7 @@
  * Plugin Name:       Autoloaded Options Optimizer
  * Plugin URI:        https://github.com/milllan/mill_autoload_options_checker_plugin
  * Description:       A tool to analyze, view, and manage autoloaded options in the wp_options table, with a remotely managed configuration.
- * Version:           4.1.7
+ * Version:           4.1.8
  * Author:            Milan Petrović
  * Author URI:        https://wpspeedopt.net/
  * License:           GPL v2 or later
@@ -15,7 +15,7 @@
 /**
  * Define AO_PLUGIN_VERSION for telemetry
  */
-define('AO_PLUGIN_VERSION', '4.1.7');
+define('AO_PLUGIN_VERSION', '4.1.8');
 
 // Prevent direct access
 if (!defined('ABSPATH')) {
@@ -627,36 +627,39 @@ function ao_display_admin_page() {
                 </form>
             </div>
 
-            <div class="card" style="flex: 1;">
-                <h2 class="title"><?php _e('Telemetry Settings', 'autoload-optimizer'); ?></h2>
-            <form method="post" action="options.php">
-                <?php settings_fields('ao_settings'); ?>
-                <table class="form-table">
-                    <tr>
-                        <th scope="row"><?php _e('Usage Data Collection', 'autoload-optimizer'); ?></th>
-                        <td>
-                            <label for="ao_telemetry_disabled">
-                                <input type="checkbox" id="ao_telemetry_disabled" name="ao_telemetry_disabled" value="1" <?php checked(get_option('ao_telemetry_disabled'), '1'); ?> />
-                                <?php _e('Disable anonymous usage data collection', 'autoload-optimizer'); ?>
-                            </label>
-                            <p class="description">
-                                <?php _e('By default, the plugin sends anonymous usage data to help improve plugin coverage and identify popular plugins/themes. This includes option names, sizes, and site information but no sensitive data. Uncheck to disable.', 'autoload-optimizer'); ?>
+             <div class="card" style="flex: 1;">
+                 <h2 class="title"><?php _e('Telemetry Settings', 'autoload-optimizer'); ?></h2>
+             <form method="post" action="options.php">
+                 <?php settings_fields('ao_settings'); ?>
 
-                            </p>
-                            <?php if (get_option('ao_telemetry_disabled') !== '1') : ?>
-                            <p>
-                                <button type="button" id="ao-send-telemetry" class="button button-secondary">
-                                    <?php _e('Send Telemetry Data Now', 'autoload-optimizer'); ?>
-                                </button>
-                                <span id="ao-telemetry-status"></span>
-                            </p>
-                            <?php endif; ?>
-                        </td>
-                    </tr>
-                </table>
-                <?php submit_button(__('Save Settings', 'autoload-optimizer')); ?>
-            </form>
-        </div>
+                 <div style="margin-bottom: 0;">
+                     <label for="ao_telemetry_disabled" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">
+                         <input type="checkbox" id="ao_telemetry_disabled" name="ao_telemetry_disabled" value="1" <?php checked(get_option('ao_telemetry_disabled'), '1'); ?> style="margin-right: 8px;" />
+                         <?php _e('Disable anonymous usage data collection', 'autoload-optimizer'); ?>
+                     </label>
+                     <p class="description" style="margin: 0.5rem 0; color: #666; font-size: 13px; line-height: 1.4;">
+                         <?php _e('By default, the plugin sends anonymous usage data to help improve plugin coverage and identify popular plugins/themes. This includes option names, sizes, and site information but no sensitive data. Uncheck to disable.', 'autoload-optimizer'); ?>
+                     </p>
+                 </div>
+
+                 <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #ddd;">
+                     <?php if (get_option('ao_telemetry_disabled') !== '1') : ?>
+                         <div>
+                             <button type="button" id="ao-send-telemetry" class="button button-secondary">
+                                 <?php _e('Send Telemetry Data Now', 'autoload-optimizer'); ?>
+                             </button>
+                             <span id="ao-telemetry-status" style="margin-left: 10px; font-style: italic;"></span>
+                         </div>
+                     <?php else: ?>
+                         <div></div>
+                     <?php endif; ?>
+
+                     <div>
+                         <?php submit_button(__('Save Settings', 'autoload-optimizer')); ?>
+                     </div>
+                 </div>
+             </form>
+         </div>
         </div>
 
         <?php
@@ -777,18 +780,45 @@ function ao_ajax_find_option_in_files() {
         wp_send_json_error(['message' => __('Invalid characters in option name.', 'autoload-optimizer')]);
     }
 
+    // Check cache first
+    $cache_key = 'ao_file_search_' . md5($option_name);
+    $cached_results = get_transient($cache_key);
+    if (false !== $cached_results) {
+        wp_send_json_success(['html' => $cached_results]);
+        return;
+    }
+
     $results = [];
     $search_paths = [
         'Plugins' => WP_PLUGIN_DIR,
         'Themes'  => get_theme_root(),
     ];
 
+    $start_time = microtime(true);
+    $timeout = 90; // 90 seconds
+
     foreach ($search_paths as $type => $path) {
         if (!is_dir($path) || !is_readable($path)) continue;
         $directory = new RecursiveDirectoryIterator($path, FilesystemIterator::SKIP_DOTS | FilesystemIterator::UNIX_PATHS);
-        $iterator  = new RecursiveIteratorIterator($directory);
+
+        // Add directory filtering to skip common large directories
+        $filtered_iterator = new class($directory) extends RecursiveFilterIterator {
+            public function accept() {
+                $file = $this->current();
+                $basename = $file->getBasename();
+                return !in_array($basename, ['node_modules', 'vendor', '.git', 'dist', 'build', 'cache', '.svn', 'node_modules']);
+            }
+        };
+
+        $iterator  = new RecursiveIteratorIterator($filtered_iterator);
         $regex     = new RegexIterator($iterator, '/\.(php|js|inc)$/i');
+
         foreach ($regex as $file) {
+            // Check timeout
+            if (microtime(true) - $start_time > $timeout) {
+                break 2; // Break out of both foreach loops
+            }
+
             // Check if file is readable and not excessively large to avoid performance issues.
             if ($file->isReadable() && $file->getSize() > 0 && $file->getSize() < 500000) {
                 $content = @file_get_contents($file->getPathname());
@@ -812,6 +842,10 @@ function ao_ajax_find_option_in_files() {
         }
         $html .= '</ul>';
     }
+
+    // Cache the HTML result for 1 hour
+    set_transient($cache_key, $html, HOUR_IN_SECONDS);
+
     wp_send_json_success(['html' => $html]);
 }
 
