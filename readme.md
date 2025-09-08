@@ -69,10 +69,51 @@ The script will:
 If you prefer to do it manually:
 
 1. Update the version in `autoloaded_options_checker.php` (both header and constant)
-2. Commit your changes: `git commit -m "Your commit message"`
-3. Create a tag: `git tag -a v4.1.4 -m "Release 4.1.4"`
-4. Push changes and tag: `git push origin main && git push origin v4.1.4`
-5. GitHub Actions will automatically create the release
+2. Update the changelog: `./changelog.sh add` (or edit manually)
+3. Commit your changes: `git commit -m "Your commit message"`
+4. Create a tag: `git tag -a v4.1.4 -m "Release 4.1.4"`
+5. Push changes and tag: `git push origin main && git push origin v4.1.4`
+6. GitHub Actions will automatically create the release with changelog
+
+### Changelog Management
+
+The project maintains an automated changelog in `CHANGELOG.md` following [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
+
+#### Automated Changelog
+- **Automatic Updates**: Changelog is automatically updated when version changes are detected
+- **Commit Analysis**: GitHub Actions analyzes commit messages to categorize changes
+- **Release Integration**: Changelog entries are automatically included in GitHub releases
+
+#### Manual Changelog Editing
+Use the changelog helper script for manual management:
+
+```bash
+# Add a new changelog entry for current version
+./changelog.sh add
+
+# View changelog for specific version
+./changelog.sh view 4.1.3
+
+# Edit existing changelog entry
+./changelog.sh edit 4.1.3
+```
+
+#### Changelog Categories
+- **Added**: New features
+- **Changed**: Changes in existing functionality
+- **Fixed**: Bug fixes
+- **Removed**: Removed features
+- **Security**: Security-related changes
+
+#### Best Practices for Commit Messages
+For better automated categorization, use descriptive commit messages:
+
+```bash
+git commit -m "Add dark mode toggle to settings page"
+git commit -m "Fix memory leak in option processing"
+git commit -m "Update telemetry endpoint configuration"
+git commit -m "Remove deprecated admin notice system"
+```
 
 ## How It Works: The Analysis Process
 
