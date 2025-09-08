@@ -6,5 +6,5 @@
 telemetry-backend/
 
 # Development scripts
-# changelog.sh is tracked as it's a shared development tool
 release.sh
+changelog.sh
