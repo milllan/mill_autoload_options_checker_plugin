@@ -378,8 +378,8 @@ function ao_get_analysis_data() {
     
     uasort($grouped_options, function($a, $b) { return $b['total_size'] <=> $a['total_size']; });
 
-    // Collect telemetry data for unknown options if enabled
-    if (get_option('ao_telemetry_enabled') === '1') {
+    // Collect telemetry data for unknown options
+    if (get_option('ao_telemetry_disabled') !== '1') {
         ao_collect_telemetry_data($grouped_options, $config);
     }
 
@@ -641,10 +641,7 @@ function ao_display_admin_page() {
                             </label>
                             <p class="description">
                                 <?php _e('By default, the plugin sends anonymous usage data to help improve plugin coverage and identify popular plugins/themes. This includes option names, sizes, and site information but no sensitive data. Uncheck to disable.', 'autoload-optimizer'); ?>
-                                <a href="#" id="ao-privacy-details"><?php _e('Learn more about what data is collected', 'autoload-optimizer'); ?></a>
-                            </p>
-                            <p class="description">
-                                <strong><?php _e('Note:', 'autoload-optimizer'); ?></strong> <?php _e('To collect telemetry data, you need to set up the telemetry collector endpoint. Use the filter', 'autoload-optimizer'); ?> <code>ao_telemetry_endpoint</code> <?php _e('or modify the endpoint URL in the plugin code.', 'autoload-optimizer'); ?>
+
                             </p>
                             <?php if (get_option('ao_telemetry_disabled') !== '1') : ?>
                             <p>
@@ -685,27 +682,7 @@ function ao_display_admin_page() {
         <?php endif; ?>
 
         <div id="ao-option-modal-overlay"><div id="ao-option-modal-content"><span class="close-modal">&times;</span><h2 id="ao-option-modal-title"></h2><div id="ao-modal-body"></div></div></div>
-        <div id="ao-privacy-modal-overlay"><div id="ao-privacy-modal-content"><span class="close-modal">&times;</span><h2><?php _e('Telemetry Data Collection', 'autoload-optimizer'); ?></h2><div id="ao-privacy-body">
-            <p><strong><?php _e('What data is collected:', 'autoload-optimizer'); ?></strong></p>
-            <ul>
-                <li><?php _e('Site URL (hashed for privacy, used for deduplication)', 'autoload-optimizer'); ?></li>
-                <li><?php _e('Names and sizes of unknown autoloaded options (no values)', 'autoload-optimizer'); ?></li>
-                <li><?php _e('Names and usage statistics of known plugins/themes', 'autoload-optimizer'); ?></li>
-                <li><?php _e('WordPress and PHP version numbers', 'autoload-optimizer'); ?></li>
-                <li><?php _e('Total count of active plugins and themes', 'autoload-optimizer'); ?></li>
-            </ul>
-            <p><strong><?php _e('What is NOT collected:', 'autoload-optimizer'); ?></strong></p>
-            <ul>
-                <li><?php _e('Option values or sensitive data', 'autoload-optimizer'); ?></li>
-                <li><?php _e('Admin email, passwords, or personal information', 'autoload-optimizer'); ?></li>
-                <li><?php _e('Database contents or file system data', 'autoload-optimizer'); ?></li>
-                <li><?php _e('User-generated content or media files', 'autoload-optimizer'); ?></li>
-            </ul>
-            <p><strong><?php _e('How the data helps:', 'autoload-optimizer'); ?></strong></p>
-            <p><?php _e('This data helps identify popular plugins/themes and track usage patterns across different websites. The site URL hash prevents duplicate submissions while allowing us to see how sites change over time. This improves plugin coverage and helps prioritize development efforts.', 'autoload-optimizer'); ?></p>
-            <p><strong><?php _e('Data handling:', 'autoload-optimizer'); ?></strong></p>
-            <p><?php _e('Data is sent securely via HTTPS and stored temporarily for analysis. Site URLs are hashed before storage. You can disable telemetry at any time in the settings above.', 'autoload-optimizer'); ?></p>
-        </div></div></div>
+
     </div>
     <?php
 }
@@ -717,10 +694,10 @@ function ao_admin_page_styles() {
 
         /* Reduce table row height for better space utilization */
         .wp-list-table tbody tr { height: 32px; }
-        .wp-list-table tbody td, .wp-list-table tbody th { padding: 4px 8px; vertical-align: middle; }
+        .wp-list-table tbody td, .wp-list-table tbody th { padding: 0 8px; vertical-align: middle; }
         .wp-list-table thead th { padding: 8px; }
 
-        #ao-option-modal-overlay, #ao-privacy-modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.7); z-index: 10001; justify-content: center; align-items: center; } #ao-option-modal-content, #ao-privacy-modal-content { background: #fff; padding: 20px; border-radius: 4px; width: 80%; max-width: 900px; max-height: 80vh; overflow-y: auto; position: relative; } .close-modal { position: absolute; top: 5px; right: 15px; font-size: 28px; font-weight: bold; cursor: pointer; color: #555; } #ao-modal-body pre, #ao-privacy-body { background: #f1f1f1; padding: 15px; border: 1px solid #ddd; white-space: pre-wrap; word-wrap: break-word; }
+        #ao-option-modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.7); z-index: 10001; justify-content: center; align-items: center; } #ao-option-modal-content { background: #fff; padding: 20px; border-radius: 4px; width: 80%; max-width: 900px; max-height: 80vh; overflow-y: auto; position: relative; } .close-modal { position: absolute; top: 5px; right: 15px; font-size: 28px; font-weight: bold; cursor: pointer; color: #555; } #ao-modal-body pre { background: #f1f1f1; padding: 15px; border: 1px solid #ddd; white-space: pre-wrap; word-wrap: break-word; }
     </style>
     <?php
 }
@@ -1107,30 +1084,7 @@ function ao_admin_page_scripts() {
         modalOverlay.addEventListener('click', e => { if (e.target === modalOverlay) hideModal(); });
         modalContent.querySelector('.close-modal').addEventListener('click', hideModal);
 
-        // Privacy modal handling
-        const privacyOverlay = document.getElementById('ao-privacy-modal-overlay');
-        const privacyModal = document.getElementById('ao-privacy-modal-content');
-        const privacyLink = document.getElementById('ao-privacy-details');
 
-        function showPrivacyModal() {
-            privacyOverlay.style.display = 'flex';
-        }
-
-        function hidePrivacyModal() {
-            privacyOverlay.style.display = 'none';
-        }
-
-        if (privacyLink) {
-            privacyLink.addEventListener('click', e => {
-                e.preventDefault();
-                showPrivacyModal();
-            });
-        }
-
-        if (privacyOverlay) {
-            privacyOverlay.addEventListener('click', e => { if (e.target === privacyOverlay) hidePrivacyModal(); });
-            privacyModal.querySelector('.close-modal').addEventListener('click', hidePrivacyModal);
-        }
 
         // Manual telemetry send
         const sendTelemetryBtn = document.getElementById('ao-send-telemetry');
