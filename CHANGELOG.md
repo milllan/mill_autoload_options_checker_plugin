@@ -3,6 +3,13 @@
 ## [4.1.15] - 2025-09-08
 
 ### Added
+- Add telemetry data management features
+
+
+
+## [4.1.15] - 2025-09-08
+
+### Added
 - Telemetry backend with deduplication logic
 - Dashboard for viewing telemetry data with proper unique site handling
 
