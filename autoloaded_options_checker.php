@@ -617,17 +617,18 @@ function ao_display_admin_page() {
             </table>
         <?php endif; ?>
 
-        <div class="card" style="margin-top: 1rem;">
-            <h2 class="title"><?php _e('Manual Option Lookup', 'autoload-optimizer'); ?></h2>
-            <p><?php _e('Enter any option name from the wp_options table to view its content.', 'autoload-optimizer'); ?></p>
-            <form id="ao-manual-lookup-form" style="display: flex; gap: 10px; align-items: center;">
-                <input type="text" id="ao-manual-option-name" name="option_name" placeholder="<?php _e('e.g., active_plugins', 'autoload-optimizer'); ?>" style="width: 300px;" required>
-                <button type="submit" class="button button-secondary"><?php _e('View Option', 'autoload-optimizer'); ?></button>
-            </form>
-        </div>
+        <div id="ao-bottom-widgets-wrap" style="display: flex; gap: 20px; margin-top: 1rem;">
+            <div class="card" style="flex: 1;">
+                <h2 class="title"><?php _e('Manual Option Lookup', 'autoload-optimizer'); ?></h2>
+                <p><?php _e('Enter any option name from the wp_options table to view its content.', 'autoload-optimizer'); ?></p>
+                <form id="ao-manual-lookup-form" style="display: flex; gap: 10px; align-items: center;">
+                    <input type="text" id="ao-manual-option-name" name="option_name" placeholder="<?php _e('e.g., active_plugins', 'autoload-optimizer'); ?>" style="width: 300px;" required>
+                    <button type="submit" class="button button-secondary"><?php _e('View Option', 'autoload-optimizer'); ?></button>
+                </form>
+            </div>
 
-        <div class="card" style="margin-top: 1rem;">
-            <h2 class="title"><?php _e('Telemetry Settings', 'autoload-optimizer'); ?></h2>
+            <div class="card" style="flex: 1;">
+                <h2 class="title"><?php _e('Telemetry Settings', 'autoload-optimizer'); ?></h2>
             <form method="post" action="options.php">
                 <?php settings_fields('ao_settings'); ?>
                 <table class="form-table">
@@ -659,7 +660,8 @@ function ao_display_admin_page() {
                 <?php submit_button(__('Save Settings', 'autoload-optimizer')); ?>
             </form>
         </div>
-        
+        </div>
+
         <?php
         $ao_history   = get_option('ao_optimizer_history', []);
         $perf_history = get_option('perflab_aao_disabled_options', []);
@@ -711,7 +713,14 @@ function ao_display_admin_page() {
 function ao_admin_page_styles() {
     ?>
     <style>
-        .wp-list-table .column-option-name { width: 35%; } .wp-list-table .column-size, .wp-list-table .column-percentage { width: 8%; } .wp-list-table .column-plugin { width: 15%; } .wp-list-table .column-status { width: 12%; } .wp-list-table .column-action { width: 10%; } .wp-list-table tbody tr.group-color-a { background-color: #ffffff; } .wp-list-table tbody tr.group-color-b { background-color: #f6f7f7; } .wp-list-table tbody tr:hover { background-color: #f0f0f1 !important; } .wp-list-table tbody tr.ao-row-processed { opacity: 0.6; pointer-events: none; } .plugin-header th, .plugin-header td { font-weight: bold; background-color: #f0f0f1; border-bottom: 1px solid #ddd; } .view-option-content { cursor: pointer; }         #ao-option-modal-overlay, #ao-privacy-modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.7); z-index: 10001; justify-content: center; align-items: center; } #ao-option-modal-content, #ao-privacy-modal-content { background: #fff; padding: 20px; border-radius: 4px; width: 80%; max-width: 900px; max-height: 80vh; overflow-y: auto; position: relative; } .close-modal { position: absolute; top: 5px; right: 15px; font-size: 28px; font-weight: bold; cursor: pointer; color: #555; } #ao-modal-body pre, #ao-privacy-body { background: #f1f1f1; padding: 15px; border: 1px solid #ddd; white-space: pre-wrap; word-wrap: break-word; }
+        .wp-list-table .column-option-name { width: 35%; } .wp-list-table .column-size, .wp-list-table .column-percentage { width: 8%; } .wp-list-table .column-plugin { width: 15%; } .wp-list-table .column-status { width: 12%; } .wp-list-table .column-action { width: 10%; } .wp-list-table tbody tr.group-color-a { background-color: #ffffff; } .wp-list-table tbody tr.group-color-b { background-color: #f6f7f7; } .wp-list-table tbody tr:hover { background-color: #f0f0f1 !important; } .wp-list-table tbody tr.ao-row-processed { opacity: 0.6; pointer-events: none; } .plugin-header th, .plugin-header td { font-weight: bold; background-color: #f0f0f1; border-bottom: 1px solid #ddd; } .view-option-content { cursor: pointer; }
+
+        /* Reduce table row height for better space utilization */
+        .wp-list-table tbody tr { height: 32px; }
+        .wp-list-table tbody td, .wp-list-table tbody th { padding: 4px 8px; vertical-align: middle; }
+        .wp-list-table thead th { padding: 8px; }
+
+        #ao-option-modal-overlay, #ao-privacy-modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.7); z-index: 10001; justify-content: center; align-items: center; } #ao-option-modal-content, #ao-privacy-modal-content { background: #fff; padding: 20px; border-radius: 4px; width: 80%; max-width: 900px; max-height: 80vh; overflow-y: auto; position: relative; } .close-modal { position: absolute; top: 5px; right: 15px; font-size: 28px; font-weight: bold; cursor: pointer; color: #555; } #ao-modal-body pre, #ao-privacy-body { background: #f1f1f1; padding: 15px; border: 1px solid #ddd; white-space: pre-wrap; word-wrap: break-word; }
     </style>
     <?php
 }
