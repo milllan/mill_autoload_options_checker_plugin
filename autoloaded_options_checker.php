@@ -15,7 +15,7 @@
 /**
  * Define AO_PLUGIN_VERSION for telemetry
  */
-define('AO_PLUGIN_VERSION', '4.1.8');
+define('AO_PLUGIN_VERSION', '4.1.9');
 
 // Prevent direct access
 if (!defined('ABSPATH')) {
