@@ -3,7 +3,7 @@
  * Plugin Name:       Autoloaded Options Optimizer
  * Plugin URI:        https://github.com/milllan/mill_autoload_options_checker_plugin
  * Description:       A tool to analyze, view, and manage autoloaded options in the wp_options table, with a remotely managed configuration.
- * Version:           4.1.14
+ * Version:           4.1.15
  * Author:            Milan Petrović
  * Author URI:        https://wpspeedopt.net/
  * License:           GPL v2 or later
@@ -15,7 +15,7 @@
 /**
  * Define AO_PLUGIN_VERSION for telemetry
  */
-define('AO_PLUGIN_VERSION', '4.1.14');
+define('AO_PLUGIN_VERSION', '4.1.15');
 define('AO_PLUGIN_FILE', __FILE__);
 
 // Prevent direct access
@@ -42,6 +42,8 @@ function ao_register_ajax_handlers() {
     add_action('wp_ajax_ao_get_option_value', 'ao_ajax_get_option_value');
     add_action('wp_ajax_ao_find_option_in_files', 'ao_ajax_find_option_in_files');
     add_action('wp_ajax_ao_send_telemetry', 'ao_ajax_send_telemetry');
+    add_action('wp_ajax_ao_flush_telemetry_cache', 'ao_ajax_flush_telemetry_cache');
+    add_action('wp_ajax_ao_request_data_deletion', 'ao_ajax_request_data_deletion');
 }
 
 add_action('admin_init', 'ao_register_settings');
@@ -482,7 +484,9 @@ function ao_display_admin_page() {
         data-ajax-url="<?php echo esc_url(admin_url('admin-ajax.php')); ?>"
         data-disable-nonce="<?php echo esc_attr(wp_create_nonce('ao_disable_autoload_nonce')); ?>"
         data-view-nonce="<?php echo esc_attr(wp_create_nonce('ao_view_option_nonce')); ?>"
-        data-find-nonce="<?php echo esc_attr(wp_create_nonce('ao_find_source_nonce')); ?>">
+        data-find-nonce="<?php echo esc_attr(wp_create_nonce('ao_find_source_nonce')); ?>"
+        data-flush-nonce="<?php echo esc_attr(wp_create_nonce('ao_flush_cache_nonce')); ?>"
+        data-deletion-nonce="<?php echo esc_attr(wp_create_nonce('ao_data_deletion_nonce')); ?>">
         <h1><?php _e('Autoloaded Options Optimizer', 'autoload-optimizer'); ?></h1>
 
         <!-- ... (Top summary boxes) ... -->
@@ -678,11 +682,34 @@ function ao_display_admin_page() {
                          <div></div>
                      <?php endif; ?>
 
-                     <div>
-                         <?php submit_button(__('Save Settings', 'autoload-optimizer')); ?>
-                     </div>
-                 </div>
-             </form>
+                      <div>
+                          <?php submit_button(__('Save Settings', 'autoload-optimizer')); ?>
+                      </div>
+                  </div>
+
+                  <hr style="margin: 1.5rem 0; border: none; border-top: 1px solid #ddd;">
+
+                  <div style="margin-top: 1rem;">
+                      <h4 style="margin-bottom: 0.5rem;"><?php _e('Data Management', 'autoload-optimizer'); ?></h4>
+                      <p class="description" style="margin-bottom: 1rem; color: #666; font-size: 13px;">
+                          <?php _e('Manage telemetry data and local caches.', 'autoload-optimizer'); ?>
+                      </p>
+
+                      <div style="display: flex; gap: 10px; align-items: center;">
+                          <button type="button" id="ao-flush-telemetry-cache" class="button button-secondary">
+                              <?php _e('Clear Local Cache', 'autoload-optimizer'); ?>
+                          </button>
+                          <button type="button" id="ao-request-data-deletion" class="button button-secondary">
+                              <?php _e('Request Data Deletion', 'autoload-optimizer'); ?>
+                          </button>
+                          <span id="ao-flush-status" style="font-style: italic; color: #666;"></span>
+                      </div>
+
+                      <p class="description" style="margin-top: 0.5rem; color: #666; font-size: 12px;">
+                          <?php _e('<strong>Clear Local Cache:</strong> Removes local telemetry timestamps and cached data.<br><strong>Request Data Deletion:</strong> Sends a deletion request to remove all telemetry data for this site from the central database.', 'autoload-optimizer'); ?>
+                      </p>
+                  </div>
+              </form>
          </div>
         </div>
 
@@ -952,6 +979,100 @@ function ao_ajax_send_telemetry() {
     wp_send_json_success(['message' => __('Telemetry data sent successfully. Thank you for helping improve the plugin!', 'autoload-optimizer')]);
 }
 
+/**
+ * AJAX handler for flushing local telemetry cache
+ */
+function ao_ajax_flush_telemetry_cache() {
+    check_ajax_referer('ao_flush_cache_nonce', 'nonce');
+
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error(['message' => __('Permission denied.', 'autoload-optimizer')]);
+    }
+
+    // Clear telemetry-related transients
+    $cleared = 0;
+
+    if (delete_transient('ao_last_telemetry_send')) {
+        $cleared++;
+    }
+
+    if (delete_transient('ao_remote_config_cache')) {
+        $cleared++;
+    }
+
+    // Clear any other telemetry-related transients (add more as needed)
+    global $wpdb;
+    $telemetry_transients = $wpdb->get_col(
+        "SELECT option_name FROM {$wpdb->options}
+         WHERE option_name LIKE '_transient_ao_%'
+         OR option_name LIKE '_transient_timeout_ao_%'"
+    );
+
+    foreach ($telemetry_transients as $transient) {
+        $transient_name = str_replace('_transient_', '', $transient);
+        $transient_name = str_replace('_transient_timeout_', '', $transient_name);
+        if (delete_transient($transient_name)) {
+            $cleared++;
+        }
+    }
+
+    wp_send_json_success([
+        'message' => sprintf(__('Cleared %d telemetry cache entries.', 'autoload-optimizer'), $cleared),
+        'cleared_count' => $cleared
+    ]);
+}
+
+/**
+ * AJAX handler for requesting data deletion from telemetry server
+ */
+function ao_ajax_request_data_deletion() {
+    check_ajax_referer('ao_data_deletion_nonce', 'nonce');
+
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error(['message' => __('Permission denied.', 'autoload-optimizer')]);
+    }
+
+    $site_hash = hash('sha256', get_site_url());
+    $site_url = get_site_url();
+
+    $deletion_request = [
+        'action' => 'delete_site_data',
+        'site_hash' => $site_hash,
+        'site_url' => $site_url,
+        'timestamp' => current_time('timestamp'),
+        'plugin_version' => AO_PLUGIN_VERSION
+    ];
+
+    $endpoint = apply_filters('ao_telemetry_endpoint', 'https://wpspeedopt.net/telemetry-backend/telemetry-collector.php');
+
+    $response = wp_remote_post($endpoint, [
+        'method' => 'POST',
+        'timeout' => 15,
+        'headers' => [
+            'Content-Type' => 'application/json',
+            'User-Agent' => 'AutoloadedOptionsOptimizer/' . AO_PLUGIN_VERSION
+        ],
+        'body' => wp_json_encode($deletion_request)
+    ]);
+
+    if (is_wp_error($response)) {
+        wp_send_json_error([
+            'message' => __('Failed to send deletion request: ', 'autoload-optimizer') . $response->get_error_message()
+        ]);
+    }
+
+    $response_code = wp_remote_retrieve_response_code($response);
+    if ($response_code === 200) {
+        wp_send_json_success([
+            'message' => __('Data deletion request sent successfully. Your telemetry data should be removed from the central database within 24-48 hours.', 'autoload-optimizer')
+        ]);
+    } else {
+        wp_send_json_error([
+            'message' => sprintf(__('Deletion request failed with status code: %d', 'autoload-optimizer'), $response_code)
+        ]);
+    }
+}
+
 
 add_action('admin_footer', 'ao_admin_page_scripts');
 function ao_admin_page_scripts() {
@@ -1174,6 +1295,81 @@ function ao_admin_page_scripts() {
                     .finally(() => {
                         sendTelemetryBtn.disabled = false;
                         setTimeout(() => { telemetryStatus.textContent = ''; }, 5000);
+                    });
+            });
+        }
+
+        // Flush telemetry cache
+        const flushCacheBtn = document.getElementById('ao-flush-telemetry-cache');
+        const flushStatus = document.getElementById('ao-flush-status');
+
+        if (flushCacheBtn) {
+            flushCacheBtn.addEventListener('click', e => {
+                e.preventDefault();
+                if (!confirm('<?php _e('Are you sure you want to clear the local telemetry cache? This will remove cached timestamps and allow new telemetry to be sent.', 'autoload-optimizer'); ?>')) {
+                    return;
+                }
+
+                flushCacheBtn.disabled = true;
+                flushStatus.textContent = '<?php _e('Clearing cache...', 'autoload-optimizer'); ?>';
+
+                const formData = new FormData();
+                formData.append('action', 'ao_flush_telemetry_cache');
+                formData.append('nonce', '<?php echo wp_create_nonce('ao_flush_cache_nonce'); ?>');
+
+                fetch(ajaxurl, { method: 'POST', body: formData })
+                    .then(response => response.json())
+                    .then(data => {
+                        flushStatus.textContent = data.success
+                            ? '<?php _e('✓ Cache cleared successfully!', 'autoload-optimizer'); ?>'
+                            : '<?php _e('✗ Failed to clear cache', 'autoload-optimizer'); ?>';
+                        if (!data.success) {
+                            console.error('Flush error:', data.data.message);
+                        }
+                    })
+                    .catch(() => {
+                        flushStatus.textContent = '<?php _e('✗ Network error', 'autoload-optimizer'); ?>';
+                    })
+                    .finally(() => {
+                        flushCacheBtn.disabled = false;
+                        setTimeout(() => { flushStatus.textContent = ''; }, 5000);
+                    });
+            });
+        }
+
+        // Request data deletion
+        const requestDeletionBtn = document.getElementById('ao-request-data-deletion');
+
+        if (requestDeletionBtn) {
+            requestDeletionBtn.addEventListener('click', e => {
+                e.preventDefault();
+                if (!confirm('<?php _e('Are you sure you want to request deletion of all telemetry data for this site? This action cannot be undone and will remove all historical data from the central database.', 'autoload-optimizer'); ?>')) {
+                    return;
+                }
+
+                requestDeletionBtn.disabled = true;
+                flushStatus.textContent = '<?php _e('Sending deletion request...', 'autoload-optimizer'); ?>';
+
+                const formData = new FormData();
+                formData.append('action', 'ao_request_data_deletion');
+                formData.append('nonce', '<?php echo wp_create_nonce('ao_data_deletion_nonce'); ?>');
+
+                fetch(ajaxurl, { method: 'POST', body: formData })
+                    .then(response => response.json())
+                    .then(data => {
+                        flushStatus.textContent = data.success
+                            ? '<?php _e('✓ Deletion request sent successfully!', 'autoload-optimizer'); ?>'
+                            : '<?php _e('✗ Failed to send deletion request', 'autoload-optimizer'); ?>';
+                        if (!data.success) {
+                            console.error('Deletion error:', data.data.message);
+                        }
+                    })
+                    .catch(() => {
+                        flushStatus.textContent = '<?php _e('✗ Network error', 'autoload-optimizer'); ?>';
+                    })
+                    .finally(() => {
+                        requestDeletionBtn.disabled = false;
+                        setTimeout(() => { flushStatus.textContent = ''; }, 10000);
                     });
             });
         }
