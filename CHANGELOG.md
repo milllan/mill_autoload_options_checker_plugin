@@ -1,5 +1,15 @@
 # Changelog
 
+## [4.1.14] - 2025-09-08
+
+### Changed
+- Improve telemetry data quality and deduplication
+
+### Fixed
+- Fix deprecated set-output commands in GitHub Actions
+
+
+
 ## [4.1.13] - 2025-09-08
 
 ### Changed
