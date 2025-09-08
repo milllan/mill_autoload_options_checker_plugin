@@ -1,6 +1,10 @@
 {
     "version": "1.4.11",
     "plugin_mappings": {
+        "active_plugins": {
+            "name": "WordPress Core",
+            "file": "core"
+        },
         "ast-block-templates-blocks-*": {
             "name": "Astra Theme (Block Template Cache)",
             "file": "theme:astra"
@@ -36,6 +40,14 @@
         "elementor_*": {
             "name": "Elementor",
             "file": "elementor/elementor.php"
+        },
+        "jetpack_*": {
+            "name": "Jetpack",
+            "file": "jetpack/jetpack.php"
+        },
+        "jp_*": {
+            "name": "Jetpack",
+            "file": "jetpack/jetpack.php"
         },
         "revslider*": {
             "name": "Slider Revolution",
@@ -494,9 +506,6 @@
     "safe_literals": [
         "fs_accounts",
         "a2opt-benchmarks-frontend",
-        "revslider-addons",
-        "revslider_update_info",
-        "revslider-notices",
         "elementskit-lite__banner_data",
         "elementskit-lite__stories_data",
         "addon_library_catalog",
@@ -560,6 +569,8 @@
         "personify_active_campaign_tags",
         "redux_builder_amp",
         "revslider-addons",
+        "revslider_update_info",
+        "revslider-notices",
         "td_011",
         "td_011_log",
         "td_011_settings",
@@ -617,6 +628,7 @@
         "vcv-hubTeaser*",
         "_wpallexport_session_*",
         "*mytheme*",
+        "jp_sync_error_log_*",
         "ai1wm*",
         "astra-sites-and-pages*",
         "astra-blocks*",

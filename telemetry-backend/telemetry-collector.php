@@ -31,6 +31,11 @@ header('Access-Control-Allow-Methods: POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, User-Agent');
 header('Content-Type: application/json');
 
+/* ---------- rate limit ---------- */
+require_once __DIR__.'/rate-limit.php';
+$clientIp = $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+if (!rateLimitAllow($clientIp)) { http_response_code(429); exit(json_encode(['error'=>'Too many requests'])); }
+
 // Handle preflight requests
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);

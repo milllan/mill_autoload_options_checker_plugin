@@ -3,8 +3,10 @@
 # XML output files from repomix tool
 /repomix-output.xml
 /prompt.md
-telemetry-backend/
-
 # Development scripts
 release.sh
 changelog.sh
+# Telemetry backend files
+/telemetry-backend/
+
+telemetry-backend/telemetry-collector.php
