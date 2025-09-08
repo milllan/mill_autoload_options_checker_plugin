@@ -1,5 +1,10 @@
 # Changelog
 
+## [4.1.16] - 2025-09-08
+
+### Changed
+- Minor version bump for release
+
 ## [4.1.15] - 2025-09-08
 
 ### Added
