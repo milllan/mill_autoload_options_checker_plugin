@@ -3,7 +3,15 @@
 ## [4.1.15] - 2025-09-08
 
 ### Added
-- Add telemetry data management features
+- Telemetry backend with deduplication logic
+- Dashboard for viewing telemetry data with proper unique site handling
+
+### Changed
+- Improve telemetry data quality and deduplication
+- Revert autoloaded_options_checker.php to commit 4c765f6
+
+### Fixed
+- Ensure stats account for latest submission per unique site only
 
 
 
