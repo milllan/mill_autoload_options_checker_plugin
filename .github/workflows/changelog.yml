@@ -7,6 +7,10 @@ on:
     paths:
       - 'autoloaded_options_checker.php'
 
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   update-changelog:
     runs-on: ubuntu-latest
