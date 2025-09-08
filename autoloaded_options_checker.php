@@ -3,7 +3,7 @@
  * Plugin Name:       Autoloaded Options Optimizer
  * Plugin URI:        https://github.com/milllan/mill_autoload_options_checker_plugin
  * Description:       A tool to analyze, view, and manage autoloaded options in the wp_options table, with a remotely managed configuration.
- * Version:           4.1.3
+ * Version:           4.1.4
  * Author:            Milan Petrović
  * Author URI:        https://wpspeedopt.net/
  * License:           GPL v2 or later
@@ -15,7 +15,7 @@
 /**
  * Define AO_PLUGIN_VERSION for telemetry
  */
-define('AO_PLUGIN_VERSION', '4.1.3');
+define('AO_PLUGIN_VERSION', '4.1.4');
 
 // Prevent direct access
 if (!defined('ABSPATH')) {
@@ -513,39 +513,7 @@ function ao_display_admin_page() {
             <p><a href="<?php echo esc_url(wp_nonce_url(add_query_arg('ao_refresh_config', '1'), 'ao_refresh_config')); ?>" class="button"><?php _e('Force Refresh Configuration', 'autoload-optimizer'); ?></a></p>
         </div>
 
-        <div class="card" style="margin-top: 1rem;">
-            <h2 class="title"><?php _e('Telemetry Settings', 'autoload-optimizer'); ?></h2>
-            <form method="post" action="options.php">
-                <?php settings_fields('ao_settings'); ?>
-                <table class="form-table">
-                    <tr>
-                        <th scope="row"><?php _e('Usage Data Collection', 'autoload-optimizer'); ?></th>
-                        <td>
-                            <label for="ao_telemetry_disabled">
-                                <input type="checkbox" id="ao_telemetry_disabled" name="ao_telemetry_disabled" value="1" <?php checked(get_option('ao_telemetry_disabled'), '1'); ?> />
-                                <?php _e('Disable anonymous usage data collection', 'autoload-optimizer'); ?>
-                            </label>
-                            <p class="description">
-                                <?php _e('By default, the plugin sends anonymous usage data to help improve plugin coverage and identify popular plugins/themes. This includes option names, sizes, and site information but no sensitive data. Uncheck to disable.', 'autoload-optimizer'); ?>
-                                <a href="#" id="ao-privacy-details"><?php _e('Learn more about what data is collected', 'autoload-optimizer'); ?></a>
-                            </p>
-                            <p class="description">
-                                <strong><?php _e('Note:', 'autoload-optimizer'); ?></strong> <?php _e('To collect telemetry data, you need to set up the telemetry collector endpoint. Use the filter', 'autoload-optimizer'); ?> <code>ao_telemetry_endpoint</code> <?php _e('or modify the endpoint URL in the plugin code.', 'autoload-optimizer'); ?>
-                            </p>
-                            <?php if (get_option('ao_telemetry_disabled') !== '1') : ?>
-                            <p>
-                                <button type="button" id="ao-send-telemetry" class="button button-secondary">
-                                    <?php _e('Send Telemetry Data Now', 'autoload-optimizer'); ?>
-                                </button>
-                                <span id="ao-telemetry-status"></span>
-                            </p>
-                            <?php endif; ?>
-                        </td>
-                    </tr>
-                </table>
-                <?php submit_button(__('Save Settings', 'autoload-optimizer')); ?>
-            </form>
-        </div>
+
         
         <div id="ao-dashboard-widgets-wrap" style="display: flex; gap: 20px; margin-top: 1rem;">
             <div class="card" style="flex: 1;">
@@ -655,6 +623,40 @@ function ao_display_admin_page() {
             <form id="ao-manual-lookup-form" style="display: flex; gap: 10px; align-items: center;">
                 <input type="text" id="ao-manual-option-name" name="option_name" placeholder="<?php _e('e.g., active_plugins', 'autoload-optimizer'); ?>" style="width: 300px;" required>
                 <button type="submit" class="button button-secondary"><?php _e('View Option', 'autoload-optimizer'); ?></button>
+            </form>
+        </div>
+
+        <div class="card" style="margin-top: 1rem;">
+            <h2 class="title"><?php _e('Telemetry Settings', 'autoload-optimizer'); ?></h2>
+            <form method="post" action="options.php">
+                <?php settings_fields('ao_settings'); ?>
+                <table class="form-table">
+                    <tr>
+                        <th scope="row"><?php _e('Usage Data Collection', 'autoload-optimizer'); ?></th>
+                        <td>
+                            <label for="ao_telemetry_disabled">
+                                <input type="checkbox" id="ao_telemetry_disabled" name="ao_telemetry_disabled" value="1" <?php checked(get_option('ao_telemetry_disabled'), '1'); ?> />
+                                <?php _e('Disable anonymous usage data collection', 'autoload-optimizer'); ?>
+                            </label>
+                            <p class="description">
+                                <?php _e('By default, the plugin sends anonymous usage data to help improve plugin coverage and identify popular plugins/themes. This includes option names, sizes, and site information but no sensitive data. Uncheck to disable.', 'autoload-optimizer'); ?>
+                                <a href="#" id="ao-privacy-details"><?php _e('Learn more about what data is collected', 'autoload-optimizer'); ?></a>
+                            </p>
+                            <p class="description">
+                                <strong><?php _e('Note:', 'autoload-optimizer'); ?></strong> <?php _e('To collect telemetry data, you need to set up the telemetry collector endpoint. Use the filter', 'autoload-optimizer'); ?> <code>ao_telemetry_endpoint</code> <?php _e('or modify the endpoint URL in the plugin code.', 'autoload-optimizer'); ?>
+                            </p>
+                            <?php if (get_option('ao_telemetry_disabled') !== '1') : ?>
+                            <p>
+                                <button type="button" id="ao-send-telemetry" class="button button-secondary">
+                                    <?php _e('Send Telemetry Data Now', 'autoload-optimizer'); ?>
+                                </button>
+                                <span id="ao-telemetry-status"></span>
+                            </p>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                </table>
+                <?php submit_button(__('Save Settings', 'autoload-optimizer')); ?>
             </form>
         </div>
         
