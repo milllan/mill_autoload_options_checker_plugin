@@ -341,24 +341,6 @@ function ao_get_analysis_data() {
             if (strpos($option->option_name, '_transient_') === 0 || strpos($option->option_name, '_site_transient_') === 0) {
                 $plugin_name = __('WordPress Core (Transient)', 'autoload-optimizer');
                 $status_info = ['code' => 'core', 'text' => __('WordPress Core', 'autoload-optimizer'), 'class' => 'notice-info'];
-            } else {
-                $known_plugin_prefixes = [
-                    'elementor' => ['name' => 'Elementor', 'file' => 'elementor/elementor.php'],
-                    'wpseo'     => ['name' => 'Yoast SEO', 'file' => 'wordpress-seo/wp-seo.php'],
-                    'rocket'    => ['name' => 'WP Rocket', 'file' => 'wp-rocket/wp-rocket.php'],
-                ];
-    
-                foreach ($known_plugin_prefixes as $prefix => $data) {
-                    if (strpos($option->option_name, $prefix) === 0) {
-                        $plugin_name = $data['name'];
-                        $is_active = in_array($data['file'], $active_plugin_paths);
-                        $status_info = $is_active
-                            ? ['code' => 'plugin_active', 'text' => __('Active Plugin', 'autoload-optimizer'), 'class' => 'notice-success']
-                            : ['code' => 'plugin_inactive', 'text' => __('Inactive Plugin', 'autoload-optimizer'), 'class' => 'notice-error'];
-                        if (!$is_active) $inactive_plugin_option_count++;
-                        break;
-                    }
-                }
             }
         }
 
@@ -444,6 +426,7 @@ function ao_display_admin_page() {
     $config_manager = AO_Remote_Config_Manager::get_instance();
     if (isset($_GET['ao_refresh_config']) && check_admin_referer('ao_refresh_config')) {
         delete_transient('ao_remote_config_cache');
+        $config_manager->get_config();
         wp_safe_redirect(remove_query_arg(['ao_refresh_config', '_wpnonce']));
         exit;
     }
@@ -1175,7 +1158,6 @@ function ao_add_settings_link($links) {
 
 add_action('plugins_loaded', 'ao_initialize_updater');
 function ao_initialize_updater() {
-    // ... (This function is unchanged)
     $updater_bootstrap_file = dirname(__FILE__) . '/lib/plugin-update-checker/plugin-update-checker.php';
     if (file_exists($updater_bootstrap_file)) {
         require_once $updater_bootstrap_file;

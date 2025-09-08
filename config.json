@@ -1,5 +1,5 @@
 {
-    "version": "1.4.5",
+    "version": "1.4.6",
     "plugin_mappings": {
         "ast-block-templates-blocks-*": {
             "name": "Astra Theme (Block Template Cache)",
@@ -33,9 +33,17 @@
             "name": "A2 Optimized",
             "file": "a2-optimized-wp/A2_Optimized_WP.php"
         },
+        "elementor_*": {
+            "name": "Elementor",
+            "file": "elementor/elementor.php"
+        },
         "revslider*": {
             "name": "Slider Revolution",
             "file": "revslider/revslider.php"
+        },
+        "rocket_*": {
+            "name": "WP Rocket",
+            "file": "wp-rocket/wp-rocket.php"
         },
         "blc_installation_log": {
             "name": "Broken Link Checker",
@@ -341,6 +349,10 @@
             "name": "Link Whisper",
             "file": "link-whisper-premium/link-whisper.php"
         },
+        "mainwp_child_*": {
+            "name": "MainWP Child",
+            "file": "mainwp-child/mainwp-child.php"
+        },
         "wp_media_cleaner": {
             "name": "Media Cleaner",
             "file": "media-cleaner/media-cleaner.php"
@@ -368,6 +380,10 @@
         "wp_rocket_settings": {
             "name": "WP Rocket",
             "file": "wp-rocket/wp-rocket.php"
+        },
+        "wpseo_*": {
+            "name": "Yoast SEO",
+            "file": "wordpress-seo/wp-seo.php"
         },
         "wp_rocket_d_bugger_settings": {
             "name": "WP Rocket D-bugger",
@@ -465,6 +481,10 @@
             "name": "Limit Login Attempts Reloaded",
             "file": "limit-login-attempts-reloaded/limit-login-attempts-reloaded.php"
         },
+        "mainwp_child_*": {
+            "name": "MainWP Child",
+            "file": "mainwp-child/mainwp-child.php"
+        },
         "fs_accounts": {
             "name": "Freemius SDK (Shared by Multiple Plugins)",
             "file": "freemius_sdk"
@@ -528,6 +548,7 @@
         "gform_version_info",
         "fs_api_cache",
         "limit_login_logged",
+
         "mepr_options",
         "monsterinsights_report_data_overview",
         "mwp_public_keys",
@@ -620,6 +641,7 @@
         "fusion_dynamic*",
         "giapi*",
         "nf_form_*",
+        "mainwp_*",
         "mailserver*",
         "qode_options*",
         "quickppr_redirects*",
@@ -653,6 +675,7 @@
         "Custom Post Type UI": "<strong>Custom Post Type UI:</strong> If you no longer use this plugin, consider disabling autoload for its options.",
         "Yoast SEO": "<strong>Yoast SEO:</strong> If you no longer use this plugin, consider disabling autoload for its options.",
         "Limit Login Attempts Reloaded": "<strong>Limit Login Attempts Reloaded:</strong> Security-related options should generally remain autoloaded for optimal protection.",
+        "MainWP Child": "<strong>MainWP Child:</strong> Options starting with <code>mainwp_child_</code> store settings, action logs, and cached data for communication with your MainWP Dashboard. This data is not needed on every page load and is 100% safe to disable autoload for, which can improve performance.",
         "Wordfence Security (Scan Cache)": "<strong>Wordfence Security:</strong> Wordfence creates several large options for its scanner and issue caching. It is highly recommended and safe to disable autoload for these options like <code>wf_known_file_list</code>, <code>wf_scan_*</code>, and <code>_transient_wf-*</code>. <strong>Important:</strong> Do not disable autoload for core configuration options like <code>wfConfig</code>, or any options starting with <code>waf*</code> (firewall) and <code>wfls_*</code> (login security), as these are critical for the live protection of your site.",
         "Wordfence Security (Issues Cache)": "<strong>Wordfence Security:</strong> Wordfence creates several large options for its scanner and issue caching. It is highly recommended and safe to disable autoload for these options like <code>wf_known_file_list</code>, <code>wf_scan_*</code>, and <code>_transient_wf-*</code>. <strong>Important:</strong> Do not disable autoload for core configuration options like <code>wfConfig</code>, or any options starting with <code>waf*</code> (firewall) and <code>wfls_*</code> (login security), as these are critical for the live protection of your site.",
         "Broken Link Checker": "<strong>Broken Link Checker:</strong> The <code>blc_installation_log</code> option is a one-time log created during the plugin's setup. It is very safe to disable its autoload status. In many cases, the entire option can be deleted from the database without any negative effects after the plugin has been installed.",
