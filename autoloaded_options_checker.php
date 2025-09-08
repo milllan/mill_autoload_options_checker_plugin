@@ -16,6 +16,7 @@
  * Define AO_PLUGIN_VERSION for telemetry
  */
 define('AO_PLUGIN_VERSION', '4.1.9');
+define('AO_PLUGIN_FILE', __FILE__);
 
 // Prevent direct access
 if (!defined('ABSPATH')) {
@@ -111,7 +112,7 @@ final class AO_Remote_Config_Manager {
     }
 
     private function get_local_fallback() {
-        $local_path = plugin_dir_path(__FILE__) . 'config.json';
+        $local_path = plugin_dir_path(AO_PLUGIN_FILE) . 'config.json';
         if (file_exists($local_path)) {
             $local_content = file_get_contents($local_path);
             $config = json_decode($local_content, true);
@@ -426,7 +427,6 @@ function ao_display_admin_page() {
     $config_manager = AO_Remote_Config_Manager::get_instance();
     if (isset($_GET['ao_refresh_config']) && check_admin_referer('ao_refresh_config')) {
         delete_transient('ao_remote_config_cache');
-        $config_manager->get_config();
         wp_safe_redirect(remove_query_arg(['ao_refresh_config', '_wpnonce']));
         exit;
     }

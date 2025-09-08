@@ -1,103 +1,103 @@
 name: Update Changelog
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'autoloaded_options_checker.php'
+    push:
+        branches:
+            - main
+        paths:
+            - 'autoloaded_options_checker.php'
 
 permissions:
-  contents: write
-  pull-requests: write
+    contents: write
+    pull-requests: write
 
 jobs:
-  update-changelog:
-    runs-on: ubuntu-latest
+    update-changelog:
+        runs-on: ubuntu-latest
 
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-        token: ${{ secrets.GITHUB_TOKEN }}
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+                  token: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Get current version
-      id: current_version
-      run: |
-        VERSION=$(grep "Version:" autoloaded_options_checker.php | head -1 | sed 's/.*Version:\s*//')
-        echo "version=$VERSION" >> $GITHUB_OUTPUT
+            - name: Get current version
+              id: current_version
+              run: |
+                  VERSION=$(grep "Version:" autoloaded_options_checker.php | head -1 | sed 's/.*Version:\s*//')
+                  echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-    - name: Check if version changed
-      id: version_check
-      run: |
-        # Get the previous version from the last commit
-        PREV_VERSION=$(git show HEAD~1:autoloaded_options_checker.php | grep "Version:" | head -1 | sed 's/.*Version:\s*//' || echo "")
-        CURRENT_VERSION=$(grep "Version:" autoloaded_options_checker.php | head -1 | sed 's/.*Version:\s*//')
+            - name: Check if version changed
+              id: version_check
+              run: |
+                  # Get the previous version from the last commit
+                  PREV_VERSION=$(git show HEAD~1:autoloaded_options_checker.php | grep "Version:" | head -1 | sed 's/.*Version:\s*//' || echo "")
+                  CURRENT_VERSION=$(grep "Version:" autoloaded_options_checker.php | head -1 | sed 's/.*Version:\s*//')
 
-        if [ "$PREV_VERSION" != "$CURRENT_VERSION" ]; then
-          echo "changed=true" >> $GITHUB_OUTPUT
-          echo "prev_version=$PREV_VERSION" >> $GITHUB_OUTPUT
-          echo "new_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
-        else
-          echo "changed=false" >> $GITHUB_OUTPUT
-        fi
+                  if [ "$PREV_VERSION" != "$CURRENT_VERSION" ]; then
+                    echo "changed=true" >> $GITHUB_OUTPUT
+                    echo "prev_version=$PREV_VERSION" >> $GITHUB_OUTPUT
+                    echo "new_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+                  else
+                    echo "changed=false" >> $GITHUB_OUTPUT
+                  fi
 
-    - name: Generate changelog entry
-      if: steps.version_check.outputs.changed == 'true'
-      run: |
-        PREV_VERSION="${{ steps.version_check.outputs.prev_version }}"
-        NEW_VERSION="${{ steps.version_check.outputs.new_version }}"
-        DATE=$(date +%Y-%m-%d)
+            - name: Generate changelog entry
+              if: steps.version_check.outputs.changed == 'true'
+              run: |
+                  PREV_VERSION="${{ steps.version_check.outputs.prev_version }}"
+                  NEW_VERSION="${{ steps.version_check.outputs.new_version }}"
+                  DATE=$(date +%Y-%m-%d)
 
-        # Get commits since last version
-        if [ -n "$PREV_VERSION" ]; then
-          COMMITS=$(git log --oneline --pretty=format:"%s" v$PREV_VERSION..HEAD | grep -v "Bump version\|Merge\|Update changelog" || echo "")
-        else
-          COMMITS=$(git log --oneline --pretty=format:"%s" --since="1 month ago" | grep -v "Bump version\|Merge\|Update changelog" || echo "")
-        fi
+                  # Get commits since last version
+                  if [ -n "$PREV_VERSION" ]; then
+                    COMMITS=$(git log --oneline --pretty=format:"%s" v$PREV_VERSION..HEAD | grep -v "Bump version\|Merge\|Update changelog" || echo "")
+                  else
+                    COMMITS=$(git log --oneline --pretty=format:"%s" --since="1 month ago" | grep -v "Bump version\|Merge\|Update changelog" || echo "")
+                  fi
 
-        # Create changelog entry
-        ENTRY="## [$NEW_VERSION] - $DATE\n\n"
+                  # Create changelog entry
+                  ENTRY="## [$NEW_VERSION] - $DATE\n\n"
 
-        if [ -n "$COMMITS" ]; then
-          # Categorize commits
-          FEATURES=$(echo "$COMMITS" | grep -i "add\|feature\|new" | sed 's/^/- /' || echo "")
-          CHANGES=$(echo "$COMMITS" | grep -i "change\|update\|improve\|move\|refactor" | sed 's/^/- /' || echo "")
-          FIXES=$(echo "$COMMITS" | grep -i "fix\|bug\|issue" | sed 's/^/- /' || echo "")
-          REMOVALS=$(echo "$COMMITS" | grep -i "remove\|delete" | sed 's/^/- /' || echo "")
+                  if [ -n "$COMMITS" ]; then
+                    # Categorize commits
+                    FEATURES=$(echo "$COMMITS" | grep -i "add\|feature\|new" | sed 's/^/- /' || echo "")
+                    CHANGES=$(echo "$COMMITS" | grep -i "change\|update\|improve\|move\|refactor" | sed 's/^/- /' || echo "")
+                    FIXES=$(echo "$COMMITS" | grep -i "fix\|bug\|issue" | sed 's/^/- /' || echo "")
+                    REMOVALS=$(echo "$COMMITS" | grep -i "remove\|delete" | sed 's/^/- /' || echo "")
 
-          if [ -n "$FEATURES" ]; then
-            ENTRY="${ENTRY}### Added\n${FEATURES}\n\n"
-          fi
+                    if [ -n "$FEATURES" ]; then
+                      ENTRY="${ENTRY}### Added\n${FEATURES}\n\n"
+                    fi
 
-          if [ -n "$CHANGES" ]; then
-            ENTRY="${ENTRY}### Changed\n${CHANGES}\n\n"
-          fi
+                    if [ -n "$CHANGES" ]; then
+                      ENTRY="${ENTRY}### Changed\n${CHANGES}\n\n"
+                    fi
 
-          if [ -n "$FIXES" ]; then
-            ENTRY="${ENTRY}### Fixed\n${FIXES}\n\n"
-          fi
+                    if [ -n "$FIXES" ]; then
+                      ENTRY="${ENTRY}### Fixed\n${FIXES}\n\n"
+                    fi
 
-          if [ -n "$REMOVALS" ]; then
-            ENTRY="${ENTRY}### Removed\n${REMOVALS}\n\n"
-          fi
-        else
-          ENTRY="${ENTRY}### Changed\n- Version bump to $NEW_VERSION\n\n"
-        fi
+                    if [ -n "$REMOVALS" ]; then
+                      ENTRY="${ENTRY}### Removed\n${REMOVALS}\n\n"
+                    fi
+                  else
+                    ENTRY="${ENTRY}### Changed\n- Version bump to $NEW_VERSION\n\n"
+                  fi
 
-        # Insert entry after the header
-        sed -i "s/# Changelog/# Changelog\n\n${ENTRY}/" CHANGELOG.md
+                  # Insert entry after the header
+                  sed -i "s/# Changelog/# Changelog\n\n${ENTRY}/" CHANGELOG.md
 
-    - name: Commit changelog update
-      if: steps.version_check.outputs.changed == 'true'
-      run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        git add CHANGELOG.md
-        git commit -m "Update changelog for version ${{ steps.version_check.outputs.new_version }}" || echo "No changes to commit"
+            - name: Commit changelog update
+              if: steps.version_check.outputs.changed == 'true'
+              run: |
+                  git config --local user.email "action@github.com"
+                  git config --local user.name "GitHub Action"
+                  git add CHANGELOG.md
+                  git commit -m "Update changelog for version ${{ steps.version_check.outputs.new_version }}" || echo "No changes to commit"
 
-    - name: Push changelog update
-      if: steps.version_check.outputs.changed == 'true'
-      run: |
-        git push
+            - name: Push changelog update
+              if: steps.version_check.outputs.changed == 'true'
+              run: |
+                  git push
