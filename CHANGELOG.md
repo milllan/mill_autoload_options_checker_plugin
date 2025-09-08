@@ -1,5 +1,10 @@
 # Changelog
 
+## [4.1.18] - 2025-09-08
+
+### Changed
+- Version bump to 4.1.18
+
 ## [4.1.17] - 2025-09-08
 
 ### Added
