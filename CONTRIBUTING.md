@@ -93,39 +93,19 @@ The project maintains an automated changelog in `CHANGELOG.md`. Changes are auto
 - **Fixed**: Bug fixes (`fix:` commits)
 - **Removed**: Removed features
 
-### Manual Changelog Updates
-If you need to manually update the changelog:
-
-```bash
-# Add entry for current version
-./changelog.sh add
-
-# Edit existing entry
-./changelog.sh edit 4.1.4
-
-# View changelog for version
-./changelog.sh view 4.1.3
-```
+### Changelog
+The changelog is automatically maintained via GitHub Actions when version tags are pushed. Manual updates are not typically needed.
 
 ## Release Process
 
-### Automated Releases
-The project uses automated releases via GitHub Actions:
+### Release Process
+To create a new release:
 
-1. Update version in `autoloaded_options_checker.php`
-2. Update changelog if needed: `./changelog.sh add`
-3. Run release script: `./release.sh patch` (or `minor`/`major`)
-4. GitHub Actions automatically creates the release
-
-### Manual Process
-```bash
-# Update version
-# Update changelog
-git add .
-git commit -m "feat: your new feature"
-git tag v4.1.5
-git push origin main --tags
-```
+1. **Update version** in `autoloaded_options_checker.php` (both header and constant)
+2. **Commit changes**: `git commit -m "Bump version to X.X.X"`
+3. **Create tag**: `git tag vX.X.X`
+4. **Push**: `git push origin main && git push origin vX.X.X`
+5. **GitHub Actions** automatically creates the release with changelog
 
 ## Code Style
 
