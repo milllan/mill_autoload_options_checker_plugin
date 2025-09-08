@@ -264,9 +264,10 @@ function ao_send_telemetry_data($telemetry_data) {
 
 /**
  * Gathers and processes all data for the analysis page.
+ * @param bool $schedule_telemetry Whether to schedule telemetry collection.
  * @return array Processed data for display.
  */
-function ao_get_analysis_data() {
+function ao_get_analysis_data($schedule_telemetry = true) {
     global $wpdb;
     $config = ao_get_config();
 
@@ -368,7 +369,7 @@ function ao_get_analysis_data() {
     uasort($grouped_options, function($a, $b) { return $b['total_size'] <=> $a['total_size']; });
 
     // Collect telemetry data for unknown options
-    if (get_option('ao_telemetry_disabled') !== '1') {
+    if ($schedule_telemetry && get_option('ao_telemetry_disabled') !== '1') {
         ao_collect_telemetry_data($grouped_options, $config);
     }
 
@@ -437,7 +438,7 @@ function ao_display_admin_page() {
         exit;
     }
     
-    $data = ao_get_analysis_data(); 
+    $data = ao_get_analysis_data(false);
     $status_message = $config_manager->get_config_status();
 
     extract($data);
