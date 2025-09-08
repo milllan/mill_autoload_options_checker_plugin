@@ -10,8 +10,46 @@ permissions:
   pull-requests: write
 
 jobs:
+  wait-for-changelog:
+    runs-on: ubuntu-latest
+    outputs:
+      changelog-updated: ${{ steps.check-changelog.outputs.updated }}
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Get version from tag
+      id: get_version
+      run: |
+        VERSION=${GITHUB_REF#refs/tags/v}
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+    - name: Wait for changelog update
+      id: check-changelog
+      run: |
+        VERSION=${{ steps.get_version.outputs.version }}
+        MAX_WAIT=60
+        WAIT_COUNT=0
+
+        while [ $WAIT_COUNT -lt $MAX_WAIT ]; do
+          if grep -q "## \[$VERSION\]" CHANGELOG.md; then
+            echo "Changelog updated for version $VERSION"
+            echo "updated=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          echo "Waiting for changelog update... ($WAIT_COUNT/$MAX_WAIT)"
+          sleep 5
+          WAIT_COUNT=$((WAIT_COUNT + 5))
+        done
+
+        echo "Changelog not updated within timeout, proceeding anyway"
+        echo "updated=false" >> $GITHUB_OUTPUT
+
   release:
     runs-on: ubuntu-latest
+    needs: wait-for-changelog
 
     steps:
     - name: Checkout code
@@ -31,13 +69,25 @@ jobs:
       run: |
         VERSION=${{ steps.get_version.outputs.version }}
 
+        # Wait a moment for changelog to be updated
+        sleep 10
+
         # Extract changelog entry for this version
         NOTES=$(sed -n "/## \[$VERSION\]/,/## \[[0-9]/p" CHANGELOG.md | sed '$d' | sed '1d')
 
-        # If no changelog entry found, fall back to commit message
+        # If no changelog entry found, try to get recent commits
         if [ -z "$NOTES" ]; then
-          NOTES=$(git log -1 --pretty=%B ${{ github.sha }})
+          echo "No changelog entry found, using recent commit messages..."
+          NOTES=$(git log --oneline -5 --grep="Bump version\|feat:\|fix:\|docs:\|style:\|refactor:\|test:\|chore:\|perf:\|ci:\|build:\|revert:" | head -3 | sed 's/^/- /')
         fi
+
+        # If still no notes, use the tag commit message
+        if [ -z "$NOTES" ]; then
+          NOTES=$(git log -1 --pretty=%B ${{ github.sha }} | sed 's/^/- /')
+        fi
+
+        # Clean up and format the notes
+        NOTES=$(echo "$NOTES" | sed '/^$/d' | sed 's/^## \[.*\] - .*$//' | sed '/^All notable changes/d' | sed '/^The format is based/d' | sed '/^and this project adheres/d' | sed '/^---$/d')
 
         # Escape newlines for GitHub output
         NOTES="${NOTES//'%'/'%25'}"
