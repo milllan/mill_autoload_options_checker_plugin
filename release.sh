@@ -79,6 +79,10 @@ print_status "Committing version change..."
 git add autoloaded_options_checker.php
 git commit -m "Bump version to $NEW_VERSION"
 
+# Wait a moment for the changelog workflow to complete
+print_status "Waiting for changelog to be updated..."
+sleep 5
+
 # Create and push tag
 TAG="v$NEW_VERSION"
 print_status "Creating tag $TAG..."

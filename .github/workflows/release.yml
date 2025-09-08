@@ -22,11 +22,19 @@ jobs:
         echo "version=$VERSION" >> $GITHUB_OUTPUT
         echo "tag=v$VERSION" >> $GITHUB_OUTPUT
 
-    - name: Get release notes from commit
+    - name: Get release notes from changelog
       id: get_notes
       run: |
-        # Get the commit message for the tag
-        NOTES=$(git log -1 --pretty=%B ${{ github.sha }})
+        VERSION=${{ steps.get_version.outputs.version }}
+
+        # Extract changelog entry for this version
+        NOTES=$(sed -n "/## \[$VERSION\]/,/## \[[0-9]/p" CHANGELOG.md | sed '$d' | sed '1d')
+
+        # If no changelog entry found, fall back to commit message
+        if [ -z "$NOTES" ]; then
+          NOTES=$(git log -1 --pretty=%B ${{ github.sha }})
+        fi
+
         # Escape newlines for GitHub output
         NOTES="${NOTES//'%'/'%25'}"
         NOTES="${NOTES//$'\n'/'%0A'}"
