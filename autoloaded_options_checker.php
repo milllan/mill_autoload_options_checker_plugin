@@ -217,16 +217,22 @@ function ao_collect_telemetry_data($grouped_options, $config) {
         'timestamp' => current_time('timestamp')
     ];
 
-    // Send telemetry asynchronously
-    wp_schedule_single_event(time() + 30, 'ao_send_telemetry_event', [$telemetry_data]);
+    // Send telemetry asynchronously - store in transient to avoid bloating cron
+    $key = 'ao_tel_' . wp_generate_password(12, false, false);
+    set_transient($key, $telemetry_data, 10 * MINUTE_IN_SECONDS);
+    wp_schedule_single_event(time() + 30, 'ao_send_telemetry_event', [$key]);
 }
 
 /**
  * Scheduled event to send telemetry data
  */
 add_action('ao_send_telemetry_event', 'ao_send_telemetry_event_handler');
-function ao_send_telemetry_event_handler($telemetry_data) {
-    ao_send_telemetry_data($telemetry_data);
+function ao_send_telemetry_event_handler($key) {
+    $payload = get_transient($key);
+    if ($payload !== false) {
+        delete_transient($key);
+        ao_send_telemetry_data($payload);
+    }
 }
 
 /**
