@@ -741,7 +741,7 @@ function ao_ajax_disable_autoload_options() {
     }
     update_option('ao_optimizer_history', $ao_history, 'no');
     update_option('perflab_aao_disabled_options', $perf_history, 'no');
-    file_put_contents($log_file, $log_content, FILE_APPEND);
+    file_put_contents($log_file, $log_content, FILE_APPEND | LOCK_EX);
     $message = sprintf(__('Processed %d options: %d disabled, %d failed, %d already off.', 'autoload-optimizer'), count($options_to_disable), $success_count, $failure_count, $already_done);
     $message .= ' ' . sprintf(__('Log saved to %s.', 'autoload-optimizer'), '<code>/wp-content/uploads/autoload-options-debug.log</code>');
     wp_send_json_success(['message' => $message, 'disabled_options' => $processed_options]);
