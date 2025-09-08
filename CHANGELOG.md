@@ -19,9 +19,12 @@
 - **Telemetry Backend Improvements**:
   - Enhanced `telemetry-collector.php` with 5 new lines (likely additional data collection points)
   - Major updates to `telemetry-dashboard.php` (672 line changes, 97% rewrite) - improved data handling, deduplication, and UI
+- **Telemetry Cron Optimization**: Replaced direct storage of large telemetry arrays in WP-Cron with transient-based approach to prevent bloating the `cron` option in `wp_options`
 - **Main Plugin File**: Significant refactoring of `autoloaded_options_checker.php` (2,342 line changes) - likely includes telemetry integration updates and code optimizations
 
 ### Fixed
+- **Concurrent Write Protection**: Added `LOCK_EX` flag to `file_put_contents` in debug log writing to prevent data corruption from simultaneous writes
+- **Duplicate Telemetry Prevention**: Added `$schedule_telemetry` parameter to `ao_get_analysis_data()` to prevent manual "Send now" from scheduling duplicate automatic telemetry
 - **Telemetry Deduplication**: Improved handling of unique site submissions in telemetry data
 - **Configuration Loading**: Better fallback handling for remote config failures
 
