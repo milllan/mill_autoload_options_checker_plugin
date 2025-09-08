@@ -1,0 +1,40 @@
+name: Conventional Commits Check
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  check-commits:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Check commit messages
+      run: |
+        # Get commits in this PR
+        COMMITS=$(git log --oneline ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }})
+
+        if [ -z "$COMMITS" ]; then
+          echo "No commits found in this PR"
+          exit 0
+        fi
+
+        echo "Checking commit messages for conventional format..."
+        echo "$COMMITS" | while read -r commit; do
+          # Extract commit message (remove hash)
+          message=$(echo "$commit" | cut -d' ' -f2-)
+
+          # Check if it follows conventional commit format
+          if echo "$message" | grep -qE "^(feat|fix|docs|style|refactor|test|chore|perf|ci|build|revert)(\(.+\))?: .{1,}"; then
+            echo "✅ $commit"
+          else
+            echo "⚠️  Non-conventional: $commit"
+            echo "   Suggested format: type(scope): description"
+            echo "   Examples: feat: add new feature, fix: resolve bug, docs: update readme"
+          fi
+        done
