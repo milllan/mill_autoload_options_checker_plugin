@@ -36,6 +36,44 @@ The development of this plugin is guided by a few key principles:
 3.  Upload the ZIP file and activate the plugin.
 4.  Navigate to **Tools -> Autoloaded Options Optimizer** to access the tool.
 
+## Automated Releases
+
+This repository includes automated release creation using GitHub Actions. When you push a version tag (e.g., `v4.1.4`), a GitHub release is automatically created.
+
+### Using the Release Script
+
+A convenient release script is provided to automate the version bumping and tagging process:
+
+```bash
+# For patch version bump (4.1.3 → 4.1.4)
+./release.sh patch
+
+# For minor version bump (4.1.3 → 4.2.0)
+./release.sh minor
+
+# For major version bump (4.1.3 → 5.0.0)
+./release.sh major
+
+# Or specify exact version
+./release.sh 4.2.1
+```
+
+The script will:
+1. Update the version in `autoloaded_options_checker.php`
+2. Commit the version change
+3. Create and push a version tag
+4. Trigger the automated GitHub release
+
+### Manual Release Process
+
+If you prefer to do it manually:
+
+1. Update the version in `autoloaded_options_checker.php` (both header and constant)
+2. Commit your changes: `git commit -m "Your commit message"`
+3. Create a tag: `git tag -a v4.1.4 -m "Release 4.1.4"`
+4. Push changes and tag: `git push origin main && git push origin v4.1.4`
+5. GitHub Actions will automatically create the release
+
 ## How It Works: The Analysis Process
 
 The plugin follows a clear priority order to identify the source of each large autoloaded option:
