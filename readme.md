@@ -40,40 +40,61 @@ The development of this plugin is guided by a few key principles:
 
 This repository includes automated release creation using GitHub Actions. When you push a version tag (e.g., `v4.1.4`), a GitHub release is automatically created.
 
-### Using the Release Script
+### Manual Release Process
 
-A convenient release script is provided to automate the version bumping and tagging process:
+To create a new release:
 
-```bash
-# For patch version bump (4.1.3 → 4.1.4)
-./release.sh patch
+1. **Update version in plugin file:**
+   ```bash
+   # Edit autoloaded_options_checker.php and update both:
+   # - Version: X.X.X (in header comment)
+   # - AO_PLUGIN_VERSION constant
+   ```
 
-# For minor version bump (4.1.3 → 4.2.0)
-./release.sh minor
+2. **Commit version change:**
+   ```bash
+   git add autoloaded_options_checker.php
+   git commit -m "Bump version to X.X.X"
+   ```
 
-# For major version bump (4.1.3 → 5.0.0)
-./release.sh major
+3. **Create and push tag:**
+   ```bash
+   git tag vX.X.X
+   git push origin main
+   git push origin vX.X.X
+   ```
 
-# Or specify exact version
-./release.sh 4.2.1
-```
-
-The script will:
-1. Update the version in `autoloaded_options_checker.php`
-2. Commit the version change
-3. Create and push a version tag
-4. Trigger the automated GitHub release
+4. **GitHub Actions automatically:**
+   - Updates the changelog
+   - Creates the GitHub release with changelog notes
 
 ### Manual Release Process
 
-If you prefer to do it manually:
+To create a new release:
 
-1. Update the version in `autoloaded_options_checker.php` (both header and constant)
-2. Update the changelog: `./changelog.sh add` (or edit manually)
-3. Commit your changes: `git commit -m "Your commit message"`
-4. Create a tag: `git tag -a v4.1.4 -m "Release 4.1.4"`
-5. Push changes and tag: `git push origin main && git push origin v4.1.4`
-6. GitHub Actions will automatically create the release with changelog
+1. **Update version in plugin file:**
+   ```bash
+   # Edit autoloaded_options_checker.php and update both:
+   # - Version: X.X.X (in header comment)
+   # - AO_PLUGIN_VERSION constant
+   ```
+
+2. **Commit version change:**
+   ```bash
+   git add autoloaded_options_checker.php
+   git commit -m "Bump version to X.X.X"
+   ```
+
+3. **Create and push tag:**
+   ```bash
+   git tag vX.X.X
+   git push origin main
+   git push origin vX.X.X
+   ```
+
+4. **GitHub Actions automatically:**
+   - Updates the changelog
+   - Creates the GitHub release with changelog notes
 
 ### Changelog Management
 
@@ -84,19 +105,7 @@ The project maintains an automated changelog in `CHANGELOG.md` following [Keep a
 - **Commit Analysis**: GitHub Actions analyzes commit messages to categorize changes
 - **Release Integration**: Changelog entries are automatically included in GitHub releases
 
-#### Manual Changelog Editing
-Use the changelog helper script for manual management:
 
-```bash
-# Add a new changelog entry for current version
-./changelog.sh add
-
-# View changelog for specific version
-./changelog.sh view 4.1.3
-
-# Edit existing changelog entry
-./changelog.sh edit 4.1.3
-```
 
 #### Changelog Categories
 - **Added**: New features
