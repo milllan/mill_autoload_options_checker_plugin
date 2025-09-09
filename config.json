@@ -1,5 +1,5 @@
 {
-    "version": "1.4.11",
+    "version": "1.4.12",
     "plugin_mappings": {
         "active_plugins": {
             "name": "WordPress Core",
@@ -305,6 +305,10 @@
             "name": "Activity Log",
             "file": "aryo-activity-log/aryo-activity-log.php"
         },
+        "analytify-*": {
+            "name": "Analytify - Google Analytics Dashboard",
+            "file": "wp-analytify/wp-analytify.php"
+        },
         "iaff_options": {
             "name": "Auto Image Attributes From Filename",
             "file": "auto-image-attributes-from-filename-with-bulk-updater/iaff_image-attributes-from-filename.php"
@@ -522,6 +526,7 @@
         "Avada_backups",
         "aviaAsset_css_filecontent",
         "aviaAsset_js_filecontent",
+        "analytify-ga-properties-summery",
         "apmm_font_family",
         "blc_installation_log",
         "br_get_taxonomy_hierarchy_product_cat",
