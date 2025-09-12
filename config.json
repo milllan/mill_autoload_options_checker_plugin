@@ -1,5 +1,5 @@
 {
-    "version": "1.4.18",
+    "version": "1.4.19",
     "plugin_mappings": {
         "active_plugins": {
             "name": "WordPress Core",
@@ -44,6 +44,10 @@
         "jetpack_*": {
             "name": "Jetpack",
             "file": "jetpack/jetpack.php"
+        },
+        "jet_menu_*": {
+            "name": "JetMenu (Crocoblock)",
+            "file": "jet-menu/jet-menu.php"
         },
         "jp_*": {
             "name": "Jetpack",
