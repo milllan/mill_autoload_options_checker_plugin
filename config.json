@@ -1,5 +1,5 @@
 {
-    "version": "1.4.22",
+    "version": "1.4.23",
     "plugin_mappings": {
         "active_plugins": {
             "name": "WordPress Core",
@@ -516,6 +516,10 @@
         "wpmudev_updates": {
             "name": "WPMU DEV Dashboard",
             "file": "wpmudev-updates/update-notifications.php"
+        },
+        "widget_*": {
+            "name": "WordPress Core (Widgets)",
+            "file": "core"
         },
         "wps_hide_login": {
             "name": "WPS Hide Login",
