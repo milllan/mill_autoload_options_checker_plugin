@@ -1,5 +1,5 @@
 {
-    "version": "1.4.28",
+    "version": "1.4.29",
     "plugin_mappings": {
         "active_plugins": {
             "name": "WordPress Core",
@@ -268,6 +268,14 @@
         "cptui_post_types": {
             "name": "Custom Post Type UI",
             "file": "custom-post-type-ui/custom-post-type-ui.php"
+        },
+        "tve_leads_saved_tpl_meta": {
+            "name": "Thrive Leads",
+            "file": "thrive-leads/thrive-leads.php"
+        },
+        "td_*": {
+            "name": "Newspaper Theme by tagDiv",
+            "file": "theme:Newspaper"
         },
         "otgs-installer-log": {
             "name": "WPML",
@@ -648,8 +656,8 @@
         "revslider_update_info",
         "revslider-notices",
         "td_011",
+        "td_011_remote_cache",
         "td_011_log",
-        "td_011_settings",
         "tve_leads_saved_tpl_meta",
         "otgs-installer-log",
         "otgs_active_components",
