@@ -1,5 +1,5 @@
 {
-    "version": "1.4.13",
+    "version": "1.4.14",
     "plugin_mappings": {
         "active_plugins": {
             "name": "WordPress Core",
@@ -501,6 +501,10 @@
             "name": "Limit Login Attempts Reloaded",
             "file": "limit-login-attempts-reloaded/limit-login-attempts-reloaded.php"
         },
+        "litespeed.*": {
+            "name": "LiteSpeed Cache",
+            "file": "litespeed-cache/litespeed-cache.php"
+        },
         "fs_accounts": {
             "name": "Freemius SDK (Shared by Multiple Plugins)",
             "file": "freemius_sdk"
@@ -562,7 +566,7 @@
         "gform_version_info",
         "fs_api_cache",
         "limit_login_logged",
-
+        "litespeed.cloud._summary",
         "mepr_options",
         "monsterinsights_report_data_overview",
         "mwp_public_keys",
@@ -681,7 +685,7 @@
         "ElementsKit Lite": "<strong>ElementsKit Lite:</strong> Options like <code>elementskit-lite__banner_data</code> and <code>elementskit-lite__stories_data</code> contain data for the admin dashboard and are safe to disable autoload for. Review the main <code>elementskit_options</code> carefully before disabling it.",
         "Unlimited Elements for Elementor": "<strong>Unlimited Elements for Elementor:</strong> The <code>addon_library_catalog</code> option is a very large cache of the plugin's widget library. It is only needed when browsing widgets in the Elementor editor and is very safe to disable autoload for.",
         "All in One SEO": "<strong>All in One SEO:</strong> The options <code>aioseo_options_v3</code> and <code>aioseop_options</code> are legacy data from older versions. They have been marked as safe to disable autoload. Do not disable autoload for the other <code>aioseo_</code> options if the plugin is active.",
-        "WPML": "<strong>WPML:</strong> This is often a large contributor to autoloaded data. Since WPML is active, do not disable its core options.",
+        "WPML": "<strong>WPML:</strong> This is often a large contributor to autoloaded data. Since WPML is active, do not disable its core options. Options like <code>wp_installer_settings</code> and <code>otgs-installer-log</code> are for admin-only functions (licensing, updates, logs) and are safe to disable autoload for. Critical settings like <code>icl_sitepress_settings</code> are required on every page and should not be touched.",
         "Freemius SDK (Shared by Multiple Plugins)": "<strong>Freemius SDK (<code>fs_accounts</code>):</strong> This shared option is used for licensing by plugins like <em>Unlimited Elements for Elementor</em> and <em>Aelia Currency Switcher</em>. It is safe to disable autoload. Do not delete this option if you have any active plugins that use Freemius.",
         "Aelia Currency Switcher": "This plugin uses the shared Freemius SDK (<code>fs_accounts</code>) for licensing.",
         "Unlimited Elements for Elementor": "This plugin uses the shared Freemius SDK (<code>fs_accounts</code>) for licensing.",
