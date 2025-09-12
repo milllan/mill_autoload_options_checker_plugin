@@ -6,3 +6,5 @@ History section:
 "Disable Autoload for All Safe Options"
 
 -   remove section complitly, icluding all the html, css an js. I dont want bulk disable, too risky
+
+"Child theme" not detected as active, with parent theme options
