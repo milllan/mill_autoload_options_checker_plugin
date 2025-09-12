@@ -1,5 +1,5 @@
 {
-    "version": "1.4.20",
+    "version": "1.4.21",
     "plugin_mappings": {
         "active_plugins": {
             "name": "WordPress Core",
@@ -48,6 +48,10 @@
         "jet_menu_*": {
             "name": "JetMenu (Crocoblock)",
             "file": "jet-menu/jet-menu.php"
+        },
+        "jet-*": {
+            "name": "JetPlugins (Crocoblock)",
+            "file": "jet-engine/jet-engine.php"
         },
         "jp_*": {
             "name": "Jetpack",
@@ -578,6 +582,7 @@
         "itsec-storage",
         "ig_last_gallery_items",
         "IWP_backup_history",
+        "jet-license-data",
         "jetpack_file_data",
         "jetpack_static_asset_cdn_files",
         "jetpack_plugin_api_action_links",
