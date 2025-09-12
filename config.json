@@ -1,5 +1,5 @@
 {
-    "version": "1.4.19",
+    "version": "1.4.20",
     "plugin_mappings": {
         "active_plugins": {
             "name": "WordPress Core",
@@ -581,7 +581,6 @@
         "jetpack_file_data",
         "jetpack_static_asset_cdn_files",
         "jetpack_plugin_api_action_links",
-        "jet_menu_options",
         "jetpack_active_plan",
         "joc_plugins",
         "gform_version_info",
@@ -717,6 +716,7 @@
         "WP Customer Reviews": "<strong>WP Customer Reviews:</strong> If you no longer use this plugin, consider disabling autoload for its options.",
         "Custom Post Type UI": "<strong>Custom Post Type UI:</strong> If you no longer use this plugin, consider disabling autoload for its options.",
         "Yoast SEO": "<strong>Yoast SEO:</strong> If you no longer use this plugin, consider disabling autoload for its options.",
+        "JetMenu (Crocoblock)": "<strong>JetMenu (<code>jet_menu_options</code>):</strong> This is a large but critical option that stores all the styling and settings for your mega menu. It <strong>must</strong> remain autoloaded for your site's navigation to function correctly and performantly. The best way to handle large, essential options like this is with a server-level object cache (e.g., Redis or Memcached).",
         "Limit Login Attempts Reloaded": "<strong>Limit Login Attempts Reloaded:</strong> Security-related options should generally remain autoloaded for optimal protection.",
         "MainWP Child": "<strong>MainWP Child:</strong> Options starting with <code>mainwp_child_</code> store settings, action logs, and cached data for communication with your MainWP Dashboard. This data is not needed on every page load and is 100% safe to disable autoload for, which can improve performance.",
         "Wordfence Security (Scan Cache)": "<strong>Wordfence Security:</strong> Wordfence creates several large options for its scanner and issue caching. It is highly recommended and safe to disable autoload for these options like <code>wf_known_file_list</code>, <code>wf_scan_*</code>, and <code>_transient_wf-*</code>. <strong>Important:</strong> Do not disable autoload for core configuration options like <code>wfConfig</code>, or any options starting with <code>waf*</code> (firewall) and <code>wfls_*</code> (login security), as these are critical for the live protection of your site.",
