@@ -1,5 +1,5 @@
 {
-    "version": "1.4.24",
+    "version": "1.4.25",
     "plugin_mappings": {
         "active_plugins": {
             "name": "WordPress Core",
@@ -100,6 +100,14 @@
         "wfsd_engine": {
             "name": "Wordfence Security (Scan Cache)",
             "file": "wordfence/wordfence.php"
+        },
+        "wf_woocommerce_*": {
+            "name": "Print Invoices & Packing Lists by Webtoffee",
+            "file": "print-invoices-packing-slip-labels-for-woocommerce/wf-woocommerce-packing-list.php"
+        },
+        "Wf_Woocommerce_*": {
+            "name": "Print Invoices & Packing Lists by Webtoffee",
+            "file": "print-invoices-packing-slip-labels-for-woocommerce/wf-woocommerce-packing-list.php"
         },
         "frm_options": {
             "name": "Formidable Forms",
@@ -646,7 +654,7 @@
         "wp_installer_settings",
         "wp_schema_pro_optimized_structured_data",
         "ws_menu_editor_pro",
-        "wcml_trbl_products_needs_fix_postmeta",
+        "wf_woocommerce_packing_list_invoice_preview_pdf_html",
         "wf_known_file_list",
         "wf_scan_result",
         "wf_scan_last_complete",
