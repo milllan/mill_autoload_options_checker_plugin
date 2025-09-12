@@ -1,5 +1,5 @@
 {
-    "version": "1.4.21",
+    "version": "1.4.22",
     "plugin_mappings": {
         "active_plugins": {
             "name": "WordPress Core",
@@ -381,9 +381,17 @@
             "name": "Link Whisper",
             "file": "link-whisper-premium/link-whisper.php"
         },
+        "monsterinsights_report_data_overview": {
+            "name": "MonsterInsights",
+            "file": "google-analytics-for-wordpress/googleanalytics.php"
+        },
         "mainwp_child_*": {
             "name": "MainWP Child",
             "file": "mainwp-child/mainwp-child.php"
+        },
+        "mwp_*": {
+            "name": "ManageWP Worker",
+            "file": "worker/init.php"
         },
         "wp_media_cleaner": {
             "name": "Media Cleaner",
