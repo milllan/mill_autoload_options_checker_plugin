@@ -1,5 +1,5 @@
 {
-    "version": "1.4.23",
+    "version": "1.4.24",
     "plugin_mappings": {
         "active_plugins": {
             "name": "WordPress Core",
@@ -524,6 +524,10 @@
         "wps_hide_login": {
             "name": "WPS Hide Login",
             "file": "wps-hide-login/wps-hide-login.php"
+        },
+        "wpe_*": {
+            "name": "WP Engine Caching",
+            "file": "wp-engine-cache-plugin/wp-engine-cache-plugin.php"
         },
         "yoast_test_helper": {
             "name": "Yoast Test Helper",
