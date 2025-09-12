@@ -1,5 +1,5 @@
 {
-    "version": "1.4.16",
+    "version": "1.4.17",
     "plugin_mappings": {
         "active_plugins": {
             "name": "WordPress Core",
@@ -560,6 +560,7 @@
         "essential-grid_update_info",
         "et_divi",
         "fusion_options",
+        "fusion_options-transients",
         "fusion_options_500_backup",
         "fbrfg_favicon_non_interactive_api_request",
         "itsec-storage",
