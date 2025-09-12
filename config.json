@@ -1,5 +1,5 @@
 {
-    "version": "1.4.31",
+    "version": "1.4.32",
     "plugin_mappings": {
         "active_plugins": {
             "name": "WordPress Core",
@@ -655,7 +655,6 @@
         "revslider-addons",
         "revslider_update_info",
         "revslider-notices",
-        "td_011",
         "td_011_remote_cache",
         "td_011_log",
         "tve_leads_saved_tpl_meta",
@@ -777,7 +776,7 @@
         "Slider Revolution": "<strong>Slider Revolution:</strong> The <code>revslider-addons</code> option is a cache of available add-ons for the admin dashboard. It is not used on the front end of your site and is safe to disable autoload.",
         "RSS Feed Widget (Ad/Content Cache)": "<strong>RSS Feed Widget:</strong> The <code>_transient_RCWFeed_Ms_*</code> options are very large cached RSS feeds, often for rotating ads or content. They should NEVER be autoloaded. Disabling autoload for all of these options is 100% safe and will provide a major performance boost.",
         "Visual Composer (Hub Cache)": "<strong>Visual Composer:</strong> Options starting with <code>vcv-hubTeaser</code> are cached data from the Visual Composer Hub (their cloud library of elements and templates). This data is only used in the admin editor and is not needed on the live site. It is highly recommended and 100% safe to disable autoload for all of these options.",
-        "Newspaper Theme by tagDiv": "<strong>Newspaper Theme (<code>td_011_remote_cache</code>):</strong> This option stores a very large cache of data from social media APIs like Instagram. While used on the frontend, it is inefficiently large and not needed on every page. It is highly recommended and safe to disable its autoload for a major performance improvement.<br><br><em>Critical settings like <code>td_011_settings</code> store your theme's design and must remain autoloaded.</em>"
+        "Newspaper Theme by tagDiv": "<strong>Newspaper Theme (<code>td_*</code> options):</strong> This theme creates very large options. Core configurations are stored in <code>td_011</code> and <code>td_011_settings</code>, which are critical and <strong>must</strong> remain autoloaded for your site to function correctly. However, options like <code>td_011_remote_cache</code> and <code>td_011_log</code> contain temporary cache or log data. We have marked these specific cache/log options as safe to disable autoload."
     },
     "general_recommendations": [
         "<strong>Safe Options:</strong> Options marked with a green checkmark are generally safe to disable autoload for. These are typically cache entries, logs, or other non-critical data.",
