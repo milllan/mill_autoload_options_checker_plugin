@@ -1,5 +1,5 @@
 {
-    "version": "1.4.27",
+    "version": "1.4.28",
     "plugin_mappings": {
         "active_plugins": {
             "name": "WordPress Core",
@@ -314,6 +314,10 @@
             "file": "adsensexplosion/adsensexplosion.php"
         },
         "BeRocket_*": {
+            "name": "BeRocket AJAX Product Filters",
+            "file": "woocommerce-ajax-filters/woocommerce-filters.php"
+        },
+        "br_*": {
             "name": "BeRocket AJAX Product Filters",
             "file": "woocommerce-ajax-filters/woocommerce-filters.php"
         },
