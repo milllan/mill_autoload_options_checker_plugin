@@ -1,5 +1,5 @@
 {
-    "version": "1.4.25",
+    "version": "1.4.26",
     "plugin_mappings": {
         "active_plugins": {
             "name": "WordPress Core",
@@ -500,6 +500,10 @@
         "mfrh_settings": {
             "name": "Media File Renamer Pro",
             "file": "media-file-renamer-pro/media-file-renamer-pro.php"
+        },
+        "megamenu_*": {
+            "name": "Max Mega Menu",
+            "file": "megamenu/megamenu.php"
         },
         "mla_options": {
             "name": "Media Library Assistant",
