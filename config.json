@@ -1,5 +1,5 @@
 {
-    "version": "1.4.17",
+    "version": "1.4.18",
     "plugin_mappings": {
         "active_plugins": {
             "name": "WordPress Core",
@@ -397,6 +397,10 @@
             "name": "UpdraftPlus",
             "file": "updraftplus/updraftplus.php"
         },
+        "wp_rocket_*": {
+            "name": "WP Rocket",
+            "file": "wp-rocket/wp-rocket.php"
+        },
         "grw_options": {
             "name": "Widgets for Google Reviews",
             "file": "widget-google-reviews/grw.php"
@@ -480,6 +484,10 @@
         "mystickymenu_options": {
             "name": "My Sticky Bar Pro",
             "file": "mystickymenu-pro/mystickymenu.php"
+        },
+        "nfw_*": {
+            "name": "NinjaFirewall (WP Edition)",
+            "file": "ninjafirewall/ninjafirewall.php"
         },
         "query_monitor": {
             "name": "Query Monitor",
@@ -687,6 +695,7 @@
         "wc_csv_import_suite_background_import_results_*",
         "wfacp_c_*",
         "wp-optimize*",
+        "wp_rocket_resources_scanner",
         "wfcm*",
         "wpseo-gsc-*"
     ],
