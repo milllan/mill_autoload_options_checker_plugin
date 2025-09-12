@@ -1,5 +1,5 @@
 {
-    "version": "1.4.15",
+    "version": "1.4.16",
     "plugin_mappings": {
         "active_plugins": {
             "name": "WordPress Core",
@@ -512,6 +512,10 @@
         "fs_accounts": {
             "name": "Freemius SDK (Shared by Multiple Plugins)",
             "file": "freemius_sdk"
+        },
+        "fusion_*": {
+            "name": "Avada Theme / Fusion Framework",
+            "file": "theme:avada"
         },
         "aelia_currency_switcher_options": {
             "name": "Aelia Currency Switcher",
