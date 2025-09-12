@@ -1,5 +1,5 @@
 {
-    "version": "1.4.26",
+    "version": "1.4.27",
     "plugin_mappings": {
         "active_plugins": {
             "name": "WordPress Core",
@@ -313,6 +313,10 @@
             "name": "AdSense Explosion",
             "file": "adsensexplosion/adsensexplosion.php"
         },
+        "BeRocket_*": {
+            "name": "BeRocket AJAX Product Filters",
+            "file": "woocommerce-ajax-filters/woocommerce-filters.php"
+        },
         "ATE_RETURNED_JOBS_QUEUE": {
             "name": "WPML",
             "file": "sitepress-multilingual-cms/sitepress.php"
@@ -587,6 +591,7 @@
         "aviaAsset_css_filecontent",
         "aviaAsset_js_filecontent",
         "analytify-ga-properties-summery",
+        "BeRocket_AAPF_getall_Template_Styles",
         "wp_analytify_modules",
         "apmm_font_family",
         "blc_installation_log",
@@ -749,6 +754,7 @@
         "WP Customer Reviews": "<strong>WP Customer Reviews:</strong> If you no longer use this plugin, consider disabling autoload for its options.",
         "Custom Post Type UI": "<strong>Custom Post Type UI:</strong> If you no longer use this plugin, consider disabling autoload for its options.",
         "Yoast SEO": "<strong>Yoast SEO:</strong> If you no longer use this plugin, consider disabling autoload for its options.",
+        "BeRocket AJAX Product Filters": "<strong>BeRocket AJAX Product Filters (<code>..._getall_Template_Styles</code>):</strong> This option contains a large library of all available styling templates (buttons, sliders, checkboxes) for the filter widgets. <strong>Our analysis indicates this data is only used in the admin dashboard when you are building or editing a filter, not on the live site for visitors.</strong> For this reason, we have marked it as safe to disable autoload for a significant performance gain.<br><br><em>A more conservative view would be to leave it autoloaded simply because the plugin is active. However, the risk of disabling autoload for this specific admin-only option is extremely low.</em>",
         "JetMenu (Crocoblock)": "<strong>JetMenu (<code>jet_menu_options</code>):</strong> This is a large but critical option that stores all the styling and settings for your mega menu. It <strong>must</strong> remain autoloaded for your site's navigation to function correctly and performantly. The best way to handle large, essential options like this is with a server-level object cache (e.g., Redis or Memcached).",
         "Limit Login Attempts Reloaded": "<strong>Limit Login Attempts Reloaded:</strong> Security-related options should generally remain autoloaded for optimal protection.",
         "MainWP Child": "<strong>MainWP Child:</strong> Options starting with <code>mainwp_child_</code> store settings, action logs, and cached data for communication with your MainWP Dashboard. This data is not needed on every page load and is 100% safe to disable autoload for, which can improve performance.",
