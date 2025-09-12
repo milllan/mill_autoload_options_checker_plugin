@@ -1,5 +1,5 @@
 {
-    "version": "1.4.14",
+    "version": "1.4.15",
     "plugin_mappings": {
         "active_plugins": {
             "name": "WordPress Core",
@@ -170,6 +170,10 @@
             "file": "wordpress-seo/wp-seo.php"
         },
         "wpseo_premium": {
+            "name": "Yoast SEO Premium",
+            "file": "wordpress-seo-premium/wp-seo-premium.php"
+        },
+        "wpseo-premium*": {
             "name": "Yoast SEO Premium",
             "file": "wordpress-seo-premium/wp-seo-premium.php"
         },
