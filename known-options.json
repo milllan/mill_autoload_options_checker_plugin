@@ -1,0 +1,735 @@
+{
+    "version": "4.1.0",
+    "plugins": {
+        "a2-optimized": {
+            "name": "A2 Optimized",
+            "file": "a2-optimized-wp/A2_Optimized_WP.php",
+            "options": ["safe:a2opt-benchmarks-frontend"],
+            "recommendation": "<strong>A2 Optimized:</strong> The <code>a2opt-benchmarks-frontend</code> option stores performance test results and is very large. It is not needed for site operation and is highly recommended to disable autoload."
+        },
+        "aaa-option-optimizer": {
+            "name": "AAA Option Optimizer",
+            "file": "aaa-option-optimizer/aaa-option-optimizer.php",
+            "options": ["aaa_option_optimizer_settings"]
+        },
+        "activity-log": {
+            "name": "Activity Log",
+            "file": "aryo-activity-log/aryo-activity-log.php",
+            "options": ["al_plugin_options"]
+        },
+        "ad-inserter": {
+            "name": "Ad Inserter",
+            "file": "ad-inserter/ad-inserter.php",
+            "options": ["ad_inserter"],
+            "recommendation": "<strong>Ad Inserter:</strong> If you no longer use this plugin, consider disabling autoload for its options."
+        },
+        "adsense-explosion": {
+            "name": "AdSense Explosion",
+            "file": "adsensexplosion/adsensexplosion.php",
+            "options": ["adsensexplosion"]
+        },
+        "aelia-currency-switcher": {
+            "name": "Aelia Currency Switcher",
+            "file": "woocommerce-aelia-currencyswitcher/woocommerce-aelia-currencyswitcher.php",
+            "options": ["aelia_currency_switcher_options"],
+            "recommendation": "This plugin uses the shared Freemius SDK (<code>fs_accounts</code>) for licensing."
+        },
+        "ai-engine": {
+            "name": "AI Engine",
+            "file": "ai-engine/ai-engine.php",
+            "options": ["ai_engine_settings"]
+        },
+        "all-in-one-seo": {
+            "name": "All in One SEO",
+            "file": "all-in-one-seo-pack/all-in-one-seo-pack.php",
+            "options": [
+                "aioseo_options",
+                "aioseo_options_dynamic",
+                "aioseo_options_network",
+                "aioseo_options_internal",
+                "aioseo_options_dynamic_network",
+                "aioseo_options_dynamic_localized",
+                "aioseo_options_localized",
+                "aioseo_options_internal_network",
+                "safe:aioseo_options_v3",
+                "safe:aioseop_options"
+            ],
+            "recommendation": "<strong>All in One SEO:</strong> The options <code>aioseo_options_v3</code> and <code>aioseop_options</code> are legacy data from older versions. They have been marked as safe to disable autoload. Do not disable autoload for the other <code>aioseo_</code> options if the plugin is active."
+        },
+        "analytify-google-analytics-dashboard": {
+            "name": "Analytify - Google Analytics Dashboard",
+            "file": "wp-analytify/wp-analytify.php",
+            "options": [
+                "analytify-*",
+                "wp_analytify_*",
+                "safe:analytify-ga-properties-summery",
+                "safe:wp_analytify_modules"
+            ]
+        },
+        "astra-theme-block-template-cache": {
+            "name": "Astra Theme (Block Template Cache)",
+            "file": "theme:astra",
+            "options": ["safe:ast-block-templates-blocks-*"]
+        },
+        "auto-image-attributes-from-filename": {
+            "name": "Auto Image Attributes From Filename",
+            "file": "auto-image-attributes-from-filename-with-bulk-updater/iaff_image-attributes-from-filename.php",
+            "options": ["iaff_options"]
+        },
+        "auto-image-attributes-pro": {
+            "name": "Auto Image Attributes Pro",
+            "file": "auto-image-attributes-pro/auto-image-attributes-pro.php",
+            "options": ["aiap_settings"]
+        },
+        "avada-theme-fusion-framework": {
+            "name": "Avada Theme / Fusion Framework",
+            "file": "theme:avada",
+            "options": [
+                "fusion_*",
+                "safe:fusion_options",
+                "safe:fusion_options-transients",
+                "safe:fusion_options_500_backup",
+                "safe:fusion_dynamic*"
+            ]
+        },
+        "berocket-ajax-product-filters": {
+            "name": "BeRocket AJAX Product Filters",
+            "file": "woocommerce-ajax-filters/woocommerce-filters.php",
+            "options": [
+                "BeRocket_*",
+                "br_*",
+                "safe:BeRocket_AAPF_getall_Template_Styles",
+                "safe:br_get_taxonomy_hierarchy_product_cat"
+            ],
+            "recommendation": "<strong>BeRocket AJAX Product Filters (<code>..._getall_Template_Styles</code>):</strong> This option contains a large library of all available styling templates (buttons, sliders, checkboxes) for the filter widgets. <strong>Our analysis indicates this data is only used in the admin dashboard when you are building or editing a filter, not on the live site for visitors.</strong> For this reason, we have marked it as safe to disable autoload for a significant performance gain.<br><br><em>A more conservative view would be to leave it autoloaded simply because the plugin is active. However, the risk of disabling autoload for this specific admin-only option is extremely low.</em>"
+        },
+        "betheme": {
+            "name": "Betheme",
+            "file": "theme:betheme",
+            "options": ["betheme"]
+        },
+        "better-search-replace": {
+            "name": "Better Search Replace",
+            "file": "better-search-replace/better-search-replace.php",
+            "options": ["bsr_options"]
+        },
+        "brainstorm-force": {
+            "name": "Brainstorm Force",
+            "file": "brainstorm-force/brainstorm-force.php",
+            "options": ["brainstrom_products"]
+        },
+        "broken-link-checker": {
+            "name": "Broken Link Checker",
+            "file": "broken-link-checker/broken-link-checker.php",
+            "options": ["safe:blc_installation_log", "wsblc_options"],
+            "recommendation": "<strong>Broken Link Checker:</strong> The <code>blc_installation_log</code> option is a one-time log created during the plugin's setup. It is very safe to disable its autoload status. In many cases, the entire option can be deleted from the database without any negative effects after the plugin has been installed."
+        },
+        "business-reviews-bundle": {
+            "name": "Business Reviews Bundle",
+            "file": "business-reviews-bundle/brb.php",
+            "options": ["brb_options"]
+        },
+        "cherry-framework-theme-options": {
+            "name": "Cherry Framework (Theme Options)",
+            "file": "theme",
+            "options": [
+                "cherry_customiser_*",
+                "safe:cherry_customiser_fonts_google",
+                "safe:cherry_customiser_fonts_standard"
+            ]
+        },
+        "cloudflare": {
+            "name": "Cloudflare",
+            "file": "cloudflare/cloudflare.php",
+            "options": ["cloudflare_api_email"]
+        },
+        "code-snippets": {
+            "name": "Code Snippets",
+            "file": "code-snippets/code-snippets.php",
+            "options": ["code_snippets_settings"]
+        },
+        "complianz-privacy-suite": {
+            "name": "Complianz Privacy Suite",
+            "file": "complianz-gdpr-premium/complianz-gdpr-premium.php",
+            "options": ["complianz_options"]
+        },
+        "custom-post-type-ui": {
+            "name": "Custom Post Type UI",
+            "file": "custom-post-type-ui/custom-post-type-ui.php",
+            "options": ["cptui_post_types", "cptui_taxonomies"],
+            "recommendation": "<strong>Custom Post Type UI:</strong> If you no longer use this plugin, consider disabling autoload for its options."
+        },
+        "custom-post-types": {
+            "name": "Custom Post Types",
+            "file": "custom-post-types/custom-post-types.php",
+            "options": ["cpt_custom_post_types"]
+        },
+        "disable-elementor-editor-translation": {
+            "name": "Disable Elementor Editor Translation",
+            "file": "disable-elementor-editor-translation/disable-elementor-editor-translation.php",
+            "options": ["disable_elementor_editor_translation"]
+        },
+        "duplicator-pro": {
+            "name": "Duplicator Pro",
+            "file": "duplicator-pro/duplicator-pro.php",
+            "options": ["duplicator_pro_package_active"],
+            "recommendation": "<strong>Duplicator Pro:</strong> If you no longer use this plugin, consider disabling autoload for its options."
+        },
+        "elementor": {
+            "name": "Elementor",
+            "file": "elementor/elementor.php",
+            "options": ["elementor_*", "elementor_active_kit"]
+        },
+        "elementor-pro": {
+            "name": "Elementor Pro",
+            "file": "elementor-pro/elementor-pro.php",
+            "options": [
+                "elementor_pro_license_key",
+                "safe:elementor_pro_remote*"
+            ]
+        },
+        "elementskit-lite": {
+            "name": "ElementsKit Lite",
+            "file": "elementskit-lite/elementskit-lite.php",
+            "options": [
+                "elementskit_options",
+                "safe:elementskit-lite__banner_data",
+                "safe:elementskit-lite__stories_data"
+            ],
+            "recommendation": "<strong>ElementsKit Lite:</strong> Options like <code>elementskit-lite__banner_data</code> and <code>elementskit-lite__stories_data</code> contain data for the admin dashboard and are safe to disable autoload for. Review the main <code>elementskit_options</code> carefully before disabling it."
+        },
+        "enable-media-replace": {
+            "name": "Enable Media Replace",
+            "file": "enable-media-replace/enable-media-replace.php",
+            "options": ["enable_media_replace"]
+        },
+        "ezoic-integration": {
+            "name": "Ezoic Integration",
+            "file": "ezoic-integration/ezoic-integration.php",
+            "options": ["ez_adtester_config"]
+        },
+        "file-manager-advanced": {
+            "name": "File Manager Advanced",
+            "file": "file-manager-advanced/file_manager_advanced.php",
+            "options": ["fma_settings"]
+        },
+        "formidable-forms": {
+            "name": "Formidable Forms",
+            "file": "formidable/formidable.php",
+            "options": ["frm_options", "_transient_frm_options"]
+        },
+        "freemius-sdk-shared-by-multiple-plugins": {
+            "name": "Freemius SDK (Shared by Multiple Plugins)",
+            "file": "freemius_sdk",
+            "options": ["safe:fs_accounts"],
+            "recommendation": "<strong>Freemius SDK (<code>fs_accounts</code>):</strong> This shared option is used for licensing by plugins like <em>Unlimited Elements for Elementor</em> and <em>Aelia Currency Switcher</em>. It is safe to disable autoload. Do not delete this option if you have any active plugins that use Freemius."
+        },
+        "generatepress-theme-custom-css": {
+            "name": "GeneratePress Theme (Custom CSS)",
+            "file": "theme:generatepress",
+            "options": ["simple_css"]
+        },
+        "gtm-server-side": {
+            "name": "GTM Server Side",
+            "file": "gtm-server-side/gtm-server-side.php",
+            "options": ["gtm_server_side_settings"]
+        },
+        "imagify": {
+            "name": "Imagify",
+            "file": "imagify/imagify.php",
+            "options": ["imagify_settings"]
+        },
+        "imagify-tools": {
+            "name": "Imagify Tools",
+            "file": "imagify-tools/imagify-tools.php",
+            "options": ["imagify_tools_settings"]
+        },
+        "instant-indexing": {
+            "name": "Instant Indexing",
+            "file": "fast-indexing-api/instant-indexing.php",
+            "options": ["instant_indexing_settings"]
+        },
+        "jetmenu-crocoblock": {
+            "name": "JetMenu (Crocoblock)",
+            "file": "jet-menu/jet-menu.php",
+            "options": ["jet_menu_*"],
+            "recommendation": "<strong>JetMenu (<code>jet_menu_options</code>):</strong> This is a large but critical option that stores all the styling and settings for your mega menu. It <strong>must</strong> remain autoloaded for your site's navigation to function correctly and performantly. The best way to handle large, essential options like this is with a server-level object cache (e.g., Redis or Memcached)."
+        },
+        "jetpack": {
+            "name": "Jetpack",
+            "file": "jetpack/jetpack.php",
+            "options": [
+                "jetpack_*",
+                "jp_*",
+                "safe:jetpack_file_data",
+                "safe:jetpack_static_asset_cdn_files",
+                "safe:jetpack_plugin_api_action_links",
+                "safe:jetpack_active_plan",
+                "safe:jp_sync_error_log_*"
+            ]
+        },
+        "jetplugins-crocoblock": {
+            "name": "JetPlugins (Crocoblock)",
+            "file": "jet-engine/jet-engine.php",
+            "options": ["jet-*", "safe:jet-license-data"]
+        },
+        "limit-login-attempts-reloaded": {
+            "name": "Limit Login Attempts Reloaded",
+            "file": "limit-login-attempts-reloaded/limit-login-attempts-reloaded.php",
+            "options": ["safe:limit_login_logged"],
+            "recommendation": "<strong>Limit Login Attempts Reloaded:</strong> Security-related options should generally remain autoloaded for optimal protection."
+        },
+        "link-whisper": {
+            "name": "Link Whisper",
+            "file": "link-whisper-premium/link-whisper.php",
+            "options": ["link_whisper_settings"]
+        },
+        "litespeed-cache": {
+            "name": "LiteSpeed Cache",
+            "file": "litespeed-cache/litespeed-cache.php",
+            "options": ["litespeed.*", "safe:litespeed.cloud._summary"]
+        },
+        "mainwp-child": {
+            "name": "MainWP Child",
+            "file": "mainwp-child/mainwp-child.php",
+            "options": ["mainwp_child_*"],
+            "recommendation": "<strong>MainWP Child:</strong> Options starting with <code>mainwp_child_</code> store settings, action logs, and cached data for communication with your MainWP Dashboard. This data is not needed on every page load and is 100% safe to disable autoload for."
+        },
+        "managewp-worker": {
+            "name": "ManageWP Worker",
+            "file": "worker/init.php",
+            "options": ["mwp_*", "safe:mwp_public_keys"]
+        },
+        "max-mega-menu": {
+            "name": "Max Mega Menu",
+            "file": "megamenu/megamenu.php",
+            "options": ["megamenu_*"]
+        },
+        "media-cleaner": {
+            "name": "Media Cleaner",
+            "file": "media-cleaner/media-cleaner.php",
+            "options": ["wp_media_cleaner"]
+        },
+        "media-file-renamer-pro": {
+            "name": "Media File Renamer Pro",
+            "file": "media-file-renamer-pro/media-file-renamer-pro.php",
+            "options": ["mfrh_settings"]
+        },
+        "media-library-assistant": {
+            "name": "Media Library Assistant",
+            "file": "media-library-assistant/index.php",
+            "options": ["mla_options"]
+        },
+        "mh-magazine-theme-widgets": {
+            "name": "MH Magazine Theme Widgets",
+            "file": "theme",
+            "options": ["widget_mh_advertising", "widget_mh_custom_posts"]
+        },
+        "monsterinsights": {
+            "name": "MonsterInsights",
+            "file": "google-analytics-for-wordpress/googleanalytics.php",
+            "options": ["safe:monsterinsights_report_data_overview"]
+        },
+        "my-sticky-bar-pro": {
+            "name": "My Sticky Bar Pro",
+            "file": "mystickymenu-pro/mystickymenu.php",
+            "options": ["mystickymenu_options"]
+        },
+        "newspaper-theme-by-tagdiv": {
+            "name": "Newspaper Theme by tagDiv",
+            "file": "theme:Newspaper",
+            "options": ["td_*", "safe:td_011_remote_cache", "safe:td_011_log"],
+            "recommendation": "<strong>Newspaper Theme (<code>td_*</code> options):</strong> This theme creates very large options. Core configurations are stored in <code>td_011</code> and <code>td_011_settings</code>, which are critical and <strong>must</strong> remain autoloaded for your site to function correctly. However, options like <code>td_011_remote_cache</code> and <code>td_011_log</code> contain temporary cache or log data. We have marked these specific cache/log options as safe to disable autoload."
+        },
+        "ninjafirewall-wp-edition": {
+            "name": "NinjaFirewall (WP Edition)",
+            "file": "ninjafirewall/ninjafirewall.php",
+            "options": ["nfw_*"]
+        },
+        "print-invoices-packing-lists-by-webtoffee": {
+            "name": "Print Invoices & Packing Lists by Webtoffee",
+            "file": "print-invoices-packing-slip-labels-for-woocommerce/wf-woocommerce-packing-list.php",
+            "options": [
+                "wf_woocommerce_*",
+                "Wf_Woocommerce_*",
+                "safe:wf_woocommerce_packing_list_invoice_preview_pdf_html"
+            ]
+        },
+        "publishpress-capabilities": {
+            "name": "PublishPress Capabilities",
+            "file": "capability-manager-enhanced/capability-manager-enhanced.php",
+            "options": ["ppc_feature_post_metaboxes_data"]
+        },
+        "publishpress-revisions": {
+            "name": "PublishPress Revisions",
+            "file": "revisionary/revisionary.php",
+            "options": ["safe:revisionary_sent_mail"]
+        },
+        "query-monitor": {
+            "name": "Query Monitor",
+            "file": "query-monitor/query-monitor.php",
+            "options": ["query_monitor"]
+        },
+        "rank-math": {
+            "name": "Rank Math",
+            "file": "seo-by-rank-math/rank-math.php",
+            "options": ["rank_math_analytics_all_services"]
+        },
+        "rcw-feed-rss-widget-plugin-unknown-plugin": {
+            "name": "RCW Feed / RSS Widget Plugin [unknown plugin]",
+            "file": "rcw-feed/rcw-feed.php",
+            "options": ["_transient_RCWFeed_*", "safe:_transient_RCWFeed_Ms_*"]
+        },
+        "rss-feed-widget-ad-content-cache": {
+            "name": "RSS Feed Widget (Ad/Content Cache)",
+            "file": "some-rss-widget/plugin-file.php",
+            "options": ["safe:_transient_RCWFeed_Ms_*"],
+            "recommendation": "<strong>RSS Feed Widget:</strong> The <code>_transient_RCWFeed_Ms_*</code> options are very large cached RSS feeds, often for rotating ads or content. They should NEVER be autoloaded. Disabling autoload for all of these options is 100% safe and will provide a major performance boost."
+        },
+        "simple-admin-language-change": {
+            "name": "Simple Admin Language Change",
+            "file": "simple-admin-language-change/simple-admin-language-change.php",
+            "options": ["salc_options"]
+        },
+        "slider-revolution": {
+            "name": "Slider Revolution",
+            "file": "revslider/revslider.php",
+            "options": [
+                "revslider*",
+                "safe:revslider-addons",
+                "safe:revslider_update_info",
+                "safe:revslider-notices"
+            ],
+            "recommendation": "<strong>Slider Revolution:</strong> The <code>revslider-addons</code> option is a cache of available add-ons for the admin dashboard. It is not used on the front end of your site and is safe to disable autoload."
+        },
+        "starbox": {
+            "name": "Starbox - the Author Box for Humans",
+            "file": "starbox/starbox.php",
+            "options": ["abh_options"]
+        },
+        "svg-support": {
+            "name": "SVG Support",
+            "file": "svg-support/svg-support.php",
+            "options": ["bodhi_svg_options"]
+        },
+        "temporary-login-without-password": {
+            "name": "Temporary Login Without Password",
+            "file": "temporary-login-without-password/temporary-login-without-password.php",
+            "options": ["tlw_options"]
+        },
+        "thrive-leads": {
+            "name": "Thrive Leads",
+            "file": "thrive-leads/thrive-leads.php",
+            "options": ["safe:tve_leads_saved_tpl_meta"]
+        },
+        "thrive-themes": {
+            "name": "Thrive Themes",
+            "file": "thrive-visual-editor/thrive-visual-editor.php",
+            "options": ["tve_default_styles"]
+        },
+        "toolset-types": {
+            "name": "Toolset Types",
+            "file": "types/types.php",
+            "options": ["wpcf-custom-taxonomies", "wpcf-types"]
+        },
+        "unlimited-elements-for-elementor": {
+            "name": "Unlimited Elements for Elementor",
+            "file": "unlimited-elements-for-elementor/unlimited-elements-for-elementor.php",
+            "options": [
+                "safe:addon_library_catalog",
+                "unlimited_elements_options"
+            ],
+            "recommendation": "This plugin uses the shared Freemius SDK (<code>fs_accounts</code>) for licensing."
+        },
+        "updraftplus": {
+            "name": "UpdraftPlus",
+            "file": "updraftplus/updraftplus.php",
+            "options": ["safe:updraft*", "updraft_options"]
+        },
+        "visual-composer-hub-cache": {
+            "name": "Visual Composer (Hub Cache)",
+            "file": "visualcomposer/visualcomposer.php",
+            "options": ["safe:vcv-hubTeaser*"],
+            "recommendation": "<strong>Visual Composer:</strong> Options starting with <code>vcv-hubTeaser</code> are cached data from the Visual Composer Hub (their cloud library of elements and templates). This data is only used in the admin editor and is not needed on the live site. It is highly recommended and 100% safe to disable autoload for all of these options."
+        },
+        "widgets-for-google-reviews": {
+            "name": "Widgets for Google Reviews",
+            "file": "widget-google-reviews/grw.php",
+            "options": ["grw_options"]
+        },
+        "wordfence-security-issues-cache": {
+            "name": "Wordfence Security (Issues Cache)",
+            "file": "wordfence/wordfence.php",
+            "options": ["safe:wfIssues", "safe:wfIssuesCounts"],
+            "recommendation": "<strong>Wordfence Security:</strong> Wordfence creates several large options for its scanner and issue caching. It is highly recommended and safe to disable autoload for these options like <code>wf_known_file_list</code>, <code>wf_scan_*</code>, and <code>_transient_wf-*</code>. <strong>Important:</strong> Do not disable autoload for core configuration options like <code>wfConfig</code>, or any options starting with <code>waf*</code> (firewall) and <code>wfls_*</code> (login security), as these are critical for the live protection of your site."
+        },
+        "wordfence-security-scan-cache": {
+            "name": "Wordfence Security (Scan Cache)",
+            "file": "wordfence/wordfence.php",
+            "options": [
+                "safe:wf_known_file_list",
+                "safe:wf_scan_result",
+                "safe:wf_scan_last_complete",
+                "safe:wf_scan_lock",
+                "safe:wfsd_engine"
+            ],
+            "recommendation": "<strong>Wordfence Security:</strong> Wordfence creates several large options for its scanner and issue caching. It is highly recommended and safe to disable autoload for these options like <code>wf_known_file_list</code>, <code>wf_scan_*</code>, and <code>_transient_wf-*</code>. <strong>Important:</strong> Do not disable autoload for core configuration options like <code>wfConfig</code>, or any options starting with <code>waf*</code> (firewall) and <code>wfls_*</code> (login security), as these are critical for the live protection of your site."
+        },
+        "wordpress-core": {
+            "name": "WordPress Core",
+            "file": "core",
+            "options": ["active_plugins", "rewrite_rules", "wp_user_roles"]
+        },
+        "wordpress-core-widgets": {
+            "name": "WordPress Core (Widgets)",
+            "file": "core",
+            "options": ["widget_*", "safe:widget_custom_html"]
+        },
+        "wp-asset-cleanup": {
+            "name": "WP Asset Cleanup",
+            "file": "wp-asset-cleanup/wp-asset-cleanup.php",
+            "options": ["safe:wpassetcleanup_global_data"],
+            "recommendation": "<strong>WP Asset Cleanup:</strong> If you no longer use this plugin, consider disabling autoload for its options."
+        },
+        "wp-customer-reviews": {
+            "name": "WP Customer Reviews",
+            "file": "wp-customer-reviews/wp-customer-reviews-3.php",
+            "options": ["wpcr3_options"],
+            "recommendation": "<strong>WP Customer Reviews:</strong> If you no longer use this plugin, consider disabling autoload for its options."
+        },
+        "wp-engine-caching": {
+            "name": "WP Engine Caching",
+            "file": "wp-engine-cache-plugin/wp-engine-cache-plugin.php",
+            "options": ["wpe_*"]
+        },
+        "wp-rocket": {
+            "name": "WP Rocket",
+            "file": "wp-rocket/wp-rocket.php",
+            "options": [
+                "rocket_*",
+                "wp_rocket_*",
+                "wp_rocket_settings",
+                "safe:wp_rocket_resources_scanner"
+            ]
+        },
+        "wp-rocket-d-bugger": {
+            "name": "WP Rocket D-bugger",
+            "file": "wp-rocket-debugger/wp-rocket-d-bugger.php",
+            "options": ["wp_rocket_d_bugger_settings"]
+        },
+        "wp-rocket-disable-used-css-fonts-preload": {
+            "name": "WP Rocket Disable Used CSS Fonts Preload",
+            "file": "wp-rocket-disable-used-css-font-preload/wp-rocket-disable-used-css-font-preload.php",
+            "options": ["wp_rocket_disable_used_css_font_preload"]
+        },
+        "wp-rocket-ignore-query-strings": {
+            "name": "WP Rocket Ignore Query Strings",
+            "file": "wp-rocket-cache-ignore-query-strings/wp-rocket-cache-ignore-query-strings.php",
+            "options": ["wp_rocket_cache_ignore_query_strings"]
+        },
+        "wpcode-lite": {
+            "name": "WPCode Lite",
+            "file": "insert-headers-and-footers/ihaf.php",
+            "options": ["wpcode_snippets"]
+        },
+        "wpml": {
+            "name": "WPML",
+            "file": "sitepress-multilingual-cms/sitepress.php",
+            "options": [
+                "safe:wp_installer_settings",
+                "safe:wpml_strings_need_links_fixed",
+                "icl_sitepress_settings",
+                "safe:otgs-installer-log",
+                "wpml_language_switcher",
+                "safe:otgs_active_components",
+                "ATE_RETURNED_JOBS_QUEUE"
+            ],
+            "recommendation": "<strong>WPML:</strong> This is often a large contributor to autoloaded data. Since WPML is active, do not disable its core options. Options like <code>wp_installer_settings</code> and <code>otgs-installer-log</code> are for admin-only functions (licensing, updates, logs) and are safe to disable autoload for. Critical settings like <code>icl_sitepress_settings</code> are required on every page and should not be touched."
+        },
+        "wpml-cms-navigation": {
+            "name": "WPML CMS Navigation",
+            "file": "wpml-cms-nav/plugin.php",
+            "options": ["wpml_cms_nav_settings"]
+        },
+        "wpml-media-translation": {
+            "name": "WPML Media Translation",
+            "file": "wpml-media-translation/plugin.php",
+            "options": ["wpml_media_settings"]
+        },
+        "wpml-multilingual-cms": {
+            "name": "WPML Multilingual CMS",
+            "file": "sitepress-multilingual-cms/sitepress.php",
+            "options": ["sitepress_settings"]
+        },
+        "wpml-seo": {
+            "name": "WPML SEO",
+            "file": "wp-seo-multilingual/plugin.php",
+            "options": ["wpmlseo_options"]
+        },
+        "wpml-sticky-links": {
+            "name": "WPML Sticky Links",
+            "file": "wpml-sticky-links/plugin.php",
+            "options": ["wpml_sticky_links_options"]
+        },
+        "wpml-string-translation": {
+            "name": "WPML String Translation",
+            "file": "wpml-string-translation/plugin.php",
+            "options": ["wpml_st_options"]
+        },
+        "wpmu-dev-dashboard": {
+            "name": "WPMU DEV Dashboard",
+            "file": "wpmudev-updates/update-notifications.php",
+            "options": ["wpmudev_updates"]
+        },
+        "wps-hide-login": {
+            "name": "WPS Hide Login",
+            "file": "wps-hide-login/wps-hide-login.php",
+            "options": ["wps_hide_login"]
+        },
+        "wptd-image-compare": {
+            "name": "WPTD Image Compare",
+            "file": "wptd-image-compare/wptd-image-compare.php",
+            "options": ["wptd_image_compare_options"]
+        },
+        "yoast-seo": {
+            "name": "Yoast SEO",
+            "file": "wordpress-seo/wp-seo.php",
+            "options": [
+                "safe:yst_ga_top_pageviews",
+                "safe:yst_ga_top_countries",
+                "safe:yst_ga_source",
+                "wpseo_titles",
+                "wpseo",
+                "wpseo_*",
+                "safe:wpseo_taxonomy_meta"
+            ],
+            "recommendation": "<strong>Yoast SEO:</strong> If you no longer use this plugin, consider disabling autoload for its options."
+        },
+        "yoast-seo-premium": {
+            "name": "Yoast SEO Premium",
+            "file": "wordpress-seo-premium/wp-seo-premium.php",
+            "options": [
+                "wpseo_premium",
+                "wpseo-premium*",
+                "safe:wpseo-premium-redirects-export-plain"
+            ]
+        },
+        "yoast-test-helper": {
+            "name": "Yoast Test Helper",
+            "file": "yoast-test-helper/yoast-test-helper.php",
+            "options": ["yoast_test_helper"]
+        },
+        "youlo-price-calculator": {
+            "name": "YOULO Price Calculator",
+            "file": "youlo-price-calculator/youlo-price-calculator.php",
+            "options": ["youlo_price_calculator_settings"]
+        }
+    },
+    "safe_literals": [
+        "_transient_wpassetcleanup_assets_info",
+        "_transient_wc_attribute_taxonomies",
+        "_transient_dirsize_cache",
+        "asp_updates",
+        "Avada_backups",
+        "aviaAsset_css_filecontent",
+        "aviaAsset_js_filecontent",
+        "apmm_font_family",
+        "brainstrom_bundled_products",
+        "ced_etsy_chunk_products",
+        "channel_statics",
+        "count_per_day_search",
+        "cron_projects",
+        "cp_modal_preset_templates",
+        "dd_normal_button",
+        "dd_float_button",
+        "essential-grid_update_info",
+        "et_divi",
+        "fbrfg_favicon_non_interactive_api_request",
+        "itsec-storage",
+        "ig_last_gallery_items",
+        "IWP_backup_history",
+        "joc_plugins",
+        "gform_version_info",
+        "fs_api_cache",
+        "mepr_options",
+        "mw_adminimize",
+        "nss_plugin_info_sfwd_lms",
+        "nm_theme_custom_styles",
+        "nm_instant_suggestions_product_data",
+        "thrive_tcb_download_lp",
+        "top_opt_already_tweeted_posts",
+        "page_scroll_to_id_instances",
+        "permalink-manager-external-redirects",
+        "permalink-manager-redirects",
+        "permalink-manager-uris",
+        "personify_active_campaign_tags",
+        "redux_builder_amp",
+        "personify_active_campaign_fields",
+        "ping_sites",
+        "rank_math_seo_analysis_results",
+        "uninstall_plugins",
+        "um_cache_fonticons",
+        "uncode",
+        "wd_audit_cached",
+        "wc_psad_google_font_list",
+        "wc_facebook_google_product_categories",
+        "wc_remote_inbox_notifications_specs",
+        "wp_schema_pro_optimized_structured_data",
+        "ws_menu_editor_pro",
+        "woocommerce_ultimate_tabs_options",
+        "woocommerce_tracker_ua",
+        "woolementor-docs-json",
+        "wp_custom_admin_interface_settings_AdminMenu",
+        "wpf_template",
+        "wphb_scripts_collection",
+        "wphb_styles_collection",
+        "yikes_woo_reusable_products_tabs_applied",
+        "zero-spam-settings"
+    ],
+    "safe_patterns": [
+        "_transient_amp*",
+        "_transient_bawmrp*",
+        "_transient_fusion*",
+        "_transient_google*",
+        "_transient_*",
+        "_site_transient_*",
+        "_transient_wf-*",
+        "wf_scan_*",
+        "wfAdminNotice*",
+        "_wpallexport_session_*",
+        "*mytheme*",
+        "ai1wm*",
+        "astra-sites-and-pages*",
+        "astra-blocks*",
+        "bwp_minify_detector*",
+        "ctf*",
+        "css3_vertical_table_shortcode*",
+        "duplicator*",
+        "edd_api_request_*",
+        "ced_etsy_product_logs_*",
+        "ced_etsy_product_inventory_logs_*",
+        "ced_etsy_chunk_products_*",
+        "ced_etsy_order_logs_*",
+        "fs_contact_form*",
+        "Jupiter_options*",
+        "giapi*",
+        "nf_form_*",
+        "mainwp_*",
+        "mailserver*",
+        "qode_options*",
+        "quickppr_redirects*",
+        "tinypng*",
+        "trustpilot*",
+        "of_template*",
+        "premiothemes_comingsoon_*",
+        "p3*",
+        "userpro*",
+        "ywsn*",
+        "ywccp*",
+        "wc_csv_import_suite_background_import_results_*",
+        "wfacp_c_*",
+        "wp-optimize*",
+        "wfcm*",
+        "wpseo-gsc-*"
+    ]
+}

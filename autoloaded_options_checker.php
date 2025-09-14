@@ -56,7 +56,7 @@ add_action('admin_head-tools_page_autoloaded-options', 'ao_admin_page_styles');
  */
 final class AO_Remote_Config_Manager {
     private static $instance;
-    private const DEFAULT_REMOTE_URL = 'https://raw.githubusercontent.com/milllan/mill_autoload_options_checker_plugin/main/config.json';
+    private const DEFAULT_REMOTE_URL = 'https://raw.githubusercontent.com/milllan/mill_autoload_options_checker_plugin/main/known-options.json';
     private const CACHE_KEY = 'ao_remote_config_cache';
     private const CACHE_DURATION = 7 * DAY_IN_SECONDS;
     private $config_status = 'Not loaded yet.';
@@ -112,7 +112,7 @@ final class AO_Remote_Config_Manager {
     }
 
     private function get_local_fallback() {
-        $local_path = plugin_dir_path(AO_PLUGIN_FILE) . 'config.json';
+        $local_path = plugin_dir_path(AO_PLUGIN_FILE) . 'known-options.json';
         if (file_exists($local_path)) {
             $local_content = file_get_contents($local_path);
             $config = json_decode($local_content, true);
@@ -125,7 +125,7 @@ final class AO_Remote_Config_Manager {
 
     private function is_config_valid($config) {
         if (!is_array($config)) return false;
-        $required_keys = ['version', 'plugin_mappings', 'safe_literals', 'safe_patterns'];
+        $required_keys = ['version', 'plugins', 'safe_literals', 'safe_patterns'];
         foreach ($required_keys as $key) {
             if (!isset($config[$key])) return false;
         }
@@ -135,7 +135,7 @@ final class AO_Remote_Config_Manager {
     private function get_empty_config_structure() {
         $this->config_status = __('Error: Could not fetch config and no valid local fallback was found.', 'autoload-optimizer');
         return [
-            'version' => '0.0.0 (Error)', 'plugin_mappings' => [], 'safe_literals' => [],
+            'version' => '0.0.0 (Error)', 'plugins' => [], 'safe_literals' => [],
             'safe_patterns' => [], 'recommendations' => [], 'general_recommendations' => [],
         ];
     }
@@ -263,13 +263,108 @@ function ao_send_telemetry_data($telemetry_data) {
 }
 
 /**
+ * [Helper] Identifies the source (plugin/theme/core) of a given option name.
+ *
+ * This helper function encapsulates the logic for matching an option name against the
+ * remote configuration, checking context (like active theme), and falling back to
+ * default identifiers like WordPress transients.
+ *
+ * @param string $option_name The name of the option to identify.
+ * @param array  $config The plugin's configuration array.
+ * @param array  $active_plugin_paths An array of active plugin paths from get_option('active_plugins').
+ * @return array An associative array containing the identified 'name' and 'status' info.
+ */
+/**
+ * Identifies an option's source from the new plugin-centric config structure.
+ *
+ * This function iterates through the known plugins and their associated option patterns
+ * to find a match for the given option name.
+ *
+ * @param string $option_name The name of the option to identify.
+ * @param array  $plugins_config The 'plugins' section of the config array.
+ * @param array  $active_plugin_paths An array of active plugin paths.
+ * @return array|false The identified source information or false if no match is found.
+ */
+/**
+ * Identifies an option's source from the new, leaner plugin-centric config structure.
+ *
+ * This function iterates through the known plugins and their associated option strings.
+ * It parses strings with a "safe:" prefix to determine their safety status.
+ *
+ * @param string $option_name The name of the option to identify.
+ * @param array  $plugins_config The 'plugins' section of the config array.
+ * @param array  $active_plugin_paths An array of active plugin paths.
+ * @return array|false The identified source information or false if no match is found.
+ */
+function ao_identify_option_source_from_config($option_name, $plugins_config, $active_plugin_paths) {
+    // Get active theme slugs for context checking
+    $active_theme = wp_get_theme();
+    $theme_slugs = [strtolower($active_theme->get_stylesheet())];
+    if ($active_theme->parent()) {
+        $theme_slugs[] = strtolower($active_theme->get_template());
+    }
+
+    foreach ($plugins_config as $plugin_slug => $plugin_data) {
+        if (empty($plugin_data['options'])) {
+            continue;
+        }
+
+        foreach ($plugin_data['options'] as $option_string) {
+            // --- NEW PARSING LOGIC ---
+            $is_safe = false;
+            $pattern = $option_string;
+
+            if (strpos($pattern, 'safe:') === 0) {
+                $is_safe = true;
+                $pattern = substr($pattern, 5); // Get the string after "safe:"
+            }
+            // --- END NEW PARSING LOGIC ---
+
+            if (fnmatch($pattern, $option_name)) {
+                // We found a match, now determine the plugin status
+                $file_info = $plugin_data['file'];
+                $status_info = ['code' => 'unknown', 'text' => __('Unknown', 'autoload-optimizer'), 'class' => ''];
+
+                if (strpos($file_info, 'theme:') === 0) {
+                    $theme_slug = strtolower(substr($file_info, 6));
+                    if (in_array($theme_slug, $theme_slugs, true)) {
+                        $status_info = ['code' => 'theme_active', 'text' => __('Active Theme', 'autoload-optimizer'), 'class' => 'notice-info'];
+                    } else {
+                        $status_info = ['code' => 'theme_inactive', 'text' => __('Inactive Theme', 'autoload-optimizer'), 'class' => 'notice-error'];
+                    }
+                } elseif ($file_info === 'core') {
+                    $status_info = ['code' => 'core', 'text' => __('WordPress Core', 'autoload-optimizer'), 'class' => 'notice-info'];
+                } elseif (in_array($file_info, $active_plugin_paths)) {
+                    $status_info = ['code' => 'plugin_active', 'text' => __('Active Plugin', 'autoload-optimizer'), 'class' => 'notice-success'];
+                } else {
+                    $status_info = ['code' => 'plugin_inactive', 'text' => __('Inactive Plugin', 'autoload-optimizer'), 'class' => 'notice-error'];
+                }
+
+                return [
+                    'name'      => $plugin_data['name'],
+                    'status'    => $status_info,
+                    'is_safe'   => $is_safe,
+                    'recommendation' => $plugin_data['recommendation'] ?? null
+                ];
+            }
+        }
+    }
+
+    return false; // No match found in the config
+}
+
+/**
  * Gathers and processes all data for the analysis page.
+ * This is the final, corrected version with robust safety checking.
+ *
  * @param bool $schedule_telemetry Whether to schedule telemetry collection.
  * @return array Processed data for display.
  */
 function ao_get_analysis_data($schedule_telemetry = true) {
     global $wpdb;
     $config = ao_get_config();
+
+    $plugins_config = $config['plugins'] ?? [];
 
     $total_autoload_stats = $wpdb->get_row(
         "SELECT COUNT(option_name) as count, SUM(LENGTH(option_value)) as size
@@ -293,82 +388,71 @@ function ao_get_analysis_data($schedule_telemetry = true) {
         $large_options_size += $option->option_length;
     }
 
-    foreach ($large_options as $option) {
-        $is_safe = in_array($option->option_name, $config['safe_literals']);
-        if (!$is_safe && !empty($config['safe_patterns'])) {
-            foreach ($config['safe_patterns'] as $pattern) {
-                if (fnmatch($pattern, $option->option_name)) { $is_safe = true; break; }
+    // --- NEW: Pre-compile a list of all safe patterns from the entire config for efficient checking ---
+    $all_safe_patterns = $config['safe_patterns'] ?? [];
+    foreach ($plugins_config as $plugin) {
+        foreach ($plugin['options'] as $option_string) {
+            if (strpos($option_string, 'safe:') === 0) {
+                $all_safe_patterns[] = substr($option_string, 5);
             }
         }
+    }
+    $all_safe_patterns = array_unique($all_safe_patterns);
+    // --- END PRE-COMPILATION ---
 
+
+    foreach ($large_options as $option) {
         $plugin_name = __('Unknown', 'autoload-optimizer');
         $status_info = ['code' => 'unknown', 'text' => __('Unknown', 'autoload-optimizer'), 'class' => ''];
-        $mapping_found = false;
         
-        $active_theme = wp_get_theme();
-        $theme_slugs = [$active_theme->get_stylesheet()];
-        if ($active_theme->parent()) {
-            $theme_slugs[] = $active_theme->get_template();
-        }
-        $theme_slugs = array_map('strtolower', $theme_slugs);
+        // 1. Primary Identification: Find the plugin/theme source
+        $source_info = ao_identify_option_source_from_config($option->option_name, $plugins_config, $active_plugin_paths);
 
-        foreach ($config['plugin_mappings'] as $pattern => $mapping) {
-            if (fnmatch($pattern, $option->option_name)) {
-                $context_match = !isset($mapping['context']['theme']) || in_array($mapping['context']['theme'], $theme_slugs, true);
-
-                if ($context_match) {
-                    $plugin_name = $mapping['name'];
-                    $file_info = $mapping['file'];
-
-                    if (strpos($file_info, 'theme:') === 0) {
-                        $theme_slug = substr($file_info, 6);
-                        if (in_array($theme_slug, $theme_slugs, true)) {
-                            $status_info = ['code' => 'theme_active', 'text' => __('Active Theme', 'autoload-optimizer'), 'class' => 'notice-info'];
-                        } else {
-                            $status_info = ['code' => 'theme_inactive', 'text' => __('Inactive Theme', 'autoload-optimizer'), 'class' => 'notice-error'];
-                            $inactive_plugin_option_count++;
-                        }
-                    } elseif ($file_info === 'core') {
-                        $status_info = ['code' => 'core', 'text' => __('WordPress Core', 'autoload-optimizer'), 'class' => 'notice-info'];
-                    } elseif ($file_info === 'theme') {
-                        // --- FIX: Use a generic status for non-specific theme rules ---
-                        $status_info = ['code' => 'theme_generic', 'text' => __('Theme', 'autoload-optimizer'), 'class' => 'notice-info'];
-                    } elseif (in_array($file_info, $active_plugin_paths)) {
-                        $status_info = ['code' => 'plugin_active', 'text' => __('Active Plugin', 'autoload-optimizer'), 'class' => 'notice-success'];
-                    } else {
-                        $status_info = ['code' => 'plugin_inactive', 'text' => __('Inactive Plugin', 'autoload-optimizer'), 'class' => 'notice-error'];
-                        $inactive_plugin_option_count++;
-                    }
-                    $mapping_found = true;
-                    break; 
-                }
-            }
-        }
-
-        if (!$mapping_found) {
+        if ($source_info !== false) {
+            $plugin_name = $source_info['name'];
+            $status_info = $source_info['status'];
+        } else {
+            // Fallback for transients if no plugin was found
             if (strpos($option->option_name, '_transient_') === 0 || strpos($option->option_name, '_site_transient_') === 0) {
                 $plugin_name = __('WordPress Core (Transient)', 'autoload-optimizer');
                 $status_info = ['code' => 'core', 'text' => __('WordPress Core', 'autoload-optimizer'), 'class' => 'notice-info'];
             }
         }
 
+        // --- CORRECTED LOGIC: Determine safety status independently ---
+        // An option is safe if it matches ANY safe rule, anywhere in the config.
+        $is_safe = false;
+        if (in_array($option->option_name, $config['safe_literals'] ?? [])) {
+            $is_safe = true;
+        } else {
+            foreach ($all_safe_patterns as $safe_pattern) {
+                if (fnmatch($safe_pattern, $option->option_name)) {
+                    $is_safe = true;
+                    break;
+                }
+            }
+        }
+        // --- END CORRECTED LOGIC ---
+        
+        if (strpos($status_info['code'], '_inactive') !== false) {
+            $inactive_plugin_option_count++;
+        }
+
         if (!isset($grouped_options[$plugin_name])) {
             $grouped_options[$plugin_name] = [
-                'total_size' => 0, 
-                'count' => 0, 
-                'options' => [],
-                'status' => $status_info
+                'total_size' => 0, 'count' => 0, 'options' => [], 'status' => $status_info
             ];
         }
 
         $grouped_options[$plugin_name]['total_size'] += $option->option_length;
         $grouped_options[$plugin_name]['count']++;
-        $grouped_options[$plugin_name]['options'][] = ['name' => $option->option_name, 'length' => $option->option_length, 'is_safe' => $is_safe, 'status' => $status_info];
+        $grouped_options[$plugin_name]['options'][] = [
+            'name' => $option->option_name, 'length' => $option->option_length, 'is_safe' => $is_safe, 'status' => $status_info
+        ];
     }
     
     uasort($grouped_options, function($a, $b) { return $b['total_size'] <=> $a['total_size']; });
 
-    // Collect telemetry data for unknown options
     if ($schedule_telemetry && get_option('ao_telemetry_disabled') !== '1') {
         ao_collect_telemetry_data($grouped_options, $config);
     }
@@ -382,13 +466,22 @@ function ao_get_analysis_data($schedule_telemetry = true) {
         'config' => $config,
     ];
 }
-
 // --- Display & UI Logic ---
 
 function ao_should_show_recommendation($group_data, $config, $plugin_name) {
-    if (!isset($config['recommendations'][$plugin_name])) {
+    // In the new structure, we need to find the plugin by searching through all plugins
+    $plugin_data = null;
+    foreach ($config['plugins'] ?? [] as $plugin_slug => $data) {
+        if ($data['name'] === $plugin_name && !empty($data['recommendation'])) {
+            $plugin_data = $data;
+            break;
+        }
+    }
+    
+    if (!$plugin_data) {
         return false;
     }
+    
     $has_safe_options = false;
     foreach ($group_data['options'] as $option) {
         if ($option['is_safe']) {
@@ -434,14 +527,24 @@ function ao_display_admin_page() {
     $config_manager = AO_Remote_Config_Manager::get_instance();
     if (isset($_GET['ao_refresh_config']) && check_admin_referer('ao_refresh_config')) {
         delete_transient('ao_remote_config_cache');
+        delete_transient('ao_telemetry_check_flag'); // Also clear the telemetry flag
         wp_safe_redirect(remove_query_arg(['ao_refresh_config', '_wpnonce']));
         exit;
     }
-    
-    $data = ao_get_analysis_data(false);
-    $status_message = $config_manager->get_config_status();
 
-    extract($data);
+    // --- NEW TELEMETRY LOGIC ---
+    // Check if we should schedule a telemetry send.
+    // This runs only once every 7 days, preventing rescheduling on every page load.
+    if (false === get_transient('ao_telemetry_check_flag')) {
+        $data_for_telemetry = ao_get_analysis_data(true); // Pass true to trigger collection
+        set_transient('ao_telemetry_check_flag', '1', 7 * DAY_IN_SECONDS);
+    } else {
+        // On subsequent page loads, don't schedule telemetry.
+        $data_for_telemetry = ao_get_analysis_data(false); 
+    }
+
+    $status_message = $config_manager->get_config_status();
+    extract($data_for_telemetry);
     
     ?>
     <div class="wrap" id="ao-plugin-wrapper" 
