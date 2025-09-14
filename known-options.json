@@ -1,5 +1,5 @@
 {
-    "version": "4.1.0",
+    "version": "4.1.1",
     "plugins": {
         "a2-optimized": {
             "name": "A2 Optimized",
@@ -346,6 +346,12 @@
             "file": "ninjafirewall/ninjafirewall.php",
             "options": ["nfw_*"]
         },
+        "omgf-host-google-fonts-locally": {
+            "name": "OMGF | Host Google Fonts Locally",
+            "file": "host-webfonts-local/host-webfonts-local.php",
+            "options": ["safe:omgf_optimized_fonts", "omgf_*"],
+            "recommendation": "<strong>OMGF (<code>omgf_optimized_fonts</code>):</strong> This option stores the cached list of fonts that have been optimized for local hosting. This data is not required on every page load and is safe to disable autoload for. The plugin will fetch it when needed."
+        },
         "print-invoices-packing-lists-by-webtoffee": {
             "name": "Print Invoices & Packing Lists by Webtoffee",
             "file": "print-invoices-packing-slip-labels-for-woocommerce/wf-woocommerce-packing-list.php",
@@ -457,23 +463,20 @@
             "file": "widget-google-reviews/grw.php",
             "options": ["grw_options"]
         },
-        "wordfence-security-issues-cache": {
-            "name": "Wordfence Security (Issues Cache)",
-            "file": "wordfence/wordfence.php",
-            "options": ["safe:wfIssues", "safe:wfIssuesCounts"],
-            "recommendation": "<strong>Wordfence Security:</strong> Wordfence creates several large options for its scanner and issue caching. It is highly recommended and safe to disable autoload for these options like <code>wf_known_file_list</code>, <code>wf_scan_*</code>, and <code>_transient_wf-*</code>. <strong>Important:</strong> Do not disable autoload for core configuration options like <code>wfConfig</code>, or any options starting with <code>waf*</code> (firewall) and <code>wfls_*</code> (login security), as these are critical for the live protection of your site."
-        },
-        "wordfence-security-scan-cache": {
-            "name": "Wordfence Security (Scan Cache)",
+        "wordfence": {
+            "name": "Wordfence Security",
             "file": "wordfence/wordfence.php",
             "options": [
+                "safe:wfIssues",
+                "safe:wfIssuesCounts",
                 "safe:wf_known_file_list",
                 "safe:wf_scan_result",
                 "safe:wf_scan_last_complete",
                 "safe:wf_scan_lock",
-                "safe:wfsd_engine"
+                "safe:wfsd_engine",
+                "wf_scan_*"
             ],
-            "recommendation": "<strong>Wordfence Security:</strong> Wordfence creates several large options for its scanner and issue caching. It is highly recommended and safe to disable autoload for these options like <code>wf_known_file_list</code>, <code>wf_scan_*</code>, and <code>_transient_wf-*</code>. <strong>Important:</strong> Do not disable autoload for core configuration options like <code>wfConfig</code>, or any options starting with <code>waf*</code> (firewall) and <code>wfls_*</code> (login security), as these are critical for the live protection of your site."
+            "recommendation": "<strong>Wordfence Security:</strong> Wordfence creates several large options for its scanner and issue caching. It is highly recommended and safe to disable autoload for options like <code>wf_known_file_list</code>, <code>wf_scan_*</code>, and <code>_transient_wf-*</code>. <strong>Important:</strong> Do not disable autoload for core configuration options like <code>wfConfig</code>, or any options starting with <code>waf*</code> (firewall) and <code>wfls_*</code> (login security), as these are critical for the live protection of your site."
         },
         "wordpress-core": {
             "name": "WordPress Core",
@@ -731,5 +734,10 @@
         "wp-optimize*",
         "wfcm*",
         "wpseo-gsc-*"
+    ],
+    "general_recommendations": [
+        "<strong>Safe Options:</strong> Options marked with a green checkmark are generally safe to disable autoload for. These are typically cache entries, logs, or other non-critical data.",
+        "<strong>Focus on Impact:</strong> Don't obsess over every small option. Prioritize the largest ones (marked with 🟠 and 🔴) as they offer the most significant performance gains. The goal is a healthy total size, not zero large options.",
+        "<strong>Always Backup:</strong> Always have a recent database backup before making changes."
     ]
 }
