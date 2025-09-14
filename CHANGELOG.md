@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.1.19] - 2025-09-14
+
+### Changed
+- Version bump to 4.1.19
+
+
+
 ## [4.1.18] - 2025-09-08
 
 ### Changed
