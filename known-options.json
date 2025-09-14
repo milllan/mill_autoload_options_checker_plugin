@@ -1,10 +1,85 @@
 {
-    "version": "4.1.1",
+    "version": "4.1.2",
     "plugins": {
+        "autoptimize": {
+            "name": "Autoptimize",
+            "file": "autoptimize/autoptimize.php",
+            "options": ["autoptimize_*"]
+        },
+        "beaver-builder-lite-version": {
+            "name": "Beaver Builder",
+            "file": "beaver-builder-lite-version/fl-builder.php",
+            "options": ["_fl_builder_*"]
+        },
+        "better-wp-security": {
+            "name": "iThemes Security",
+            "file": "better-wp-security/better-wp-security.php",
+            "options": ["itsec_*"]
+        },
+        "contact-form-7": {
+            "name": "Contact Form 7",
+            "file": "contact-form-7/wp-contact-form-7.php",
+            "options": ["wpcf7_*"]
+        },
+        "easy-digital-downloads": {
+            "name": "Easy Digital Downloads",
+            "file": "easy-digital-downloads/easy-digital-downloads.php",
+            "options": ["edd_*"]
+        },
+        "gravityforms": {
+            "name": "Gravity Forms",
+            "file": "gravityforms/gravityforms.php",
+            "options": ["gravityformsaddon_*", "gform_*"]
+        },
+        "ninjafood": {
+            "name": "Ninja Forms",
+            "file": "ninja-forms/ninja-forms.php",
+            "options": ["ninja_forms_*"]
+        },
+        "redirection": {
+            "name": "Redirection",
+            "file": "redirection/redirection.php",
+            "options": ["redirection_*"]
+        },
+        "redis-cache": {
+            "name": "Redis Object Cache",
+            "file": "redis-cache/redis-cache.php",
+            "options": ["redis_cache_*"]
+        },
+        "sg-cachepress": {
+            "name": "SiteGround Optimizer",
+            "file": "sg-cachepress/sg-cachepress.php",
+            "options": ["sg_cachepress_*"]
+        },
+        "simple-sitemap": {
+            "name": "Simple Sitemap",
+            "file": "simple-sitemap/simple-sitemap.php",
+            "options": ["simple_sitemap_*"]
+        },
+        "tablepress": {
+            "name": "TablePress",
+            "file": "tablepress/tablepress.php",
+            "options": ["tablepress_*"]
+        },
+        "the-events-calendar": {
+            "name": "The Events Calendar",
+            "file": "the-events-calendar/the-events-calendar.php",
+            "options": ["tribe_*"]
+        },
+        "woocommerce": {
+            "name": "WooCommerce",
+            "file": "woocommerce/woocommerce.php",
+            "options": ["woocommerce_*"]
+        },
+
         "a2-optimized": {
             "name": "A2 Optimized",
             "file": "a2-optimized-wp/A2_Optimized_WP.php",
-            "options": ["safe:a2opt-benchmarks-frontend"],
+            "options": [
+                "a2-wpo-*",
+                "a2opt-*",
+                "safe:a2opt-benchmarks-frontend"
+            ],
             "recommendation": "<strong>A2 Optimized:</strong> The <code>a2opt-benchmarks-frontend</code> option stores performance test results and is very large. It is not needed for site operation and is highly recommended to disable autoload."
         },
         "aaa-option-optimizer": {
@@ -27,6 +102,11 @@
             "name": "AdSense Explosion",
             "file": "adsensexplosion/adsensexplosion.php",
             "options": ["adsensexplosion"]
+        },
+        "advanced-custom-fields": {
+            "name": "Advanced Custom Fields",
+            "file": "advanced-custom-fields/acf.php",
+            "options": ["acf_*"]
         },
         "aelia-currency-switcher": {
             "name": "Aelia Currency Switcher",
@@ -52,7 +132,8 @@
                 "aioseo_options_localized",
                 "aioseo_options_internal_network",
                 "safe:aioseo_options_v3",
-                "safe:aioseop_options"
+                "safe:aioseop_options",
+                "aioseo_*"
             ],
             "recommendation": "<strong>All in One SEO:</strong> The options <code>aioseo_options_v3</code> and <code>aioseop_options</code> are legacy data from older versions. They have been marked as safe to disable autoload. Do not disable autoload for the other <code>aioseo_</code> options if the plugin is active."
         },
@@ -374,7 +455,7 @@
         "query-monitor": {
             "name": "Query Monitor",
             "file": "query-monitor/query-monitor.php",
-            "options": ["query_monitor"]
+            "options": ["query_monitor", "query-monitor_*"]
         },
         "rank-math": {
             "name": "Rank Math",
@@ -386,6 +467,18 @@
             "file": "rcw-feed/rcw-feed.php",
             "options": ["_transient_RCWFeed_*", "safe:_transient_RCWFeed_Ms_*"]
         },
+        "revslider": {
+            "name": "Slider Revolution",
+            "file": "revslider/revslider.php",
+            "options": [
+                "revslider*",
+                "safe:revslider-addons",
+                "safe:revslider_update_info",
+                "safe:revslider-notices",
+                "revslider_*"
+            ],
+            "recommendation": "<strong>Slider Revolution:</strong> The <code>revslider-addons</code> option is a cache of available add-ons for the admin dashboard. It is not used on the front end of your site and is safe to disable autoload."
+        },
         "rss-feed-widget-ad-content-cache": {
             "name": "RSS Feed Widget (Ad/Content Cache)",
             "file": "some-rss-widget/plugin-file.php",
@@ -396,17 +489,6 @@
             "name": "Simple Admin Language Change",
             "file": "simple-admin-language-change/simple-admin-language-change.php",
             "options": ["salc_options"]
-        },
-        "slider-revolution": {
-            "name": "Slider Revolution",
-            "file": "revslider/revslider.php",
-            "options": [
-                "revslider*",
-                "safe:revslider-addons",
-                "safe:revslider_update_info",
-                "safe:revslider-notices"
-            ],
-            "recommendation": "<strong>Slider Revolution:</strong> The <code>revslider-addons</code> option is a cache of available add-ons for the admin dashboard. It is not used on the front end of your site and is safe to disable autoload."
         },
         "starbox": {
             "name": "Starbox - the Author Box for Humans",
@@ -474,9 +556,17 @@
                 "safe:wf_scan_last_complete",
                 "safe:wf_scan_lock",
                 "safe:wfsd_engine",
-                "wf_scan_*"
+                "wf_scan_*",
+                "wf_*",
+                "wordfence_*"
             ],
             "recommendation": "<strong>Wordfence Security:</strong> Wordfence creates several large options for its scanner and issue caching. It is highly recommended and safe to disable autoload for options like <code>wf_known_file_list</code>, <code>wf_scan_*</code>, and <code>_transient_wf-*</code>. <strong>Important:</strong> Do not disable autoload for core configuration options like <code>wfConfig</code>, or any options starting with <code>waf*</code> (firewall) and <code>wfls_*</code> (login security), as these are critical for the live protection of your site."
+        },
+
+        "wordpress-importer": {
+            "name": "WordPress Importer",
+            "file": "wordpress-importer/wordpress-importer.php",
+            "options": ["wordpress_importer_*"]
         },
         "wordpress-core": {
             "name": "WordPress Core",
@@ -488,6 +578,29 @@
             "file": "core",
             "options": ["widget_*", "safe:widget_custom_html"]
         },
+
+        "wp-mail-smtp": {
+            "name": "WP Mail SMTP",
+            "file": "wp-mail-smtp/wp_mail_smtp.php",
+            "options": ["wp_mail_smtp_*"]
+        },
+        "wp-optimize": {
+            "name": "WP-Optimize",
+            "file": "wp-optimize/wp-optimize.php",
+            "options": ["wpo_*"]
+        },
+
+        "wp-ultimo": {
+            "name": "WP Ultimo",
+            "file": "wp-ultimo/wp-ultimo.php",
+            "options": ["wp-ultimo_*"]
+        },
+        "wpforms-lite": {
+            "name": "WPForms Lite",
+            "file": "wpforms-lite/wpforms.php",
+            "options": ["wpforms_*"]
+        },
+
         "wp-asset-cleanup": {
             "name": "WP Asset Cleanup",
             "file": "wp-asset-cleanup/wp-asset-cleanup.php",
@@ -505,6 +618,7 @@
             "file": "wp-engine-cache-plugin/wp-engine-cache-plugin.php",
             "options": ["wpe_*"]
         },
+
         "wp-rocket": {
             "name": "WP Rocket",
             "file": "wp-rocket/wp-rocket.php",
@@ -529,6 +643,12 @@
             "name": "WP Rocket Ignore Query Strings",
             "file": "wp-rocket-cache-ignore-query-strings/wp-rocket-cache-ignore-query-strings.php",
             "options": ["wp_rocket_cache_ignore_query_strings"]
+        },
+
+        "wp-super-cache": {
+            "name": "WP Super Cache",
+            "file": "wp-super-cache/wp-cache.php",
+            "options": ["wp_super_cache_*"]
         },
         "wpcode-lite": {
             "name": "WPCode Lite",
