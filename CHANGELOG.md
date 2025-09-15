@@ -2,6 +2,13 @@
 
 ## [4.1.23] - 2025-09-15
 
+### Fixed
+- Fix release notes formatting by using multiline output
+
+
+
+## [4.1.23] - 2025-09-15
+
 ### Changed
 - Version bump to 4.1.23
 
