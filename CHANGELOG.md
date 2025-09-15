@@ -5,6 +5,13 @@
 ### Changed
 - Version bump to 4.1.21
 
+
+
+## [4.1.21] - 2025-09-15
+
+### Changed
+- Version bump to 4.1.21
+
 ## [4.1.20] - 2025-09-15
 
 ### Changed
