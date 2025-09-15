@@ -1,5 +1,5 @@
 {
-    "version": "4.1.2",
+    "version": "4.1.3",
     "plugins": {
         "autoptimize": {
             "name": "Autoptimize",
@@ -302,7 +302,7 @@
         "freemius-sdk-shared-by-multiple-plugins": {
             "name": "Freemius SDK (Shared by Multiple Plugins)",
             "file": "freemius_sdk",
-            "options": ["safe:fs_accounts"],
+            "options": ["fs_accounts"],
             "recommendation": "<strong>Freemius SDK (<code>fs_accounts</code>):</strong> This shared option is used for licensing by plugins like <em>Unlimited Elements for Elementor</em> and <em>Aelia Currency Switcher</em>. It is safe to disable autoload. Do not delete this option if you have any active plugins that use Freemius."
         },
         "generatepress-theme-custom-css": {
