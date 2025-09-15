@@ -3,7 +3,7 @@
  * Plugin Name:       Autoloaded Options Optimizer
  * Plugin URI:        https://github.com/milllan/mill_autoload_options_checker_plugin
  * Description:       A tool to analyze, view, and manage autoloaded options in the wp_options table, with a remotely managed configuration.
- * Version:           4.1.27.1
+ * Version:           4.1.27.2
  * Author:            Milan Petrović
  * Author URI:        https://wpspeedopt.net/
  * License:           GPL v2 or later
@@ -15,7 +15,7 @@
 /**
  * Define AO_PLUGIN_VERSION for telemetry
  */
-define('AO_PLUGIN_VERSION', '4.1.27.1');
+define('AO_PLUGIN_VERSION', '4.1.27.2');
 define('AO_PLUGIN_FILE', __FILE__);
 
 // Prevent direct access
@@ -718,9 +718,9 @@ final class Autoloaded_Options_Optimizer_Plugin {
                              </button>
                              <span id="ao-telemetry-status" style="margin-left: 10px; font-style: italic;"></span>
                          </div>
-                     <?php else:
-                         ?><div></div><?php
-                     endif; ?>
+                     <?php else: ?>
+                        <div></div>
+                     <?php endif; ?>
 
                      <div>
                          <?php submit_button(__('Save Settings', 'autoload-optimizer')); ?>
