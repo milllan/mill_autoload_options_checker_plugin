@@ -1,5 +1,10 @@
 # Changelog
 
+## [4.1.24] - 2025-09-15
+
+### Changed
+- Update plugin update checker to v5p6
+
 ## [4.1.23] - 2025-09-15
 
 ### Changed
