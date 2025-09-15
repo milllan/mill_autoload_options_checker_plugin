@@ -1,5 +1,10 @@
 # Changelog
 
+## [4.1.27] - 2025-09-15
+
+### Changed
+- Refactored display_admin_page() into smaller methods for better maintainability
+
 ## [4.1.26] - 2025-09-15
 
 ### Added
