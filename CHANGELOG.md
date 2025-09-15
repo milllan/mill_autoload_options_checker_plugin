@@ -3,6 +3,13 @@
 ## [4.1.28] - 2025-09-15
 
 ### Changed
+- Version bump to 4.1.28
+
+
+
+## [4.1.28] - 2025-09-15
+
+### Changed
 - Updated config.json to version 1.4.33
 - Minor code cleanup in get_analysis_data()
 
