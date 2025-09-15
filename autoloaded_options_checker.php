@@ -3,7 +3,7 @@
  * Plugin Name:       Autoloaded Options Optimizer
  * Plugin URI:        https://github.com/milllan/mill_autoload_options_checker_plugin
  * Description:       A tool to analyze, view, and manage autoloaded options in the wp_options table, with a remotely managed configuration.
- * Version:           4.1.27
+ * Version:           4.1.27.1
  * Author:            Milan Petrović
  * Author URI:        https://wpspeedopt.net/
  * License:           GPL v2 or later
@@ -15,7 +15,7 @@
 /**
  * Define AO_PLUGIN_VERSION for telemetry
  */
-define('AO_PLUGIN_VERSION', '4.1.27');
+define('AO_PLUGIN_VERSION', '4.1.27.1');
 define('AO_PLUGIN_FILE', __FILE__);
 
 // Prevent direct access
@@ -474,14 +474,13 @@ final class Autoloaded_Options_Optimizer_Plugin {
         }
 
         if (false === get_transient('ao_telemetry_check_flag')) {
-            $data_for_telemetry = $this->get_analysis_data(true);
+            $data = $this->get_analysis_data(true);
             set_transient('ao_telemetry_check_flag', '1', 7 * DAY_IN_SECONDS);
         } else {
-            $data_for_telemetry = $this->get_analysis_data(false); 
+            $data = $this->get_analysis_data(false); 
         }
 
         $status_message = $config_manager->get_config_status();
-        extract($data_for_telemetry);
         ?>
         <div class="wrap" id="ao-plugin-wrapper" 
             data-ajax-url="<?php echo esc_url(admin_url('admin-ajax.php')); ?>"
