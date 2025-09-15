@@ -2,6 +2,16 @@
 
 ## [4.1.26] - 2025-09-15
 
+### Added
+- Re-enable updater with improved error handling and add Parsedown library
+
+### Changed
+- Re-enable updater with improved error handling and add Parsedown library
+
+
+
+## [4.1.26] - 2025-09-15
+
 ### Changed
 - Re-enable updater with improved error handling and Parsedown library
 
