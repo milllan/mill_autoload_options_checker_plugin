@@ -1,5 +1,10 @@
 # Changelog
 
+## [4.1.25] - 2025-09-15
+
+### Changed
+- Temporarily disable updater for debugging
+
 ## [4.1.24] - 2025-09-15
 
 ### Changed
