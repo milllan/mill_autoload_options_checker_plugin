@@ -89,11 +89,9 @@ jobs:
         # Clean up and format the notes
         NOTES=$(echo "$NOTES" | sed '/^$/d' | sed 's/^## \[.*\] - .*$//' | sed '/^All notable changes/d' | sed '/^The format is based/d' | sed '/^and this project adheres/d' | sed '/^---$/d')
 
-        # Escape newlines for GitHub output
-        NOTES="${NOTES//'%'/'%25'}"
-        NOTES="${NOTES//$'\n'/'%0A'}"
-        NOTES="${NOTES//$'\r'/'%0D'}"
-        echo "notes=$NOTES" >> "$GITHUB_OUTPUT"
+        echo "notes<<EOF" >> "$GITHUB_OUTPUT"
+        echo "$NOTES" >> "$GITHUB_OUTPUT"
+        echo "EOF" >> "$GITHUB_OUTPUT"
 
     - name: Create plugin zip
       run: |
