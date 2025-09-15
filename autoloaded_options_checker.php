@@ -3,7 +3,7 @@
  * Plugin Name:       Autoloaded Options Optimizer
  * Plugin URI:        https://github.com/milllan/mill_autoload_options_checker_plugin
  * Description:       A tool to analyze, view, and manage autoloaded options in the wp_options table, with a remotely managed configuration.
- * Version:           4.1.25
+ * Version:           4.1.26
  * Author:            Milan Petrović
  * Author URI:        https://wpspeedopt.net/
  * License:           GPL v2 or later
@@ -15,7 +15,7 @@
 /**
  * Define AO_PLUGIN_VERSION for telemetry
  */
-define('AO_PLUGIN_VERSION', '4.1.25');
+define('AO_PLUGIN_VERSION', '4.1.26');
 define('AO_PLUGIN_FILE', __FILE__);
 
 // Prevent direct access
@@ -1141,20 +1141,43 @@ foreach ($grouped_options as $plugin_name => $group_data) {
     }
 
     public function initialize_updater() {
-        // Temporarily disabled updater for debugging
-        /*
+        // Path to the Parsedown library file you downloaded
+        $parsedown_file = dirname(AO_PLUGIN_FILE) . '/lib/parsedown-1.7.4/Parsedown.php';
+        // Define the path to the library's bootstrap file.
         $updater_bootstrap_file = dirname(AO_PLUGIN_FILE) . '/lib/plugin-update-checker/plugin-update-checker.php';
-        if (file_exists($updater_bootstrap_file)) {
-            require_once $updater_bootstrap_file;
-            try {
-                YahnisElsts\PluginUpdateChecker\v5p6\PucFactory::buildUpdateChecker(
-                    'https://github.com/milllan/mill_autoload_options_checker_plugin/',
-                    AO_PLUGIN_FILE,
-                    'autoload-optimizer'
-                );
-            } catch (Exception $e) { /* Do nothing */ }
+
+        // 1. First, check if the library's bootstrap file actually exists in your plugin.    // We check if the class already exists in case another plugin loaded it.
+        if (file_exists($parsedown_file) && !class_exists('Parsedown')) {
+            require_once $parsedown_file;
         }
-        */
+        if (!file_exists($updater_bootstrap_file)) {
+            return; // Exit if the library isn't there, preventing errors.
+        }
+
+        // 2. The SAFE LOADING CHECK: Before requiring your copy, check if the main Factory class
+        // has already been loaded by another plugin.
+        // IMPORTANT: Verify the exact namespace in your /lib/ folder. It could be v5, v5p4, v5p6, etc.
+        if (!class_exists('YahnisElsts\\PluginUpdateChecker\\v5\\PucFactory')) {
+            require_once $updater_bootstrap_file;
+        }
+
+        // 3. Now that we are SURE the class exists (either we loaded it or another plugin did),
+        // we can safely build our update checker instance.
+        try {
+            $myUpdateChecker = YahnisElsts\PluginUpdateChecker\v5\PucFactory::buildUpdateChecker(
+                'https://github.com/milllan/mill_autoload_options_checker_plugin/',
+                AO_PLUGIN_FILE,
+                'autoload-optimizer'
+            );
+
+            // (Optional but Recommended) Set the branch to 'main' or 'master'.
+            // This ensures updates are pulled from the correct branch.
+            $myUpdateChecker->setBranch('main');
+
+        } catch (Exception $e) {
+            // If something goes wrong, you can log it for debugging without crashing the site.
+            error_log('PUC Initialization Error in Autoloaded Options Optimizer: ' . $e->getMessage());
+        }
     }
 }
 

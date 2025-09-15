@@ -1,5 +1,10 @@
 # Changelog
 
+## [4.1.26] - 2025-09-15
+
+### Changed
+- Re-enable updater with improved error handling and Parsedown library
+
 ## [4.1.25] - 2025-09-15
 
 ### Changed
