@@ -1,5 +1,5 @@
 {
-    "version": "1.4.32",
+    "version": "1.4.33",
     "plugin_mappings": {
         "active_plugins": {
             "name": "WordPress Core",
@@ -584,7 +584,6 @@
     },
     "safe_to_delete_literals": ["blc_installation_log"],
     "safe_literals": [
-        "fs_accounts",
         "a2opt-benchmarks-frontend",
         "elementskit-lite__banner_data",
         "elementskit-lite__stories_data",

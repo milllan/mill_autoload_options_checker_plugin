@@ -1,5 +1,11 @@
 # Changelog
 
+## [4.1.28] - 2025-09-15
+
+### Changed
+- Updated config.json to version 1.4.33
+- Minor code cleanup in get_analysis_data()
+
 ## [4.1.27] - 2025-09-15
 
 ### Changed
