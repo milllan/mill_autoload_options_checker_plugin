@@ -1,5 +1,5 @@
 {
-    "version": "4.1.8",
+    "version": "4.1.9",
     "plugins": {
         "a2-optimized": {
             "name": "A2 Optimized",
@@ -501,10 +501,16 @@
             "options": ["safe:_transient_RCWFeed_Ms_*"],
             "recommendation": "<strong>RSS Feed Widget:</strong> The <code>_transient_RCWFeed_Ms_*</code> options are very large cached RSS feeds, often for rotating ads or content. They should NEVER be autoloaded. Disabling autoload for all of these options is 100% safe and will provide a major performance boost."
         },
-        "sg-cachepress": {
+        "sg-optimizer": {
             "name": "SiteGround Optimizer",
             "file": "sg-cachepress/sg-cachepress.php",
-            "options": ["sg_cachepress_*"]
+            "options": [
+                "sg_cachepress_*",
+                "siteground_optimizer_*",
+                "sg_optimizer_*",
+                "safe:siteground_optimizer_whats_new"
+            ],
+            "recommendation": "The <code>siteground_optimizer_whats_new</code> option stores promotional notices for the admin dashboard. It is <strong>100% safe</strong> to disable its autoload status for a small performance improvement. Do not disable autoload for core settings like <code>sg_optimizer_options</code>."
         },
         "simple-admin-language-change": {
             "name": "Simple Admin Language Change",
