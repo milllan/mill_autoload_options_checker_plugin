@@ -1,6 +1,12 @@
 {
-    "version": "4.1.3",
+    "version": "4.1.4",
     "plugins": {
+        "all-in-one-wp-security-firewall": {
+            "name": "All In One WP Security & Firewall",
+            "file": "all-in-one-wp-security-and-firewall/wp-security.php",
+            "options": ["aiowps_*", "aio_wp_security_*"],
+            "recommendation": "<strong>All In One WP Security:</strong> These are critical security settings for the plugin's firewall and login protection features. Disabling autoload for these options is <strong>not recommended</strong> as it could compromise your site's security."
+        },
         "autoptimize": {
             "name": "Autoptimize",
             "file": "autoptimize/autoptimize.php",
