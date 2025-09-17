@@ -1,5 +1,5 @@
 {
-    "version": "4.1.9",
+    "version": "4.1.10",
     "plugins": {
         "a2-optimized": {
             "name": "A2 Optimized",
@@ -24,8 +24,8 @@
         "ad-inserter": {
             "name": "Ad Inserter",
             "file": "ad-inserter/ad-inserter.php",
-            "options": ["ad_inserter"],
-            "recommendation": "<strong>Ad Inserter:</strong> If you no longer use this plugin, consider disabling autoload for its options."
+            "options": ["ad_inserter", "insert_ads_*"],
+            "recommendation": "Options for this plugin, such as <code>insert_ads_inpostads</code>, are critical for displaying ads correctly and <strong>should not</strong> have their autoload disabled if the plugin is active."
         },
         "adsense-explosion": {
             "name": "AdSense Explosion",
