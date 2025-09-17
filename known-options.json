@@ -1,5 +1,5 @@
 {
-    "version": "4.1.6",
+    "version": "4.1.8",
     "plugins": {
         "a2-optimized": {
             "name": "A2 Optimized",
@@ -195,6 +195,12 @@
             "file": "contact-form-7/wp-contact-form-7.php",
             "options": ["wpcf7_*"]
         },
+        "csv-to-posts": {
+            "name": "CSV to Posts",
+            "file": "csv-to-posts/csv-to-posts.php",
+            "options": ["safe:csv2post_settings"],
+            "recommendation": "<strong>CSV to Posts:</strong> The <code>csv2post_settings</code> option stores your import configurations. This data is only used in the admin area when you are importing content and is safe to disable autoload for."
+        },
         "custom-post-type-ui": {
             "name": "Custom Post Type UI",
             "file": "custom-post-type-ui/custom-post-type-ui.php",
@@ -255,6 +261,12 @@
             "name": "Enable Media Replace",
             "file": "enable-media-replace/enable-media-replace.php",
             "options": ["enable_media_replace"]
+        },
+        "essential-addons-for-elementor": {
+            "name": "Essential Addons for Elementor",
+            "file": "essential-addons-for-elementor-lite/essential_adons_elementor.php",
+            "options": ["eael_*"],
+            "recommendation": "The <code>eael_save_settings</code> option is the main configuration for Essential Addons, defining which widgets are active. It is critical for site functionality and <strong>should not</strong> have its autoload disabled."
         },
         "ezoic-integration": {
             "name": "Ezoic Integration",
@@ -330,6 +342,12 @@
             "name": "JetPlugins (Crocoblock)",
             "file": "jet-engine/jet-engine.php",
             "options": ["jet-*", "safe:jet-license-data"]
+        },
+        "leaky-paywall": {
+            "name": "Leaky Paywall",
+            "file": "leaky-paywall/leaky-paywall.php",
+            "options": ["issuem-leaky-paywall", "issuem_*"],
+            "recommendation": "<strong>Leaky Paywall:</strong> The <code>issuem-leaky-paywall</code> option contains critical settings for your site's paywall restrictions and subscription levels. This data is required on the front end to determine content access and <strong>must remain autoloaded</strong> for the plugin to function correctly and performantly."
         },
         "limit-login-attempts-reloaded": {
             "name": "Limit Login Attempts Reloaded",
