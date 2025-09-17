@@ -1,5 +1,5 @@
 {
-    "version": "4.1.11",
+    "version": "4.1.12",
     "plugins": {
         "a2-optimized": {
             "name": "A2 Optimized",
@@ -457,6 +457,12 @@
             "name": "PublishPress Revisions",
             "file": "revisionary/revisionary.php",
             "options": ["safe:revisionary_sent_mail"]
+        },
+        "pwa-for-wp": {
+            "name": "PWA for WP & AMP",
+            "file": "pwa-for-wp/pwa-for-wp.php",
+            "options": ["pwaforwp_*"],
+            "recommendation": "The <code>pwaforwp_settings</code> option contains all critical settings for your Progressive Web App (manifest, icons, service worker). It <strong>must</strong> remain autoloaded for the PWA to function correctly."
         },
         "query-monitor": {
             "name": "Query Monitor",
