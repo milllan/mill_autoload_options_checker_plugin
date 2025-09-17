@@ -1,5 +1,5 @@
 {
-    "version": "4.1.10",
+    "version": "4.1.11",
     "plugins": {
         "a2-optimized": {
             "name": "A2 Optimized",
@@ -521,6 +521,15 @@
             "name": "Simple Sitemap",
             "file": "simple-sitemap/simple-sitemap.php",
             "options": ["simple_sitemap_*"]
+        },
+        "simplefeed-feeds": {
+            "name": "SimpleFeed Feeds",
+            "file": "wp-simplefeed-feeds/wp-simplefeed-feeds.php",
+            "options": [
+                "simplefeed_*",
+                "safe:simplefeed_version_checking_remote"
+            ],
+            "recommendation": "The <code>simplefeed_version_checking_remote</code> option is a cache for the plugin's update information (like changelogs). This is admin-only data and is <strong>100% safe</strong> to disable autoload for."
         },
         "starbox": {
             "name": "Starbox - the Author Box for Humans",
