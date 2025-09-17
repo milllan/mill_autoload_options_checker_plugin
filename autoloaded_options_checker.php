@@ -904,6 +904,9 @@ final class Autoloaded_Options_Optimizer_Plugin {
             const disableNonce = wrapper.dataset.disableNonce;
             const viewNonce = wrapper.dataset.viewNonce;
             const findNonce = wrapper.dataset.findNonce;
+            console.log('JavaScript variables initialized:');
+            console.log('ajaxurl:', ajaxurl);
+            console.log('findNonce:', findNonce);
             
             function showResult(message, type = 'success') { 
                 resultsContainer.innerHTML = `<div class="notice notice-${type} is-dismissible"><p>${message}</p></div>`; 
@@ -981,17 +984,26 @@ final class Autoloaded_Options_Optimizer_Plugin {
             }
 
             function findOptionSource(optionName) {
+                console.log('findOptionSource called with:', optionName);
+                console.log('ajaxurl:', ajaxurl);
+                console.log('findNonce:', findNonce);
                 showModal('<?php _e('Searching for source of:', 'autoload-optimizer'); ?> ' + optionName, '<?php _e('Searching plugin and theme files...', 'autoload-optimizer'); ?>');
                 const formData = new FormData();
                 formData.append('action', 'ao_find_option_in_files');
                 formData.append('nonce', findNonce);
                 formData.append('option_name', optionName);
+                console.log('Making fetch request...');
                 fetch(ajaxurl, { method: 'POST', body: formData })
-                    .then(r => r.json())
+                    .then(r => {
+                        console.log('Fetch response:', r);
+                        return r.json();
+                    })
                     .then(d => {
+                        console.log('Response data:', d);
                         modalBody.innerHTML = d.success ? d.data.html : `<p style="color:red;">${d.data.message}</p>`;
                     })
-                    .catch(() => {
+                    .catch(error => {
+                        console.error('Fetch error:', error);
                         modalBody.innerHTML = `<p style="color:red;"><?php _e('An error occurred during the request.', 'autoload-optimizer'); ?></p>`;
                     });
             }
@@ -999,16 +1011,21 @@ final class Autoloaded_Options_Optimizer_Plugin {
             const tableBody = document.querySelector('.wp-list-table tbody');
             if (tableBody) {
                 tableBody.addEventListener('click', function(e) {
+                    console.log('Table body clicked, target:', e.target);
+                    console.log('Target classes:', e.target.classList);
                     if (e.target.classList.contains('view-option-content')) {
                         e.preventDefault();
+                        console.log('View option clicked');
                         viewOptionContent(e.target.dataset.optionName);
                     }
                     if (e.target.classList.contains('disable-single')) {
                         e.preventDefault();
+                        console.log('Disable single clicked');
                         disableOptions([e.target.dataset.option], e.target);
                     }
                     if (e.target.classList.contains('find-in-files')) {
                         e.preventDefault();
+                        console.log('Find in files clicked, option:', e.target.dataset.option);
                         findOptionSource(e.target.dataset.option);
                     }
                 });
