@@ -890,20 +890,24 @@ final class Autoloaded_Options_Optimizer_Plugin {
         if (!$screen || 'tools_page_autoloaded-options' !== $screen->id) return;
         ?>
         <script type="text/javascript">
-        document.addEventListener('DOMContentLoaded', function() {
-            const wrapper = document.getElementById('ao-plugin-wrapper');
-            const modalOverlay = document.getElementById('ao-option-modal-overlay');
-            const modalContent = document.getElementById('ao-option-modal-content');
-            const modalTitle = document.getElementById('ao-option-modal-title');
-            const modalBody = document.getElementById('ao-modal-body');
-            const resultsContainer = document.getElementById('ao-results-container');
-            
-            // --- MODIFICATION: Removed mainCheckbox and itemCheckboxes variables ---
+(function() {
+    const wrapper = document.getElementById('ao-plugin-wrapper');
+    if (!wrapper) {
+        console.error('Wrapper element not found');
+        return;
+    }
+    const modalOverlay = document.getElementById('ao-option-modal-overlay');
+    const modalContent = document.getElementById('ao-option-modal-content');
+    const modalTitle = document.getElementById('ao-option-modal-title');
+    const modalBody = document.getElementById('ao-modal-body');
+    const resultsContainer = document.getElementById('ao-results-container');
+    
+    // --- MODIFICATION: Removed mainCheckbox and itemCheckboxes variables ---
 
-            const ajaxurl = wrapper.dataset.ajaxUrl;
-            const disableNonce = wrapper.dataset.disableNonce;
-            const viewNonce = wrapper.dataset.viewNonce;
-            const findNonce = wrapper.dataset.findNonce;
+    const ajaxurl = wrapper.dataset.ajaxUrl;
+    const disableNonce = wrapper.dataset.disableNonce;
+    const viewNonce = wrapper.dataset.viewNonce;
+    const findNonce = wrapper.dataset.findNonce;
             console.log('JavaScript variables initialized:');
             console.log('ajaxurl:', ajaxurl);
             console.log('findNonce:', findNonce);
@@ -1091,7 +1095,7 @@ final class Autoloaded_Options_Optimizer_Plugin {
                         });
                 });
             }
-        });
+        })();
         </script>
         <?php
     }
