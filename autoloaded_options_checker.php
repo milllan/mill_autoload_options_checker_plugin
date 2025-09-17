@@ -3,7 +3,7 @@
  * Plugin Name:       Autoloaded Options Optimizer
  * Plugin URI:        https://github.com/milllan/mill_autoload_options_checker_plugin
  * Description:       A tool to analyze, view, and manage autoloaded options in the wp_options table, with a remotely managed configuration.
- * Version:           4.1.30
+ * Version:           4.1.31
  * Author:            Milan Petrović
  * Author URI:        https://wpspeedopt.net/
  * License:           GPL v2 or later
@@ -15,7 +15,7 @@
 /**
  * Define AO_PLUGIN_VERSION for telemetry
  */
-define('AO_PLUGIN_VERSION', '4.1.30');
+define('AO_PLUGIN_VERSION', '4.1.31');
 define('AO_PLUGIN_FILE', __FILE__);
 
 // Prevent direct access
@@ -743,11 +743,25 @@ final class Autoloaded_Options_Optimizer_Plugin {
 
     public function ajax_get_option_value() {
         check_ajax_referer('ao_view_option_nonce', 'nonce');
-        if (!current_user_can('manage_options')) wp_send_json_error(['message' => __('Permission denied.', 'autoload-optimizer')]);
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(['message' => __('Permission denied.', 'autoload-optimizer')]);
+        }
+
         $option_name = sanitize_text_field($_POST['option_name']);
-        $option_value = get_option($option_name);
-        if (false === $option_value) wp_send_json_error(['message' => __('Option not found.', 'autoload-optimizer')]);
-        wp_send_json_success(['value' => '<pre>' . esc_html(print_r($option_value, true)) . '</pre>']);
+        $raw_value = get_option($option_name);
+
+        if (false === $raw_value) {
+            wp_send_json_error(['message' => __('Option not found.', 'autoload-optimizer')]);
+        }
+
+        // Use maybe_unserialize() to safely attempt to unserialize the data.
+        // If it's not serialized, the original value is returned.
+        $display_value = maybe_unserialize($raw_value);
+        
+        // Use print_r() to format arrays/objects readably. The `true` parameter returns it as a string.
+        $html_output = '<pre>' . esc_html(print_r($display_value, true)) . '</pre>';
+
+        wp_send_json_success(['value' => $html_output]);
     }
 
     public function ajax_disable_autoload_options() {
