@@ -3,7 +3,7 @@
  * Plugin Name:       Autoloaded Options Optimizer
  * Plugin URI:        https://github.com/milllan/mill_autoload_options_checker_plugin
  * Description:       A tool to analyze, view, and manage autoloaded options in the wp_options table, with a remotely managed configuration.
- * Version:           4.1.28
+ * Version:           4.1.29
  * Author:            Milan Petrović
  * Author URI:        https://wpspeedopt.net/
  * License:           GPL v2 or later
@@ -15,7 +15,7 @@
 /**
  * Define AO_PLUGIN_VERSION for telemetry
  */
-define('AO_PLUGIN_VERSION', '4.1.28');
+define('AO_PLUGIN_VERSION', '4.1.29');
 define('AO_PLUGIN_FILE', __FILE__);
 
 // Prevent direct access
@@ -30,7 +30,7 @@ final class AO_Remote_Config_Manager {
     private static $instance;
     private const DEFAULT_REMOTE_URL = 'https://raw.githubusercontent.com/milllan/mill_autoload_options_checker_plugin/main/known-options.json';
     private const CACHE_KEY = 'ao_remote_config_cache';
-    private const CACHE_DURATION = 7 * DAY_IN_SECONDS;
+    private const CACHE_DURATION = 2 * DAY_IN_SECONDS;
     private $config_status = 'Not loaded yet.';
 
     private function __construct() {}
@@ -473,7 +473,6 @@ final class Autoloaded_Options_Optimizer_Plugin {
             <?php $this->render_summary_notices($data); ?>
             <?php $this->render_config_status($status_message); ?>
             <?php $this->render_dashboard_widgets($data); ?>
-            <?php $this->render_history_table(); ?>
             <?php $this->render_options_table($data); ?>
             <?php $this->render_bottom_widgets(); ?>
             <?php $this->render_modal(); ?>
@@ -582,6 +581,8 @@ final class Autoloaded_Options_Optimizer_Plugin {
                 ?>
             </div>
         </div>
+            <?php $this->render_history_table(); ?>
+    </div>
         <?php
     }
 
@@ -718,7 +719,6 @@ final class Autoloaded_Options_Optimizer_Plugin {
                 </tbody>
             </table>
         </div>
-    </div>
         <?php
     }
 

@@ -9,7 +9,9 @@
 
 3."Child theme" not detected as active, with parent theme options
 
-4. Interactive, Collapsible Option Value Viewer.
+4. Remove cached config file transient and other transients on uninstall, leave only history of disabled options.
+
+5. Interactive, Collapsible Option Value Viewer.
 
 Problem: The current "View" modal does a print_r inside a <pre> tag. This is fine for simple strings or small arrays. For large, complex, multi-level serialized objects (like those from Elementor or complex themes), it produces a massive, unreadable wall of text. The user can't actually diagnose what's inside.
 
