@@ -1,83 +1,6 @@
 {
-    "version": "4.1.4",
+    "version": "4.1.6",
     "plugins": {
-        "all-in-one-wp-security-firewall": {
-            "name": "All In One WP Security & Firewall",
-            "file": "all-in-one-wp-security-and-firewall/wp-security.php",
-            "options": ["aiowps_*", "aio_wp_security_*"],
-            "recommendation": "<strong>All In One WP Security:</strong> These are critical security settings for the plugin's firewall and login protection features. Disabling autoload for these options is <strong>not recommended</strong> as it could compromise your site's security."
-        },
-        "autoptimize": {
-            "name": "Autoptimize",
-            "file": "autoptimize/autoptimize.php",
-            "options": ["autoptimize_*"]
-        },
-        "beaver-builder-lite-version": {
-            "name": "Beaver Builder",
-            "file": "beaver-builder-lite-version/fl-builder.php",
-            "options": ["_fl_builder_*"]
-        },
-        "better-wp-security": {
-            "name": "iThemes Security",
-            "file": "better-wp-security/better-wp-security.php",
-            "options": ["itsec_*"]
-        },
-        "contact-form-7": {
-            "name": "Contact Form 7",
-            "file": "contact-form-7/wp-contact-form-7.php",
-            "options": ["wpcf7_*"]
-        },
-        "easy-digital-downloads": {
-            "name": "Easy Digital Downloads",
-            "file": "easy-digital-downloads/easy-digital-downloads.php",
-            "options": ["edd_*"]
-        },
-        "gravityforms": {
-            "name": "Gravity Forms",
-            "file": "gravityforms/gravityforms.php",
-            "options": ["gravityformsaddon_*", "gform_*"]
-        },
-        "ninjafood": {
-            "name": "Ninja Forms",
-            "file": "ninja-forms/ninja-forms.php",
-            "options": ["ninja_forms_*"]
-        },
-        "redirection": {
-            "name": "Redirection",
-            "file": "redirection/redirection.php",
-            "options": ["redirection_*"]
-        },
-        "redis-cache": {
-            "name": "Redis Object Cache",
-            "file": "redis-cache/redis-cache.php",
-            "options": ["redis_cache_*"]
-        },
-        "sg-cachepress": {
-            "name": "SiteGround Optimizer",
-            "file": "sg-cachepress/sg-cachepress.php",
-            "options": ["sg_cachepress_*"]
-        },
-        "simple-sitemap": {
-            "name": "Simple Sitemap",
-            "file": "simple-sitemap/simple-sitemap.php",
-            "options": ["simple_sitemap_*"]
-        },
-        "tablepress": {
-            "name": "TablePress",
-            "file": "tablepress/tablepress.php",
-            "options": ["tablepress_*"]
-        },
-        "the-events-calendar": {
-            "name": "The Events Calendar",
-            "file": "the-events-calendar/the-events-calendar.php",
-            "options": ["tribe_*"]
-        },
-        "woocommerce": {
-            "name": "WooCommerce",
-            "file": "woocommerce/woocommerce.php",
-            "options": ["woocommerce_*"]
-        },
-
         "a2-optimized": {
             "name": "A2 Optimized",
             "file": "a2-optimized-wp/A2_Optimized_WP.php",
@@ -114,6 +37,12 @@
             "file": "advanced-custom-fields/acf.php",
             "options": ["acf_*"]
         },
+        "advanced-iframe": {
+            "name": "Advanced iFrame",
+            "file": "advanced-iframe/advanced-iframe.php",
+            "options": ["advancediFrameAdminOptions", "advanced_iframe"],
+            "recommendation": "<strong>Advanced iFrame:</strong> The <code>advancediFrameAdminOptions</code> option contains default settings used by shortcodes on the front end. Disabling autoload for this option is <strong>not recommended</strong> as it may cause extra database queries and decrease performance."
+        },
         "aelia-currency-switcher": {
             "name": "Aelia Currency Switcher",
             "file": "woocommerce-aelia-currencyswitcher/woocommerce-aelia-currencyswitcher.php",
@@ -143,6 +72,12 @@
             ],
             "recommendation": "<strong>All in One SEO:</strong> The options <code>aioseo_options_v3</code> and <code>aioseop_options</code> are legacy data from older versions. They have been marked as safe to disable autoload. Do not disable autoload for the other <code>aioseo_</code> options if the plugin is active."
         },
+        "all-in-one-wp-security-firewall": {
+            "name": "All In One WP Security & Firewall",
+            "file": "all-in-one-wp-security-and-firewall/wp-security.php",
+            "options": ["aiowps_*", "aio_wp_security_*"],
+            "recommendation": "<strong>All In One WP Security:</strong> These are critical security settings for the plugin's firewall and login protection features. Disabling autoload for these options is <strong>not recommended</strong> as it could compromise your site's security."
+        },
         "analytify-google-analytics-dashboard": {
             "name": "Analytify - Google Analytics Dashboard",
             "file": "wp-analytify/wp-analytify.php",
@@ -168,6 +103,11 @@
             "file": "auto-image-attributes-pro/auto-image-attributes-pro.php",
             "options": ["aiap_settings"]
         },
+        "autoptimize": {
+            "name": "Autoptimize",
+            "file": "autoptimize/autoptimize.php",
+            "options": ["autoptimize_*"]
+        },
         "avada-theme-fusion-framework": {
             "name": "Avada Theme / Fusion Framework",
             "file": "theme:avada",
@@ -178,6 +118,11 @@
                 "safe:fusion_options_500_backup",
                 "safe:fusion_dynamic*"
             ]
+        },
+        "beaver-builder-lite-version": {
+            "name": "Beaver Builder",
+            "file": "beaver-builder-lite-version/fl-builder.php",
+            "options": ["_fl_builder_*"]
         },
         "berocket-ajax-product-filters": {
             "name": "BeRocket AJAX Product Filters",
@@ -199,6 +144,11 @@
             "name": "Better Search Replace",
             "file": "better-search-replace/better-search-replace.php",
             "options": ["bsr_options"]
+        },
+        "better-wp-security": {
+            "name": "iThemes Security",
+            "file": "better-wp-security/better-wp-security.php",
+            "options": ["itsec_*"]
         },
         "brainstorm-force": {
             "name": "Brainstorm Force",
@@ -240,6 +190,11 @@
             "file": "complianz-gdpr-premium/complianz-gdpr-premium.php",
             "options": ["complianz_options"]
         },
+        "contact-form-7": {
+            "name": "Contact Form 7",
+            "file": "contact-form-7/wp-contact-form-7.php",
+            "options": ["wpcf7_*"]
+        },
         "custom-post-type-ui": {
             "name": "Custom Post Type UI",
             "file": "custom-post-type-ui/custom-post-type-ui.php",
@@ -251,6 +206,12 @@
             "file": "custom-post-types/custom-post-types.php",
             "options": ["cpt_custom_post_types"]
         },
+        "database-cleaner": {
+            "name": "Database Cleaner: Clean, Optimize & Repair",
+            "file": "database-cleaner/database-cleaner.php",
+            "options": ["safe:dbclnr_options", "dbclnr_*"],
+            "recommendation": "<strong>Database Cleaner:</strong> The <code>dbclnr_options</code> option stores settings, schedules, and logs for the plugin's admin dashboard. This data is not needed on the front end of your site and is safe to disable autoload for."
+        },
         "disable-elementor-editor-translation": {
             "name": "Disable Elementor Editor Translation",
             "file": "disable-elementor-editor-translation/disable-elementor-editor-translation.php",
@@ -261,6 +222,11 @@
             "file": "duplicator-pro/duplicator-pro.php",
             "options": ["duplicator_pro_package_active"],
             "recommendation": "<strong>Duplicator Pro:</strong> If you no longer use this plugin, consider disabling autoload for its options."
+        },
+        "easy-digital-downloads": {
+            "name": "Easy Digital Downloads",
+            "file": "easy-digital-downloads/easy-digital-downloads.php",
+            "options": ["edd_*"]
         },
         "elementor": {
             "name": "Elementor",
@@ -315,6 +281,11 @@
             "name": "GeneratePress Theme (Custom CSS)",
             "file": "theme:generatepress",
             "options": ["simple_css"]
+        },
+        "gravityforms": {
+            "name": "Gravity Forms",
+            "file": "gravityforms/gravityforms.php",
+            "options": ["gravityformsaddon_*", "gform_*"]
         },
         "gtm-server-side": {
             "name": "GTM Server Side",
@@ -376,6 +347,12 @@
             "file": "litespeed-cache/litespeed-cache.php",
             "options": ["litespeed.*", "safe:litespeed.cloud._summary"]
         },
+        "mailpoet": {
+            "name": "MailPoet (Wysija)",
+            "file": "mailpoet/mailpoet.php",
+            "options": ["safe:wysija", "mailpoet_*"],
+            "recommendation": "<strong>MailPoet (Wysija):</strong> The <code>wysija</code> option contains all the main settings for the MailPoet newsletter plugin. This data is not required on every page load and is generally considered safe to disable autoload for. The plugin will load it when it's needed, for example, when sending emails or processing a subscription."
+        },
         "mainwp-child": {
             "name": "MainWP Child",
             "file": "mainwp-child/mainwp-child.php",
@@ -433,6 +410,11 @@
             "file": "ninjafirewall/ninjafirewall.php",
             "options": ["nfw_*"]
         },
+        "ninjafood": {
+            "name": "Ninja Forms",
+            "file": "ninja-forms/ninja-forms.php",
+            "options": ["ninja_forms_*"]
+        },
         "omgf-host-google-fonts-locally": {
             "name": "OMGF | Host Google Fonts Locally",
             "file": "host-webfonts-local/host-webfonts-local.php",
@@ -473,6 +455,16 @@
             "file": "rcw-feed/rcw-feed.php",
             "options": ["_transient_RCWFeed_*", "safe:_transient_RCWFeed_Ms_*"]
         },
+        "redirection": {
+            "name": "Redirection",
+            "file": "redirection/redirection.php",
+            "options": ["redirection_*"]
+        },
+        "redis-cache": {
+            "name": "Redis Object Cache",
+            "file": "redis-cache/redis-cache.php",
+            "options": ["redis_cache_*"]
+        },
         "revslider": {
             "name": "Slider Revolution",
             "file": "revslider/revslider.php",
@@ -491,10 +483,20 @@
             "options": ["safe:_transient_RCWFeed_Ms_*"],
             "recommendation": "<strong>RSS Feed Widget:</strong> The <code>_transient_RCWFeed_Ms_*</code> options are very large cached RSS feeds, often for rotating ads or content. They should NEVER be autoloaded. Disabling autoload for all of these options is 100% safe and will provide a major performance boost."
         },
+        "sg-cachepress": {
+            "name": "SiteGround Optimizer",
+            "file": "sg-cachepress/sg-cachepress.php",
+            "options": ["sg_cachepress_*"]
+        },
         "simple-admin-language-change": {
             "name": "Simple Admin Language Change",
             "file": "simple-admin-language-change/simple-admin-language-change.php",
             "options": ["salc_options"]
+        },
+        "simple-sitemap": {
+            "name": "Simple Sitemap",
+            "file": "simple-sitemap/simple-sitemap.php",
+            "options": ["simple_sitemap_*"]
         },
         "starbox": {
             "name": "Starbox - the Author Box for Humans",
@@ -506,10 +508,20 @@
             "file": "svg-support/svg-support.php",
             "options": ["bodhi_svg_options"]
         },
+        "tablepress": {
+            "name": "TablePress",
+            "file": "tablepress/tablepress.php",
+            "options": ["tablepress_*"]
+        },
         "temporary-login-without-password": {
             "name": "Temporary Login Without Password",
             "file": "temporary-login-without-password/temporary-login-without-password.php",
             "options": ["tlw_options"]
+        },
+        "the-events-calendar": {
+            "name": "The Events Calendar",
+            "file": "the-events-calendar/the-events-calendar.php",
+            "options": ["tribe_*"]
         },
         "thrive-leads": {
             "name": "Thrive Leads",
@@ -550,6 +562,11 @@
             "name": "Widgets for Google Reviews",
             "file": "widget-google-reviews/grw.php",
             "options": ["grw_options"]
+        },
+        "woocommerce": {
+            "name": "WooCommerce",
+            "file": "woocommerce/woocommerce.php",
+            "options": ["woocommerce_*"]
         },
         "wordfence": {
             "name": "Wordfence Security",
