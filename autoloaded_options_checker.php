@@ -3,7 +3,7 @@
  * Plugin Name:       Autoloaded Options Optimizer
  * Plugin URI:        https://github.com/milllan/mill_autoload_options_checker_plugin
  * Description:       A tool to analyze, view, and manage autoloaded options in the wp_options table, with a remotely managed configuration.
- * Version:           4.1.29
+ * Version:           4.1.30
  * Author:            Milan Petrović
  * Author URI:        https://wpspeedopt.net/
  * License:           GPL v2 or later
@@ -15,7 +15,7 @@
 /**
  * Define AO_PLUGIN_VERSION for telemetry
  */
-define('AO_PLUGIN_VERSION', '4.1.29');
+define('AO_PLUGIN_VERSION', '4.1.30');
 define('AO_PLUGIN_FILE', __FILE__);
 
 // Prevent direct access
@@ -806,7 +806,10 @@ final class Autoloaded_Options_Optimizer_Plugin {
         if (empty($option_name)) {
             wp_send_json_error(['message' => __('Option name cannot be empty.', 'autoload-optimizer')]);
         }
-        if (preg_match('/^[a-zA-Z0-9_\-*]+$/', $option_name) !== 1) {
+        //if (preg_match('/^[a-zA-Z0-9_\-*]+$/', $option_name) !== 1) {
+        // New, safer regex: Only allow a specific set of characters.
+        // This allows letters, numbers, underscore, hyphen, asterisk, colon, and period.
+        if (preg_match('/^[a-zA-Z0-9_\-*:.]+$/', $option_name) !== 1) {
             wp_send_json_error(['message' => __('Invalid characters in option name.', 'autoload-optimizer')]);
         }
         $cache_key = 'ao_file_search_' . md5($option_name);
@@ -885,53 +888,36 @@ final class Autoloaded_Options_Optimizer_Plugin {
         wp_send_json_success(['message' => __('Telemetry data sent successfully. Thank you for helping improve the plugin!', 'autoload-optimizer')]);
     }
 
-    public function admin_page_scripts() {
-        $screen = get_current_screen();
-        if (!$screen || 'tools_page_autoloaded-options' !== $screen->id) return;
-        ?>
-        <script type="text/javascript">
-(function() {
-    console.log('Script loaded, document.readyState:', document.readyState);
+// Inside the Autoloaded_Options_Optimizer_Plugin class
 
-    function initScript() {
-        console.log('Initializing script...');
-
+public function admin_page_scripts() {
+    $screen = get_current_screen();
+    if (!$screen || 'tools_page_autoloaded-options' !== $screen->id) return;
+    ?>
+    <script type="text/javascript">
+    document.addEventListener('DOMContentLoaded', function() {
         const wrapper = document.getElementById('ao-plugin-wrapper');
-        if (!wrapper) {
-            console.error('Wrapper element not found');
-            return;
-        }
-        console.log('Wrapper found:', wrapper);
+        if (!wrapper) return;
 
         const modalOverlay = document.getElementById('ao-option-modal-overlay');
         const modalContent = document.getElementById('ao-option-modal-content');
         const modalTitle = document.getElementById('ao-option-modal-title');
         const modalBody = document.getElementById('ao-modal-body');
         const resultsContainer = document.getElementById('ao-results-container');
-
-        console.log('Modal elements found:', { modalOverlay, modalContent, modalTitle, modalBody, resultsContainer });
-
-        // --- MODIFICATION: Removed mainCheckbox and itemCheckboxes variables ---
-
+        
         const ajaxurl = wrapper.dataset.ajaxUrl;
         const disableNonce = wrapper.dataset.disableNonce;
         const viewNonce = wrapper.dataset.viewNonce;
         const findNonce = wrapper.dataset.findNonce;
 
-        console.log('JavaScript variables initialized:');
-        console.log('ajaxurl:', ajaxurl);
-        console.log('findNonce:', findNonce);
-        console.log('All dataset values:', wrapper.dataset);
-
-        function showResult(message, type = 'success') {
-            resultsContainer.innerHTML = `<div class="notice notice-${type} is-dismissible"><p>${message}</p></div>`;
-            resultsContainer.style.display = 'block';
+        function showResult(message, type = 'success') { 
+            resultsContainer.innerHTML = `<div class="notice notice-${type} is-dismissible"><p>${message}</p></div>`; 
+            resultsContainer.style.display = 'block'; 
         }
 
         function cleanupEmptyGroups() {
             const tableBody = document.querySelector('.wp-list-table tbody');
             if (!tableBody) return;
-
             const headers = tableBody.querySelectorAll('tr.plugin-header');
             headers.forEach(header => {
                 const nextRow = header.nextElementSibling;
@@ -943,7 +929,6 @@ final class Autoloaded_Options_Optimizer_Plugin {
 
         function disableOptions(optionNames, button) {
             if (!confirm(`<?php _e('Are you sure you want to disable autoload for the selected option(s)?', 'autoload-optimizer'); ?>`)) return;
-
             if (button) button.disabled = true;
 
             const formData = new FormData();
@@ -955,33 +940,25 @@ final class Autoloaded_Options_Optimizer_Plugin {
                 .then(response => response.json())
                 .then(data => {
                     showResult(data.data.message, data.success ? 'success' : 'error');
-
                     if (data.success && data.data.disabled_options) {
                         data.data.disabled_options.forEach(optionName => {
                             const row = document.querySelector(`tr[data-option-name="${optionName}"]`);
-                            if (row) {
-                                row.remove();
-                            }
+                            if (row) row.remove();
                         });
                         cleanupEmptyGroups();
                     }
                 })
                 .catch(() => showResult('<?php _e('Request failed. Please check the browser console for errors.', 'autoload-optimizer'); ?>', 'error'))
-                .finally(() => {
-                    if (button) button.disabled = false;
-                });
+                .finally(() => { if (button) button.disabled = false; });
         }
 
         function showModal(title, content) {
-            console.log('showModal called with:', title, content);
             modalTitle.textContent = title;
             modalBody.innerHTML = content;
             modalOverlay.style.display = 'flex';
         }
 
-        function hideModal() {
-            modalOverlay.style.display = 'none';
-        }
+        function hideModal() { modalOverlay.style.display = 'none'; }
 
         function viewOptionContent(optionName) {
             showModal('<?php _e('Viewing:', 'autoload-optimizer'); ?> ' + optionName, '<?php _e('Loading...', 'autoload-optimizer'); ?>');
@@ -991,88 +968,43 @@ final class Autoloaded_Options_Optimizer_Plugin {
             formData.append('option_name', optionName);
             fetch(ajaxurl, { method: 'POST', body: formData })
                 .then(r => r.json())
-                .then(d => {
-                    modalBody.innerHTML = d.success ? d.data.value : `<p style="color:red;">${d.data.message}</p>`;
-                })
-                .catch(() => {
-                    modalBody.innerHTML = `<p style="color:red;"><?php _e('An error occurred during the request.', 'autoload-optimizer'); ?></p>`;
-                });
+                .then(d => { modalBody.innerHTML = d.success ? d.data.value : `<p style="color:red;">${d.data.message}</p>`; })
+                .catch(() => { modalBody.innerHTML = `<p style="color:red;"><?php _e('An error occurred during the request.', 'autoload-optimizer'); ?></p>`; });
         }
 
         function findOptionSource(optionName) {
-            console.log('findOptionSource called with:', optionName);
-            console.log('ajaxurl:', ajaxurl);
-            console.log('findNonce:', findNonce);
-            console.log('modalOverlay:', modalOverlay);
-            console.log('modalTitle:', modalTitle);
-            console.log('modalBody:', modalBody);
-
-            if (!modalOverlay || !modalTitle || !modalBody) {
-                console.error('Modal elements not found!');
-                return;
-            }
-
             showModal('<?php _e('Searching for source of:', 'autoload-optimizer'); ?> ' + optionName, '<?php _e('Searching plugin and theme files...', 'autoload-optimizer'); ?>');
-
             const formData = new FormData();
             formData.append('action', 'ao_find_option_in_files');
             formData.append('nonce', findNonce);
             formData.append('option_name', optionName);
-
-            console.log('FormData contents:');
-            for (let [key, value] of formData.entries()) {
-                console.log(key, value);
-            }
-
-            console.log('Making fetch request to:', ajaxurl);
             fetch(ajaxurl, { method: 'POST', body: formData })
-                .then(r => {
-                    console.log('Fetch response received:', r);
-                    console.log('Response status:', r.status);
-                    console.log('Response ok:', r.ok);
-                    return r.json();
-                })
-                .then(d => {
-                    console.log('Parsed response data:', d);
-                    modalBody.innerHTML = d.success ? d.data.html : `<p style="color:red;">${d.data.message}</p>`;
-                })
-                .catch(error => {
-                    console.error('Fetch error:', error);
-                    modalBody.innerHTML = `<p style="color:red;"><?php _e('An error occurred during the request.', 'autoload-optimizer'); ?></p>`;
-                });
+                .then(r => r.json())
+                .then(d => { modalBody.innerHTML = d.success ? d.data.html : `<p style="color:red;">${d.data.message}</p>`; })
+                .catch(() => { modalBody.innerHTML = `<p style="color:red;"><?php _e('An error occurred during the request.', 'autoload-optimizer'); ?></p>`; });
         }
-            
-        const tableBody = document.querySelector('.wp-list-table tbody');
-        console.log('Table body found:', tableBody);
+        
+        // --- JAVASCRIPT FIX: EVENT DELEGATION ---
+        // Attach ONE listener to the main wrapper. It will catch clicks from all children.
+        wrapper.addEventListener('click', function(e) {
+            const target = e.target; // The element that was actually clicked
 
-        if (tableBody) {
-            console.log('Attaching click event listener to table body');
-            tableBody.addEventListener('click', function(e) {
-                console.log('Table body clicked, target:', e.target);
-                console.log('Target classes:', Array.from(e.target.classList));
-                console.log('Target dataset:', e.target.dataset);
-
-                if (e.target.classList.contains('view-option-content')) {
-                    e.preventDefault();
-                    console.log('View option clicked, optionName:', e.target.dataset.optionName);
-                    viewOptionContent(e.target.dataset.optionName);
-                }
-                if (e.target.classList.contains('disable-single')) {
-                    e.preventDefault();
-                    console.log('Disable single clicked, option:', e.target.dataset.option);
-                    disableOptions([e.target.dataset.option], e.target);
-                }
-                if (e.target.classList.contains('find-in-files')) {
-                    e.preventDefault();
-                    console.log('Find in files clicked, option:', e.target.dataset.option);
-                    console.log('Calling findOptionSource with:', e.target.dataset.option);
-                    findOptionSource(e.target.dataset.option);
-                }
-            });
-        } else {
-            console.error('Table body not found!');
-        }
-
+            // Check if the clicked element (or its parent) has the class we care about
+            if (target.closest('.view-option-content')) {
+                e.preventDefault();
+                viewOptionContent(target.closest('.view-option-content').dataset.optionName);
+            }
+            if (target.closest('.disable-single')) {
+                e.preventDefault();
+                disableOptions([target.closest('.disable-single').dataset.option], target);
+            }
+            if (target.closest('.find-in-files')) {
+                e.preventDefault();
+                findOptionSource(target.closest('.find-in-files').dataset.option);
+            }
+        });
+        // --- END JAVASCRIPT FIX ---
+        
         const manualLookupForm = document.getElementById('ao-manual-lookup-form');
         if (manualLookupForm) {
             manualLookupForm.addEventListener('submit', function(e) {
@@ -1082,14 +1014,11 @@ final class Autoloaded_Options_Optimizer_Plugin {
                 if (optionName) viewOptionContent(optionName);
             });
         }
-
-        // --- MODIFICATION: Removed 'disableSelectedBtn' event listener ---
-
+        
         const disableSafeBtn = document.getElementById('ao-disable-safe-options');
         if (disableSafeBtn) {
             disableSafeBtn.addEventListener('click', e => {
                 e.preventDefault();
-                // --- MODIFICATION: Changed selector to get names from data attributes instead of checkboxes ---
                 const safeOptions = Array.from(document.querySelectorAll('tr[data-is-safe="true"]')).map(tr => tr.dataset.optionName);
                 if (safeOptions.length === 0) {
                     alert('<?php _e('No safe options were found in the table to disable.', 'autoload-optimizer'); ?>');
@@ -1098,17 +1027,15 @@ final class Autoloaded_Options_Optimizer_Plugin {
                 disableOptions(safeOptions, e.target);
             });
         }
-
-        // --- MODIFICATION: Removed 'mainCheckbox' event listener ---
-
+        
         modalOverlay.addEventListener('click', e => { if (e.target === modalOverlay) hideModal(); });
         modalContent.querySelector('.close-modal').addEventListener('click', hideModal);
 
         const sendTelemetryBtn = document.getElementById('ao-send-telemetry');
-        const telemetryStatus = document.getElementById('ao-telemetry-status');
         if (sendTelemetryBtn) {
             sendTelemetryBtn.addEventListener('click', e => {
                 e.preventDefault();
+                const telemetryStatus = document.getElementById('ao-telemetry-status');
                 sendTelemetryBtn.disabled = true;
                 telemetryStatus.textContent = '<?php _e('Sending...', 'autoload-optimizer'); ?>';
                 const formData = new FormData();
@@ -1117,35 +1044,20 @@ final class Autoloaded_Options_Optimizer_Plugin {
                 fetch(ajaxurl, { method: 'POST', body: formData })
                     .then(response => response.json())
                     .then(data => {
-                        telemetryStatus.textContent = data.success
-                            ? '<?php _e('✓ Sent successfully!', 'autoload-optimizer'); ?>'
-                            : '<?php _e('✗ Failed to send', 'autoload-optimizer'); ?>';
-                        if (!data.success) {
-                            console.error('Telemetry error:', data.data.message);
-                        }
+                        telemetryStatus.textContent = data.success ? '<?php _e('✓ Sent successfully!', 'autoload-optimizer'); ?>' : '<?php _e('✗ Failed to send', 'autoload-optimizer'); ?>';
+                        if (!data.success) { console.error('Telemetry error:', data.data.message); }
                     })
-                    .catch(() => {
-                        telemetryStatus.textContent = '<?php _e('✗ Network error', 'autoload-optimizer'); ?>';
-                    })
+                    .catch(() => { telemetryStatus.textContent = '<?php _e('✗ Network error', 'autoload-optimizer'); ?>'; })
                     .finally(() => {
                         sendTelemetryBtn.disabled = false;
                         setTimeout(() => { telemetryStatus.textContent = ''; }, 5000);
                     });
             });
         }
-
-        // Check if DOM is already loaded
-        if (document.readyState === 'loading') {
-            console.log('DOM still loading, waiting for DOMContentLoaded');
-            document.addEventListener('DOMContentLoaded', initScript);
-        } else {
-            console.log('DOM already loaded, initializing immediately');
-            initScript();
-        }
-    })();
-        </script>
-        <?php
-    }
+    });
+    </script>
+    <?php
+}
 
     public function add_settings_link($links) {
         $settings_link = sprintf(
